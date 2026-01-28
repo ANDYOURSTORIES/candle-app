@@ -598,6 +598,86 @@
             }
         }
 
+        function csoportCimkezTeljes(kulcs, osszesDarab) {
+            // Megkeressük az összes tételt ebből a csoportból
+            const [illatId, termekTipus, meret] = kulcs.split('-');
+            const csoportTetelek = kiontesek.filter(k => 
+                k.illatId === parseInt(illatId) && 
+                k.termekTipus === termekTipus && 
+                k.meret === meret
+            );
+            
+            if (csoportTetelek.length === 0) return;
+            
+            const keszletMennyiseg = cimkeKeszlet[kulcs] || 0;
+            
+            if (keszletMennyiseg < osszesDarab) {
+                alert(`Nincs elég címke a készletben!\n\nSzükséges: ${osszesDarab} db\nKészlet: ${keszletMennyiseg} db\n\nHasználd a "Részleges" gombot!`);
+                return;
+            }
+            
+            // Modal megnyitása az első tétellel (reprezentatív)
+            const elsoTetel = csoportTetelek[0];
+            const osszesitettTetel = {
+                ...elsoTetel,
+                darabszam: osszesDarab,
+                id: 'csoport-' + kulcs
+            };
+            teljesCimkezesModal('csoport', osszesitettTetel);
+        }
+
+        function csoportCimkezReszleges(kulcs, osszesDarab, keszletMennyiseg) {
+            const maxCimkezheto = Math.min(keszletMennyiseg, osszesDarab);
+            
+            if (maxCimkezheto === 0) {
+                alert('Nincs címke a készletben!');
+                return;
+            }
+            
+            // Megkeressük az első tételt reprezentációként
+            const [illatId, termekTipus, meret] = kulcs.split('-');
+            const csoportTetelek = kiontesek.filter(k => 
+                k.illatId === parseInt(illatId) && 
+                k.termekTipus === termekTipus && 
+                k.meret === meret
+            );
+            
+            if (csoportTetelek.length === 0) return;
+            
+            const elsoTetel = csoportTetelek[0];
+            const osszesitettTetel = {
+                ...elsoTetel,
+                darabszam: osszesDarab,
+                id: 'csoport-' + kulcs
+            };
+            
+            reszlegesCimkezesModal('csoport', osszesitettTetel, maxCimkezheto, keszletMennyiseg);
+        }
+
+        function csoportTorolCimkezetlen(kulcs) {
+            const [illatId, termekTipus, meret] = kulcs.split('-');
+            const csoportTetelek = kiontesek.filter(k => 
+                k.illatId === parseInt(illatId) && 
+                k.termekTipus === termekTipus && 
+                k.meret === meret
+            );
+            
+            if (csoportTetelek.length === 0) return;
+            
+            const osszesDarab = csoportTetelek.reduce((sum, k) => sum + k.darabszam, 0);
+            
+            if (confirm(`Biztosan törlöd az összes tételt ebből?\n\n${csoportTetelek[0].illatNev} - ${csoportTetelek[0].termekTipusNev} - ${csoportTetelek[0].meret}\n\nÖsszesen: ${osszesDarab} db (${csoportTetelek.length} tétel)`)) {
+                // Törlés
+                kiontesek = kiontesek.filter(k => 
+                    !(k.illatId === parseInt(illatId) && 
+                      k.termekTipus === termekTipus && 
+                      k.meret === meret)
+                );
+                ment();
+                render();
+            }
+        }
+
         let teljesCimkezesData = null; // Tárolás a modal számára
 
         function termekCimkezTeljes(kiontesId) {
@@ -648,20 +728,49 @@
             if (!teljesCimkezesData) return;
             
             const { kiontesId, kiontes } = teljesCimkezesData;
-            const kulcs = getCimkeKulcs(kiontes.illatId, kiontes.termekTipus, kiontes.meret);
             
-            // Levonás a címke készletből
-            cimkeKeszlet[kulcs] -= kiontes.darabszam;
-            
-            // Átkerül a kész termékek közé
-            const ujTermek = {
-                ...kiontes,
-                cimkezveIdopont: new Date().toISOString()
-            };
-            keszTermekek.unshift(ujTermek);
-            
-            // Törlés a kiöntések közül
-            kiontesek = kiontesek.filter(k => k.id !== kiontesId);
+            // Csoportos címkézés esetén
+            if (typeof kiontesId === 'string' && kiontesId.startsWith('csoport')) {
+                const kulcs = getCimkeKulcs(kiontes.illatId, kiontes.termekTipus, kiontes.meret);
+                
+                // Megkeressük az összes tételt
+                const csoportTetelek = kiontesek.filter(k => 
+                    k.illatId === kiontes.illatId && 
+                    k.termekTipus === kiontes.termekTipus && 
+                    k.meret === kiontes.meret
+                );
+                
+                // Levonás a címke készletből
+                cimkeKeszlet[kulcs] -= kiontes.darabszam;
+                
+                // Minden tétel átkerül a kész termékek közé
+                csoportTetelek.forEach(tetel => {
+                    keszTermekek.unshift({
+                        ...tetel,
+                        cimkezveIdopont: new Date().toISOString()
+                    });
+                });
+                
+                // Törlés a kiöntések közül
+                kiontesek = kiontesek.filter(k => 
+                    !(k.illatId === kiontes.illatId && 
+                      k.termekTipus === kiontes.termekTipus && 
+                      k.meret === kiontes.meret)
+                );
+            } else {
+                // Egyedi tétel címkézése
+                const kulcs = getCimkeKulcs(kiontes.illatId, kiontes.termekTipus, kiontes.meret);
+                
+                cimkeKeszlet[kulcs] -= kiontes.darabszam;
+                
+                const ujTermek = {
+                    ...kiontes,
+                    cimkezveIdopont: new Date().toISOString()
+                };
+                keszTermekek.unshift(ujTermek);
+                
+                kiontesek = kiontesek.filter(k => k.id !== kiontesId);
+            }
             
             ment();
             render();
@@ -735,22 +844,58 @@
             // Levonás a címke készletből
             cimkeKeszlet[kulcs] -= szam;
             
-            // Kész termék létrehozása a címkézett mennyiséggel
-            const ujKeszTermek = {
-                ...kiontes,
-                darabszam: szam,
-                cimkezveIdopont: new Date().toISOString(),
-                id: generateId()
-            };
-            
-            keszTermekek.unshift(ujKeszTermek);
-            
-            // Eredeti termék mennyiségének csökkentése
-            kiontes.darabszam -= szam;
-            
-            // Ha az összes termék címkézve lett, törlés
-            if (kiontes.darabszam <= 0) {
-                kiontesek = kiontesek.filter(k => k.id !== kiontesId);
+            // Csoportos címkézés esetén
+            if (typeof kiontesId === 'string' && kiontesId.startsWith('csoport')) {
+                // Megkeressük az összes tételt
+                const csoportTetelek = kiontesek.filter(k => 
+                    k.illatId === kiontes.illatId && 
+                    k.termekTipus === kiontes.termekTipus && 
+                    k.meret === kiontes.meret
+                );
+                
+                let maradekCimkezendo = szam;
+                
+                // Címkézés sorrendben, amíg van címke
+                for (const tetel of csoportTetelek) {
+                    if (maradekCimkezendo <= 0) break;
+                    
+                    const cimkezettMennyiseg = Math.min(tetel.darabszam, maradekCimkezendo);
+                    
+                    // Kész termék létrehozása
+                    keszTermekek.unshift({
+                        ...tetel,
+                        darabszam: cimkezettMennyiseg,
+                        cimkezveIdopont: new Date().toISOString(),
+                        id: generateId()
+                    });
+                    
+                    tetel.darabszam -= cimkezettMennyiseg;
+                    maradekCimkezendo -= cimkezettMennyiseg;
+                }
+                
+                // Törlés a 0-ra csökkent tételek
+                kiontesek = kiontesek.filter(k => 
+                    !(k.illatId === kiontes.illatId && 
+                      k.termekTipus === kiontes.termekTipus && 
+                      k.meret === kiontes.meret && 
+                      k.darabszam <= 0)
+                );
+            } else {
+                // Egyedi tétel részleges címkézése
+                const ujKeszTermek = {
+                    ...kiontes,
+                    darabszam: szam,
+                    cimkezveIdopont: new Date().toISOString(),
+                    id: generateId()
+                };
+                
+                keszTermekek.unshift(ujKeszTermek);
+                
+                kiontes.darabszam -= szam;
+                
+                if (kiontes.darabszam <= 0) {
+                    kiontesek = kiontesek.filter(k => k.id !== kiontesId);
+                }
             }
             
             ment();
@@ -1246,45 +1391,75 @@
                 cimkeDiv.innerHTML = '';
             }
 
-            // Kiöntések lista
+            // Kiöntések lista - CSOPORTOSÍTVA
             const kiontesLista = document.getElementById('kiontesLista');
             if (kiontesek.length === 0) {
                 kiontesLista.innerHTML = '<p class="text-gray-500 text-center py-8">Még nincs termék rögzítve</p>';
             } else {
-                kiontesLista.innerHTML = kiontesek.map(kiontes => {
-                    const kulcs = getCimkeKulcs(kiontes.illatId, kiontes.termekTipus, kiontes.meret);
+                // Csoportosítás illat+típus+méret szerint
+                const csoportositott = {};
+                
+                kiontesek.forEach(kiontes => {
+                    const kulcs = `${kiontes.illatId}-${kiontes.termekTipus}-${kiontes.meret}`;
+                    
+                    if (!csoportositott[kulcs]) {
+                        csoportositott[kulcs] = {
+                            illatId: kiontes.illatId,
+                            illatNev: kiontes.illatNev,
+                            termekTipus: kiontes.termekTipus,
+                            termekTipusNev: kiontes.termekTipusNev,
+                            meret: kiontes.meret,
+                            osszesDarab: 0,
+                            elsoKiontesIdopont: kiontes.datum,
+                            tetelek: []
+                        };
+                    }
+                    
+                    csoportositott[kulcs].osszesDarab += kiontes.darabszam;
+                    csoportositott[kulcs].tetelek.push(kiontes);
+                    
+                    // Legkorábbi kiöntés
+                    if (new Date(kiontes.datum) < new Date(csoportositott[kulcs].elsoKiontesIdopont)) {
+                        csoportositott[kulcs].elsoKiontesIdopont = kiontes.datum;
+                    }
+                });
+                
+                const csoportositottTomb = Object.values(csoportositott);
+                
+                kiontesLista.innerHTML = csoportositottTomb.map(csoport => {
+                    const kulcs = getCimkeKulcs(csoport.illatId, csoport.termekTipus, csoport.meret);
                     const keszletMennyiseg = cimkeKeszlet[kulcs] || 0;
-                    const eleg = keszletMennyiseg >= kiontes.darabszam;
+                    const eleg = keszletMennyiseg >= csoport.osszesDarab;
                     
                     return `
-                    <div class="p-4 rounded-lg border-2 transition ${
-                        kiontes.cimkeGyartva ? 'bg-green-50 border-green-300' : 'bg-orange-50 border-orange-300'
-                    }">
+                    <div class="p-3 md:p-4 rounded-lg border-2 transition bg-orange-50 border-orange-300">
                         <div class="flex justify-between items-start mb-2">
                             <div class="flex-1">
-                                <div class="font-bold text-lg text-amber-900">${kiontes.illatNev}</div>
-                                ${kiontes.termekTipusNev ? `<div class="text-sm text-gray-700 font-medium">${kiontes.termekTipusNev} - ${kiontes.meret}</div>` : ''}
-                                <div class="text-xs text-gray-500 mt-1">🗓️ Kiöntve: ${formatDatum(kiontes.datum)}</div>
-                                ${kiontes.cimkeGyartva && kiontes.cimkeGyartvaIdopont ? `<div class="text-xs text-green-700 mt-0.5">✓ Címke kész: ${formatDatum(kiontes.cimkeGyartvaIdopont)}</div>` : ''}
+                                <div class="font-bold text-base md:text-lg text-amber-900">${csoport.illatNev}</div>
+                                <div class="text-xs md:text-sm text-gray-700 font-medium">${csoport.termekTipusNev} - ${csoport.meret}</div>
+                                <div class="text-xs text-gray-500 mt-1">🗓️ ${formatDatum(csoport.elsoKiontesIdopont)}</div>
+                                ${csoport.tetelek.length > 1 ? `<div class="text-xs text-gray-600 mt-0.5">(${csoport.tetelek.length} tételből)</div>` : ''}
                                 <div class="text-xs mt-1 ${eleg ? 'text-green-600' : 'text-red-600'}">
-                                    📋 Címke készlet: ${keszletMennyiseg} db ${!eleg ? '(NINCS ELÉG!)' : ''}
+                                    📋 Címke: ${keszletMennyiseg} db ${!eleg ? '(NINCS ELÉG!)' : ''}
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-2xl font-bold text-amber-900">${kiontes.darabszam} db</div>
+                                <div class="text-xl md:text-2xl font-bold text-amber-900">${csoport.osszesDarab} db</div>
                             </div>
                         </div>
-                        ${kiontes.megjegyzes ? `<div class="text-sm text-gray-600 mb-2 italic">📝 ${kiontes.megjegyzes}</div>` : ''}
-                        <div class="flex gap-2 mt-3">
-                            <button onclick="termekCimkezTeljes(${kiontes.id})" class="flex-1 px-4 py-2 rounded-lg font-medium transition ${
+                        <div class="flex gap-1 md:gap-2 mt-3">
+                            <button onclick="csoportCimkezTeljes('${kulcs}', ${csoport.osszesDarab})" 
+                                class="flex-1 px-2 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition ${
                                 eleg ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-400 text-white cursor-not-allowed'
                             }" ${!eleg ? 'disabled' : ''}>
-                                ✓ Mind (${kiontes.darabszam} db)
+                                ✓ Mind (${csoport.osszesDarab})
                             </button>
-                            <button onclick="termekCimkezReszleges(${kiontes.id})" class="flex-1 px-4 py-2 rounded-lg font-medium transition bg-purple-600 text-white hover:bg-purple-700">
+                            <button onclick="csoportCimkezReszleges('${kulcs}', ${csoport.osszesDarab}, ${keszletMennyiseg})" 
+                                class="flex-1 px-2 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition bg-purple-600 text-white hover:bg-purple-700">
                                 🏷️ Részleges
                             </button>
-                            <button onclick="kiontesTorol(${kiontes.id})" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                            <button onclick="csoportTorolCimkezetlen('${kulcs}')" 
+                                class="px-2 md:px-4 py-1.5 md:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-xs md:text-sm">
                                 Törlés
                             </button>
                         </div>
