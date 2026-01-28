@@ -5,8 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AYS Production</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Firebase konfiguráció
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKEAA01f16INT22nX2fSV8YGOfB3fDuMw",
+            authDomain: "ays-production-5ab41.firebaseapp.com",
+            projectId: "ays-production-5ab41",
+            storageBucket: "ays-production-5ab41.firebasestorage.app",
+            messagingSenderId: "642343737324",
+            appId: "1:642343737324:web:2a2f1bd9455cb83a2752c9"
+        };
+        
+        // Firebase inicializálás
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // Global elérés
+        window.db = db;
+        window.firestore = { collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot };
+    </script>
+
 </head>
 <body class="bg-gradient-to-br from-amber-50 to-orange-50 min-h-screen p-4">
+    <!-- Loading indicator -->
+    <div id="loadingIndicator" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl p-8 text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-amber-600 mx-auto mb-4"></div>
+            <p class="text-amber-900 font-semibold">Adatok betöltése...</p>
+        </div>
+    </div>
+    
     <div id="app" class="max-w-6xl mx-auto">
         <!-- Header -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
@@ -218,35 +251,69 @@
             return Date.now() + (idCounter++);
         }
 
-        // LocalStorage betöltés
-        function betolt() {
-            const mentettIllatok = localStorage.getItem('gyertya_illatok');
-            const mentettKiontesek = localStorage.getItem('gyertya_kiontesek');
-            const mentettMeretek = localStorage.getItem('gyertya_meretek');
-            const mentettCimkeKeszlet = localStorage.getItem('gyertya_cimke_keszlet');
-            const mentettKeszTermekek = localStorage.getItem('gyertya_kesz_termekek');
-            
-            if (mentettIllatok) illatok = JSON.parse(mentettIllatok);
-            if (mentettKiontesek) kiontesek = JSON.parse(mentettKiontesek);
-            if (mentettMeretek) {
-                meretek = JSON.parse(mentettMeretek);
-            } else {
-                // Ha nincs mentett, használjuk az alapértelmezett méreteket
-                meretek = JSON.parse(JSON.stringify(alapMeretek));
+        // Firebase betöltés
+        async function betolt() {
+            try {
+                // Illatok betöltése
+                const illatokDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'illatok'));
+                if (illatokDoc.exists()) {
+                    illatok = illatokDoc.data().data || [];
+                }
+                
+                // Kiöntések betöltése
+                const kiontesekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'kiontesek'));
+                if (kiontesekDoc.exists()) {
+                    kiontesek = kiontesekDoc.data().data || [];
+                }
+                
+                // Méretek betöltése
+                const meretekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'meretek'));
+                if (meretekDoc.exists()) {
+                    meretek = meretekDoc.data().data || {};
+                } else {
+                    // Ha nincs mentett, használjuk az alapértelmezett méreteket
+                    meretek = JSON.parse(JSON.stringify(alapMeretek));
+                    await ment(); // Mentsük el az alapértelmezetteket
+                }
+                
+                // Címke készlet betöltése
+                const cimkeKeszletDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'cimkeKeszlet'));
+                if (cimkeKeszletDoc.exists()) {
+                    cimkeKeszlet = cimkeKeszletDoc.data().data || {};
+                }
+                
+                // Kész termékek betöltése
+                const keszTermekekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'keszTermekek'));
+                if (keszTermekekDoc.exists()) {
+                    keszTermekek = keszTermekekDoc.data().data || [];
+                }
+                
+                render();
+                
+                // Loading indicator elrejtése
+                document.getElementById('loadingIndicator').classList.add('hidden');
+            } catch (error) {
+                console.error('Betöltési hiba:', error);
+                document.getElementById('loadingIndicator').classList.add('hidden');
+                alert('Hiba történt az adatok betöltése közben! Ellenőrizd az internet kapcsolatot.');
             }
-            if (mentettCimkeKeszlet) cimkeKeszlet = JSON.parse(mentettCimkeKeszlet);
-            if (mentettKeszTermekek) keszTermekek = JSON.parse(mentettKeszTermekek);
-            
-            render();
         }
 
-        // LocalStorage mentés
-        function ment() {
-            localStorage.setItem('gyertya_illatok', JSON.stringify(illatok));
-            localStorage.setItem('gyertya_kiontesek', JSON.stringify(kiontesek));
-            localStorage.setItem('gyertya_meretek', JSON.stringify(meretek));
-            localStorage.setItem('gyertya_cimke_keszlet', JSON.stringify(cimkeKeszlet));
-            localStorage.setItem('gyertya_kesz_termekek', JSON.stringify(keszTermekek));
+        // Firebase mentés
+        async function ment() {
+            try {
+                // Minden adat mentése Firebase-be
+                await Promise.all([
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'illatok'), { data: illatok }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiontesek'), { data: kiontesek }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'meretek'), { data: meretek }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'cimkeKeszlet'), { data: cimkeKeszlet }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'keszTermekek'), { data: keszTermekek })
+                ]);
+            } catch (error) {
+                console.error('Mentési hiba:', error);
+                alert('Hiba történt az adatok mentése közben!');
+            }
         }
 
         function toggleBeallitasok() {
