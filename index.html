@@ -127,6 +127,24 @@
             </div>
         </div>
 
+        <!-- Teljes címkézés megerősítő modal -->
+        <div id="teljesCimkezesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-green-900 mb-4">✓ Címkézés megerősítése</h2>
+                    <div id="teljesCimkezesInfo" class="bg-green-50 p-4 rounded-lg mb-4"></div>
+                    <div class="flex gap-2">
+                        <button onclick="teljesCimkezesVegrehajt()" class="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold">
+                            ✓ Címkézem
+                        </button>
+                        <button onclick="teljesCimkezesModal(null)" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Mégsem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Manuális címke hozzáadás modal -->
         <div id="manualCimkeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
@@ -288,7 +306,7 @@
 
         <!-- Termékek listája -->
         <div class="bg-white rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold text-amber-900 mb-4">Termékek története</h2>
+            <h2 class="text-xl font-bold text-amber-900 mb-4">📋 Címkézetlen termékek</h2>
             <div id="kiontesLista" class="space-y-3 max-h-96 overflow-y-auto"></div>
         </div>
     </div>
@@ -570,13 +588,11 @@
             }
         }
 
+        let teljesCimkezesData = null; // Tárolás a modal számára
+
         function termekCimkezTeljes(kiontesId) {
             const kiontes = kiontesek.find(k => k.id === kiontesId);
             if (!kiontes) return;
-            
-            console.log('=== TELJES CÍMKÉZÉS KEZDÉS ===');
-            console.log('Termék:', kiontes.illatNev, '-', kiontes.darabszam, 'db');
-            console.log('Jelenlegi kész termékek száma:', keszTermekek.length);
             
             const kulcs = getCimkeKulcs(kiontes.illatId, kiontes.termekTipus, kiontes.meret);
             const keszletMennyiseg = cimkeKeszlet[kulcs] || 0;
@@ -586,32 +602,62 @@
                 return;
             }
             
-            if (confirm(`Címkézel ${kiontes.darabszam} db terméket?`)) {
-                // Levonás a címke készletből
-                cimkeKeszlet[kulcs] -= kiontes.darabszam;
-                
-                // Átkerül a kész termékek közé
-                const ujTermek = {
-                    ...kiontes,
-                    cimkezveIdopont: new Date().toISOString()
-                };
-                keszTermekek.unshift(ujTermek);
-                
-                console.log('Új termék hozzáadva, ID:', ujTermek.id);
-                console.log('Kész termékek száma mentés előtt:', keszTermekek.length);
-                
-                // Törlés a kiöntések közül
-                kiontesek = kiontesek.filter(k => k.id !== kiontesId);
-                
-                ment();
-                
-                console.log('Mentés után - ellenőrzés LocalStorage-ból:');
-                const ellenorzes = JSON.parse(localStorage.getItem('gyertya_kesz_termekek') || '[]');
-                console.log('LocalStorage-ban lévő kész termékek száma:', ellenorzes.length);
-                console.log('=== TELJES CÍMKÉZÉS VÉGE ===');
-                
-                render();
+            // Modal megnyitása
+            teljesCimkezesModal(kiontesId, kiontes);
+        }
+
+        function teljesCimkezesModal(kiontesId, kiontes = null) {
+            const modal = document.getElementById('teljesCimkezesModal');
+            
+            if (kiontesId === null || kiontes === null) {
+                // Bezárás
+                modal.classList.add('hidden');
+                teljesCimkezesData = null;
+                return;
             }
+            
+            // Adatok tárolása
+            teljesCimkezesData = { kiontesId, kiontes };
+            
+            // Info kitöltése
+            const info = document.getElementById('teljesCimkezesInfo');
+            info.innerHTML = `
+                <div class="text-center">
+                    <div class="text-lg font-bold mb-2">${kiontes.illatNev}</div>
+                    <div class="text-sm text-gray-600 mb-1">${kiontes.termekTipusNev} - ${kiontes.meret}</div>
+                    <div class="text-3xl font-bold text-green-700 mt-3">${kiontes.darabszam} db</div>
+                    <div class="text-sm text-gray-600 mt-1">összes terméket címkézed</div>
+                </div>
+            `;
+            
+            // Modal megnyitása
+            modal.classList.remove('hidden');
+        }
+
+        function teljesCimkezesVegrehajt() {
+            if (!teljesCimkezesData) return;
+            
+            const { kiontesId, kiontes } = teljesCimkezesData;
+            const kulcs = getCimkeKulcs(kiontes.illatId, kiontes.termekTipus, kiontes.meret);
+            
+            // Levonás a címke készletből
+            cimkeKeszlet[kulcs] -= kiontes.darabszam;
+            
+            // Átkerül a kész termékek közé
+            const ujTermek = {
+                ...kiontes,
+                cimkezveIdopont: new Date().toISOString()
+            };
+            keszTermekek.unshift(ujTermek);
+            
+            // Törlés a kiöntések közül
+            kiontesek = kiontesek.filter(k => k.id !== kiontesId);
+            
+            ment();
+            render();
+            
+            // Modal bezárása
+            teljesCimkezesModal(null);
         }
 
         let reszlegesCimkezesData = null; // Tárolás a modal számára
