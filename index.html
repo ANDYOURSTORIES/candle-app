@@ -1030,7 +1030,7 @@
                     termekTipusok.map(t => `<option value="${t.id}">${t.nev}</option>`).join('');
             }
 
-            // Gyors nyomtatás lista - kiöntött termékek alapján
+            // Gyors nyomtatás lista - kiöntött termékek alapján - CSAK AHOL HIÁNYZIK CÍMKE
             const gyorsNyomtatasLista = document.getElementById('gyorsNyomtatasLista');
             if (gyorsNyomtatasLista) {
                 // Egyedi kombinációk gyűjtése
@@ -1055,33 +1055,41 @@
                 
                 const kombinaciokTomb = Array.from(kombinaciok.values());
                 
-                if (kombinaciokTomb.length === 0) {
-                    gyorsNyomtatasLista.innerHTML = '<p class="text-gray-500 text-sm">Nincs kiöntött termék</p>';
+                // Szűrés: csak ahol hiányzik címke
+                const hianyzosCimkek = kombinaciokTomb.filter(kombо => {
+                    const cimkeKulcs = getCimkeKulcs(kombо.illatId, kombо.termekTipus, kombо.meret);
+                    const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
+                    const hianyzo = Math.max(0, kombо.osszesTermek - keszlet);
+                    return hianyzo > 0; // Csak ahol tényleg hiányzik
+                });
+                
+                if (hianyzosCimkek.length === 0) {
+                    gyorsNyomtatasLista.innerHTML = '<div class="text-center py-8"><p class="text-green-600 font-semibold text-lg">✅ Minden címke készleten van!</p><p class="text-gray-500 text-sm mt-1">Nem kell nyomtatni.</p></div>';
                 } else {
-                    gyorsNyomtatasLista.innerHTML = kombinaciokTomb.map(kombо => {
+                    gyorsNyomtatasLista.innerHTML = hianyzosCimkek.map(kombо => {
                         const cimkeKulcs = getCimkeKulcs(kombо.illatId, kombо.termekTipus, kombо.meret);
                         const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
                         const hianyzo = Math.max(0, kombо.osszesTermek - keszlet);
                         const ajanlottLapok = Math.ceil(hianyzo / 12);
                         
                         return `
-                            <div class="p-3 rounded border ${hianyzo > 0 ? 'bg-orange-50 border-orange-300' : 'bg-green-50 border-green-300'}">
+                            <div class="p-3 rounded border bg-orange-50 border-orange-300">
                                 <div class="flex justify-between items-start mb-2">
                                     <div class="flex-1">
                                         <div class="font-medium text-sm">${kombо.illatNev}</div>
                                         <div class="text-xs text-gray-600">${kombо.termekTipusNev} - ${kombо.meret}</div>
                                         <div class="text-xs mt-1">
                                             <span class="text-gray-600">Termék: ${kombо.osszesTermek} db</span> | 
-                                            <span class="${keszlet > 0 ? 'text-green-600' : 'text-gray-600'}">Címke: ${keszlet} db</span>
+                                            <span class="text-green-600">Címke: ${keszlet} db</span>
                                         </div>
-                                        ${hianyzo > 0 ? `<div class="text-xs font-bold text-orange-700 mt-1">⚠️ Hiányzik: ${hianyzo} db (${ajanlottLapok} lap)</div>` : ''}
+                                        <div class="text-xs font-bold text-orange-700 mt-1">⚠️ Hiányzik: ${hianyzo} db (${ajanlottLapok} lap)</div>
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
-                                    <input type="number" id="lapok-${kombо.illatId}-${kombо.termekTipus}-${kombо.meret}" min="1" value="${ajanlottLapok || 1}" 
+                                    <input type="number" id="lapok-${kombо.illatId}-${kombо.termekTipus}-${kombо.meret}" min="1" value="${ajanlottLapok}" 
                                         class="w-20 px-2 py-1 text-sm border rounded" placeholder="Lapok">
                                     <button onclick="gyorsNyomtatas(${kombо.illatId}, '${kombо.termekTipus}', '${kombо.meret}')" 
-                                        class="flex-1 px-3 py-1 text-sm rounded ${hianyzo > 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500 hover:bg-gray-600'} text-white">
+                                        class="flex-1 px-3 py-1 text-sm rounded bg-blue-600 hover:bg-blue-700 text-white">
                                         🖨️ Nyomtat
                                     </button>
                                 </div>
@@ -1193,13 +1201,21 @@
             const osszesites = Array.from(osszesitesMap.values());
 
             const cimkeDiv = document.getElementById('cimkeOsszesites');
-            if (osszesites.length > 0) {
+            
+            // Szűrés: csak azok ahol hiányzik címke
+            const hianyzosCimkek = osszesites.filter(item => {
+                const cimkeKulcs = getCimkeKulcs(item.illatId, item.termekTipus, item.meret);
+                const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
+                const hianyzo = Math.max(0, item.cimkeNelkul - keszlet);
+                return hianyzo > 0; // Csak ahol tényleg hiányzik
+            });
+            
+            if (hianyzosCimkek.length > 0) {
                 cimkeDiv.innerHTML = `
-                    <div class="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl shadow-lg p-6 text-white">
-                        <h2 class="text-2xl font-bold mb-4">📋 Címkék gyártása</h2>
+                    <div class="bg-gradient-to-r from-orange-600 to-red-600 rounded-xl shadow-lg p-6 text-white">
+                        <h2 class="text-2xl font-bold mb-4">⚠️ Címkék gyártása</h2>
                         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            ${osszesites.map(item => {
-                                // Címke készlet lekérése erre a kombinációra
+                            ${hianyzosCimkek.map(item => {
                                 const cimkeKulcs = getCimkeKulcs(item.illatId, item.termekTipus, item.meret);
                                 const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
                                 const hianyzo = Math.max(0, item.cimkeNelkul - keszlet);
@@ -1210,22 +1226,20 @@
                                     <div class="text-sm opacity-90">${item.termekTipusNev} - ${item.meret}</div>
                                     <div class="text-sm opacity-90 mt-1">Termék: ${item.cimkeNelkul} db</div>
                                     <div class="text-sm opacity-90">Címke készlet: ${keszlet} db</div>
-                                    ${hianyzo > 0 ? `
-                                        <div class="text-xl font-bold mt-2 bg-yellow-400 text-yellow-900 rounded px-2 py-1 inline-block">
-                                            ⚠️ ${hianyzo} db címke kell
-                                        </div>
-                                    ` : item.cimkeNelkul > 0 ? `
-                                        <div class="text-sm mt-2 bg-blue-400 text-blue-900 rounded px-2 py-1 inline-block">
-                                            ✓ Van elég címke (${keszlet} db)
-                                        </div>
-                                    ` : `
-                                        <div class="text-sm mt-2 bg-green-800 rounded px-2 py-1 inline-block">
-                                            ✓ Minden termék címkézve
-                                        </div>
-                                    `}
+                                    <div class="text-xl font-bold mt-2 bg-yellow-400 text-yellow-900 rounded px-2 py-1 inline-block">
+                                        ⚠️ ${hianyzo} db címke kell
+                                    </div>
                                 </div>
                             `;}).join('')}
                         </div>
+                    </div>
+                `;
+            } else if (osszesites.length > 0) {
+                // Van termék, de minden címke megvan
+                cimkeDiv.innerHTML = `
+                    <div class="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl shadow-lg p-6 text-white text-center">
+                        <h2 class="text-2xl font-bold mb-2">✅ Minden címke készen van!</h2>
+                        <p class="text-green-100">Nincs szükség címkenyomtatásra.</p>
                     </div>
                 `;
             } else {
