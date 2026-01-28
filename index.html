@@ -104,6 +104,71 @@
             </div>
         </div>
 
+        <!-- Részleges címkézés modal -->
+        <div id="reszlegesCimkezesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-purple-900 mb-4">🏷️ Részleges címkézés</h2>
+                    <div id="reszlegesCimkezesInfo" class="bg-purple-50 p-4 rounded-lg mb-4"></div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Hány darabot címkézel?</label>
+                        <input type="number" id="reszlegesMennyiseg" min="1" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="reszlegesCimkezesVegrehajt()" class="flex-1 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 font-semibold">
+                            Címkéz
+                        </button>
+                        <button onclick="reszlegesCimkezesModal(null)" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Mégsem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manuális címke hozzáadás modal -->
+        <div id="manualCimkeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-blue-900 mb-4">➕ Címke készlet hozzáadás</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Illat</label>
+                            <select id="manualCimkeIllat" class="w-full px-4 py-2 border rounded-lg">
+                                <option value="">Válassz illatot...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Termék típus</label>
+                            <select id="manualCimkeTermekTipus" onchange="updateManualCimkeMeret()" class="w-full px-4 py-2 border rounded-lg">
+                                <option value="">Válassz típust...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Méret</label>
+                            <select id="manualCimkeMeret" class="w-full px-4 py-2 border rounded-lg">
+                                <option value="">Először válassz típust</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Mennyiség (db)</label>
+                            <input type="number" id="manualCimkeMennyiseg" min="1" placeholder="pl. 50"
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-6">
+                        <button onclick="manualCimkeHozzaad()" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                            Hozzáad
+                        </button>
+                        <button onclick="toggleManualCimkeModal()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Mégsem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="grid md:grid-cols-2 gap-6 mb-6">
             <!-- Illatok kezelése -->
             <div class="bg-white rounded-xl shadow-lg p-6">
@@ -193,7 +258,12 @@
 
         <!-- Címke nyomtatás -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h2 class="text-xl font-bold text-amber-900 mb-4">🖨️ Címke nyomtatás (12 db / lap)</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-amber-900">🖨️ Címke nyomtatás (12 db / lap)</h2>
+                <button onclick="toggleManualCimkeModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-semibold">
+                    ➕ Manuális hozzáadás
+                </button>
+            </div>
             
             <div class="grid md:grid-cols-2 gap-6">
                 <!-- Gyors nyomtatás lista -->
@@ -544,18 +614,14 @@
             }
         }
 
+        let reszlegesCimkezesData = null; // Tárolás a modal számára
+
         function termekCimkezReszleges(kiontesId) {
             const kiontes = kiontesek.find(k => k.id === kiontesId);
             if (!kiontes) return;
             
             const kulcs = getCimkeKulcs(kiontes.illatId, kiontes.termekTipus, kiontes.meret);
             const keszletMennyiseg = cimkeKeszlet[kulcs] || 0;
-            
-            console.log('=== RÉSZLEGES CÍMKÉZÉS KEZDÉS ===');
-            console.log('Termék:', kiontes.illatNev, '-', kiontes.darabszam, 'db');
-            console.log('Címke készlet:', keszletMennyiseg, 'db');
-            console.log('Jelenlegi kész termékek száma:', keszTermekek.length);
-            
             const maxCimkezheto = Math.min(keszletMennyiseg, kiontes.darabszam);
             
             if (maxCimkezheto === 0) {
@@ -563,58 +629,137 @@
                 return;
             }
             
-            const mennyiseg = prompt(
-                `Részleges címkézés\n\n` +
-                `Termék: ${kiontes.illatNev} - ${kiontes.termekTipusNev} - ${kiontes.meret}\n` +
-                `Összes termék: ${kiontes.darabszam} db\n` +
-                `Címke készlet: ${keszletMennyiseg} db\n\n` +
-                `Hány darabot címkézel? (max ${maxCimkezheto} db)`,
-                maxCimkezheto
-            );
+            // Modal megnyitása
+            reszlegesCimkezesModal(kiontesId, kiontes, maxCimkezheto, keszletMennyiseg);
+        }
+
+        function reszlegesCimkezesModal(kiontesId, kiontes = null, maxCimkezheto = 0, keszletMennyiseg = 0) {
+            const modal = document.getElementById('reszlegesCimkezesModal');
             
-            if (mennyiseg !== null) {
-                const szam = parseInt(mennyiseg);
-                if (!isNaN(szam) && szam > 0 && szam <= maxCimkezheto) {
-                    // Levonás a címke készletből
-                    cimkeKeszlet[kulcs] -= szam;
-                    
-                    // Kész termék létrehozása a címkézett mennyiséggel
-                    const ujKeszTermek = {
-                        ...kiontes,
-                        darabszam: szam,
-                        cimkezveIdopont: new Date().toISOString(),
-                        id: generateId()
-                    };
-                    
-                    console.log('Új kész termék létrehozva:', szam, 'db, ID:', ujKeszTermek.id);
-                    
-                    keszTermekek.unshift(ujKeszTermek);
-                    
-                    console.log('Kész termékek száma hozzáadás után:', keszTermekek.length);
-                    
-                    // Eredeti termék mennyiségének csökkentése
-                    kiontes.darabszam -= szam;
-                    
-                    console.log('Eredeti termék maradék:', kiontes.darabszam, 'db');
-                    
-                    // Ha az összes termék címkézve lett, törlés
-                    if (kiontes.darabszam <= 0) {
-                        kiontesek = kiontesek.filter(k => k.id !== kiontesId);
-                        console.log('Eredeti termék törölve (mind címkézve)');
-                    }
-                    
-                    ment();
-                    
-                    console.log('Mentés után - ellenőrzés LocalStorage-ból:');
-                    const ellenorzes = JSON.parse(localStorage.getItem('gyertya_kesz_termekek') || '[]');
-                    console.log('LocalStorage-ban lévő kész termékek száma:', ellenorzes.length);
-                    console.log('=== RÉSZLEGES CÍMKÉZÉS VÉGE ===');
-                    
-                    render();
-                } else {
-                    alert('Érvénytelen mennyiség!');
-                }
+            if (kiontesId === null || kiontes === null) {
+                // Bezárás
+                modal.classList.add('hidden');
+                reszlegesCimkezesData = null;
+                return;
             }
+            
+            // Adatok tárolása
+            reszlegesCimkezesData = { kiontesId, kiontes, maxCimkezheto, keszletMennyiseg };
+            
+            // Info kitöltése
+            const info = document.getElementById('reszlegesCimkezesInfo');
+            info.innerHTML = `
+                <div class="font-medium mb-1">${kiontes.illatNev} - ${kiontes.termekTipusNev} - ${kiontes.meret}</div>
+                <div class="text-sm text-gray-600">Összes termék: ${kiontes.darabszam} db</div>
+                <div class="text-sm text-gray-600">Címke készlet: ${keszletMennyiseg} db</div>
+                <div class="text-sm font-semibold text-purple-700 mt-2">Maximum: ${maxCimkezheto} db</div>
+            `;
+            
+            // Input értékének beállítása
+            document.getElementById('reszlegesMennyiseg').value = maxCimkezheto;
+            document.getElementById('reszlegesMennyiseg').max = maxCimkezheto;
+            
+            // Modal megnyitása
+            modal.classList.remove('hidden');
+        }
+
+        function reszlegesCimkezesVegrehajt() {
+            if (!reszlegesCimkezesData) return;
+            
+            const { kiontesId, kiontes, maxCimkezheto } = reszlegesCimkezesData;
+            const szam = parseInt(document.getElementById('reszlegesMennyiseg').value);
+            
+            if (!szam || szam < 1 || szam > maxCimkezheto) {
+                alert(`Érvénytelen mennyiség! Add meg 1 és ${maxCimkezheto} között!`);
+                return;
+            }
+            
+            const kulcs = getCimkeKulcs(kiontes.illatId, kiontes.termekTipus, kiontes.meret);
+            
+            // Levonás a címke készletből
+            cimkeKeszlet[kulcs] -= szam;
+            
+            // Kész termék létrehozása a címkézett mennyiséggel
+            const ujKeszTermek = {
+                ...kiontes,
+                darabszam: szam,
+                cimkezveIdopont: new Date().toISOString(),
+                id: generateId()
+            };
+            
+            keszTermekek.unshift(ujKeszTermek);
+            
+            // Eredeti termék mennyiségének csökkentése
+            kiontes.darabszam -= szam;
+            
+            // Ha az összes termék címkézve lett, törlés
+            if (kiontes.darabszam <= 0) {
+                kiontesek = kiontesek.filter(k => k.id !== kiontesId);
+            }
+            
+            ment();
+            render();
+            
+            // Modal bezárása
+            reszlegesCimkezesModal(null);
+        }
+
+        function toggleManualCimkeModal() {
+            const modal = document.getElementById('manualCimkeModal');
+            modal.classList.toggle('hidden');
+            
+            if (!modal.classList.contains('hidden')) {
+                // Modal megnyitása - populáljuk a selecteket
+                const illatSelect = document.getElementById('manualCimkeIllat');
+                illatSelect.innerHTML = '<option value="">Válassz illatot...</option>' +
+                    illatok.map(i => `<option value="${i.id}">${i.nev}</option>`).join('');
+                
+                const tipusSelect = document.getElementById('manualCimkeTermekTipus');
+                tipusSelect.innerHTML = '<option value="">Válassz típust...</option>' +
+                    termekTipusok.map(t => `<option value="${t.id}">${t.nev}</option>`).join('');
+                
+                // Mezők törlése
+                document.getElementById('manualCimkeMeret').innerHTML = '<option value="">Először válassz típust</option>';
+                document.getElementById('manualCimkeMennyiseg').value = '';
+            }
+        }
+
+        function updateManualCimkeMeret() {
+            const termekTipus = document.getElementById('manualCimkeTermekTipus').value;
+            const meretSelect = document.getElementById('manualCimkeMeret');
+            
+            if (termekTipus && meretek[termekTipus]) {
+                meretSelect.innerHTML = '<option value="">Válassz méretet...</option>' +
+                    meretek[termekTipus].map(m => `<option value="${m}">${m}</option>`).join('');
+            } else {
+                meretSelect.innerHTML = '<option value="">Először válassz típust</option>';
+            }
+        }
+
+        function manualCimkeHozzaad() {
+            const illatId = parseInt(document.getElementById('manualCimkeIllat').value);
+            const termekTipus = document.getElementById('manualCimkeTermekTipus').value;
+            const meret = document.getElementById('manualCimkeMeret').value;
+            const mennyiseg = parseInt(document.getElementById('manualCimkeMennyiseg').value);
+            
+            if (!illatId || !termekTipus || !meret || !mennyiseg || mennyiseg < 1) {
+                alert('Kérlek töltsd ki az összes mezőt!');
+                return;
+            }
+            
+            const kulcs = getCimkeKulcs(illatId, termekTipus, meret);
+            
+            if (!cimkeKeszlet[kulcs]) {
+                cimkeKeszlet[kulcs] = 0;
+            }
+            cimkeKeszlet[kulcs] += mennyiseg;
+            
+            ment();
+            render();
+            toggleManualCimkeModal();
+            
+            const illat = illatok.find(i => i.id === illatId);
+            alert(`${mennyiseg} db címke hozzáadva: ${illat.nev}`);
         }
 
         function keszTermekTorol(id) {
