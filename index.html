@@ -1029,6 +1029,7 @@
                 const illatSelect = document.getElementById('manualCimkeIllat');
                 illatSelect.innerHTML = '<option value="">Válassz meglévő illatot...</option>' +
                     illatok.map(i => `<option value="${i.id}">${i.nev}</option>`).join('');
+                illatSelect.disabled = false; // FONTOS: Enable select
                 
                 const tipusSelect = document.getElementById('manualCimkeTermekTipus');
                 tipusSelect.innerHTML = '<option value="">Válassz típust...</option>' +
@@ -1139,6 +1140,7 @@
                 const illatSelect = document.getElementById('manualKeszTermekIllat');
                 illatSelect.innerHTML = '<option value="">Válassz meglévő illatot...</option>' +
                     illatok.map(i => `<option value="${i.id}">${i.nev}</option>`).join('');
+                illatSelect.disabled = false; // FONTOS: Enable select
                 
                 const tipusSelect = document.getElementById('manualKeszTermekTermekTipus');
                 tipusSelect.innerHTML = '<option value="">Válassz típust...</option>' +
