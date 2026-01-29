@@ -331,11 +331,21 @@
 
         <!-- Kiszállítás modal -->
         <div id="kiszallitasModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
                 <div class="p-6">
                     <h2 class="text-xl font-bold text-blue-900 mb-4">💰 Kiszállítás rögzítése</h2>
                     <div id="kiszallitasTermekInfo" class="bg-blue-50 p-4 rounded-lg mb-4"></div>
                     <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Dátum</label>
+                            <div class="flex gap-2">
+                                <input type="date" id="kiszallitasDatum" 
+                                    class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <button onclick="kiszallitasMaiDatum()" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-medium text-sm whitespace-nowrap">
+                                    📅 Mai dátum
+                                </button>
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Típus</label>
                             <select id="kiszallitasTipus" class="w-full px-4 py-2 border rounded-lg">
@@ -357,9 +367,14 @@
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Partner neve</label>
-                            <input type="text" id="kiszallitasPartner" placeholder="pl. Kiss Anna vagy Fulfilment Kft." 
-                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Partner</label>
+                            <select id="kiszallitasPartnerSelect" onchange="kiszallitasPartnerChange()" class="w-full px-4 py-2 border rounded-lg mb-2">
+                                <option value="">Válassz partnert...</option>
+                            </select>
+                            <div id="ujPartnerForm" class="hidden">
+                                <input type="text" id="ujPartnerNev" placeholder="Új partner neve" 
+                                    class="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Megjegyzés (opcionális)</label>
@@ -543,17 +558,50 @@
 
             <!-- Kiszállítások története -->
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-blue-900">📦 Kiszállítások története</h2>
-                    <div class="flex gap-2 items-center">
-                        <label class="text-sm text-gray-600">Szűrés:</label>
-                        <select id="kiszallitasSzuro" onchange="renderKiszallitasok()" class="px-3 py-1.5 border rounded-lg text-sm">
-                            <option value="mind">Összes</option>
-                            <option value="eladas">Csak eladás</option>
-                            <option value="fulfilment">Csak fulfilment</option>
-                        </select>
+                <h2 class="text-xl font-bold text-blue-900 mb-4">📦 Kiszállítások története</h2>
+                
+                <!-- Szűrők -->
+                <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Típus</label>
+                            <select id="szuroTipus" onchange="renderKiszallitasok()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="">Összes</option>
+                                <option value="eladas">🛒 Eladás</option>
+                                <option value="fulfilment">📦 Fulfilment</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Partner</label>
+                            <select id="szuroPartner" onchange="renderKiszallitasok()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="">Összes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Termék (illat)</label>
+                            <select id="szuroTermek" onchange="renderKiszallitasok()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="">Összes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Művelet</label>
+                            <button onclick="szurokTorlese()" class="w-full px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium">
+                                🔄 Szűrők törlése
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-3 mt-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Dátumtól</label>
+                            <input type="date" id="szuroDatumTol" onchange="renderKiszallitasok()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Dátumig</label>
+                            <input type="date" id="szuroDatumIg" onchange="renderKiszallitasok()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
                     </div>
                 </div>
+                
                 <div id="kiszallitasokLista" class="space-y-3 max-h-[600px] overflow-y-auto"></div>
             </div>
         </div>
@@ -566,6 +614,7 @@
         let cimkeKeszlet = {}; // Címke készlet tárolása: { "illatId-termekTipus-meret": darabszam }
         let keszTermekek = []; // Címkézett kész termékek
         let kiszallitasok = []; // Kiszállítások
+        let partnerek = []; // Partnerek listája
         let idCounter = 0; // Egyedi ID számláló
         let keszTermekRendezes = 'datum'; // Rendezési mód: datum, abc, mennyiseg
         let aktívTab = 'gyartas'; // Aktív tab követése
@@ -634,6 +683,12 @@
                     kiszallitasok = kiszallitasokDoc.data().data || [];
                 }
                 
+                // Partnerek betöltése
+                const partnerekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'partnerek'));
+                if (partnerekDoc.exists()) {
+                    partnerek = partnerekDoc.data().data || [];
+                }
+                
                 render();
                 
                 // Loading indicator elrejtése
@@ -675,6 +730,7 @@
             const modal = document.getElementById('kiszallitasModal');
             const info = document.getElementById('kiszallitasTermekInfo');
             const mennyisegInput = document.getElementById('kiszallitasMennyiseg');
+            const partnerSelect = document.getElementById('kiszallitasPartnerSelect');
             
             info.innerHTML = `
                 <div class="font-medium mb-1">${illatNev}</div>
@@ -682,13 +738,42 @@
                 <div class="text-sm text-gray-600 mt-2">Elérhető: <span class="font-bold text-blue-700">${osszesDarab} db</span></div>
             `;
             
+            // Partner select populálása
+            const rendezetPartnerek = [...partnerek].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+            partnerSelect.innerHTML = '<option value="">Válassz partnert...</option>' +
+                rendezetPartnerek.map(p => `<option value="${p.id}">${p.nev}</option>`).join('') +
+                '<option value="__UJ__">+ Új partner...</option>';
+            
             mennyisegInput.value = 1;
             mennyisegInput.max = osszesDarab;
-            document.getElementById('kiszallitasPartner').value = '';
             document.getElementById('kiszallitasMegjegyzes').value = '';
             document.getElementById('kiszallitasTipus').value = 'eladas';
+            document.getElementById('ujPartnerForm').classList.add('hidden');
+            document.getElementById('ujPartnerNev').value = '';
+            
+            // Mai dátum beállítása
+            kiszallitasMaiDatum();
             
             modal.classList.remove('hidden');
+        }
+
+        function kiszallitasMaiDatum() {
+            const ma = new Date();
+            const dateString = ma.toISOString().split('T')[0];
+            document.getElementById('kiszallitasDatum').value = dateString;
+        }
+
+        function kiszallitasPartnerChange() {
+            const select = document.getElementById('kiszallitasPartnerSelect');
+            const ujForm = document.getElementById('ujPartnerForm');
+            
+            if (select.value === '__UJ__') {
+                ujForm.classList.remove('hidden');
+                document.getElementById('ujPartnerNev').focus();
+            } else {
+                ujForm.classList.add('hidden');
+                document.getElementById('ujPartnerNev').value = '';
+            }
         }
 
         function kiszallitasMennyisegValtoztat(valtozas) {
@@ -709,32 +794,73 @@
             
             const mennyiseg = parseInt(document.getElementById('kiszallitasMennyiseg').value);
             const tipus = document.getElementById('kiszallitasTipus').value;
-            const partner = document.getElementById('kiszallitasPartner').value.trim();
+            const datum = document.getElementById('kiszallitasDatum').value;
             const megjegyzes = document.getElementById('kiszallitasMegjegyzes').value.trim();
+            const partnerSelectValue = document.getElementById('kiszallitasPartnerSelect').value;
+            const ujPartnerNev = document.getElementById('ujPartnerNev').value.trim();
             
             if (!mennyiseg || mennyiseg < 1 || mennyiseg > kiszallitasData.osszesDarab) {
                 alert('Érvénytelen mennyiség!');
                 return;
             }
             
+            if (!datum) {
+                alert('Kérlek válassz dátumot!');
+                return;
+            }
+            
+            let partnerNev = '';
+            let partnerId = null;
+            
+            // Partner kezelés
+            if (partnerSelectValue === '__UJ__') {
+                // Új partner
+                if (!ujPartnerNev) {
+                    alert('Add meg az új partner nevét!');
+                    return;
+                }
+                
+                // Ellenőrzés: már létezik-e
+                const letezikMar = partnerek.some(p => p.nev.toLowerCase() === ujPartnerNev.toLowerCase());
+                if (letezikMar) {
+                    const letezőPartner = partnerek.find(p => p.nev.toLowerCase() === ujPartnerNev.toLowerCase());
+                    partnerId = letezőPartner.id;
+                    partnerNev = letezőPartner.nev;
+                } else {
+                    // Új partner hozzáadása
+                    partnerId = generateId();
+                    partnerek.push({ id: partnerId, nev: ujPartnerNev });
+                    partnerNev = ujPartnerNev;
+                }
+            } else if (partnerSelectValue) {
+                // Meglévő partner
+                partnerId = parseInt(partnerSelectValue);
+                const partner = partnerek.find(p => p.id === partnerId);
+                partnerNev = partner ? partner.nev : '';
+            }
+            
             const { illatNev, termekTipusNev, meret, osszesDarab } = kiszallitasData;
+            
+            // Dátum ISO formátumra konvertálás (helyi idővel)
+            const datumISO = new Date(datum + 'T12:00:00').toISOString();
             
             // Új kiszállítás rögzítése
             const ujKiszallitas = {
                 id: generateId(),
-                datum: new Date().toISOString(),
+                datum: datumISO,
                 illatNev,
                 termekTipusNev,
                 meret,
                 mennyiseg,
                 tipus,
-                partner,
+                partnerId,
+                partnerNev,
                 megjegyzes
             };
             
             kiszallitasok.unshift(ujKiszallitas);
             
-            // Készlet csökkentése - Arányos csökkentés a kész termékek között
+            // Készlet csökkentése
             const tetelek = keszTermekek.filter(t => 
                 t.illatNev === illatNev && 
                 t.termekTipusNev === termekTipusNev && 
@@ -750,7 +876,6 @@
                 maradekCsokkentes -= csokkentes;
             });
             
-            // 0-ra csökkent tételek törlése
             keszTermekek = keszTermekek.filter(t => t.darabszam > 0);
             
             await ment();
@@ -761,19 +886,69 @@
             alert(`✅ Kiszállítás rögzítve!\n${mennyiseg} db - ${illatNev}`);
         }
 
+        function szurokTorlese() {
+            document.getElementById('szuroTipus').value = '';
+            document.getElementById('szuroPartner').value = '';
+            document.getElementById('szuroTermek').value = '';
+            document.getElementById('szuroDatumTol').value = '';
+            document.getElementById('szuroDatumIg').value = '';
+            renderKiszallitasok();
+        }
+
         function renderKiszallitasok() {
             const lista = document.getElementById('kiszallitasokLista');
             const osszesito = document.getElementById('kiszallitasOsszesito');
-            const szuro = document.getElementById('kiszallitasSzuro').value;
+            
+            // Szűrők értékei
+            const szuroTipus = document.getElementById('szuroTipus').value;
+            const szuroPartner = document.getElementById('szuroPartner').value;
+            const szuroTermek = document.getElementById('szuroTermek').value;
+            const szuroDatumTol = document.getElementById('szuroDatumTol').value;
+            const szuroDatumIg = document.getElementById('szuroDatumIg').value;
+            
+            // Partner és termék szűrők populálása
+            const partnerSzuroSelect = document.getElementById('szuroPartner');
+            const termekSzuroSelect = document.getElementById('szuroTermek');
+            
+            // Egyedi partnerek a kiszállításokból
+            const egyediPartnerek = [...new Set(kiszallitasok.map(k => k.partnerNev).filter(Boolean))].sort();
+            const jelenlegiPartnerErtek = partnerSzuroSelect.value;
+            partnerSzuroSelect.innerHTML = '<option value="">Összes</option>' +
+                egyediPartnerek.map(p => `<option value="${p}" ${p === jelenlegiPartnerErtek ? 'selected' : ''}>${p}</option>`).join('');
+            
+            // Egyedi termékek (illatok) a kiszállításokból
+            const egyediTermekek = [...new Set(kiszallitasok.map(k => k.illatNev))].sort((a, b) => a.localeCompare(b, 'hu'));
+            const jelenlegiTermekErtek = termekSzuroSelect.value;
+            termekSzuroSelect.innerHTML = '<option value="">Összes</option>' +
+                egyediTermekek.map(t => `<option value="${t}" ${t === jelenlegiTermekErtek ? 'selected' : ''}>${t}</option>`).join('');
             
             // Szűrés
-            let szurtKiszallitasok = kiszallitasok;
-            if (szuro !== 'mind') {
-                szurtKiszallitasok = kiszallitasok.filter(k => k.tipus === szuro);
-            }
+            let szurtKiszallitasok = kiszallitasok.filter(k => {
+                // Típus szűrő
+                if (szuroTipus && k.tipus !== szuroTipus) return false;
+                
+                // Partner szűrő
+                if (szuroPartner && k.partnerNev !== szuroPartner) return false;
+                
+                // Termék szűrő
+                if (szuroTermek && k.illatNev !== szuroTermek) return false;
+                
+                // Dátum szűrő
+                const kiszallitasDatum = new Date(k.datum);
+                if (szuroDatumTol) {
+                    const tolDatum = new Date(szuroDatumTol);
+                    if (kiszallitasDatum < tolDatum) return false;
+                }
+                if (szuroDatumIg) {
+                    const igDatum = new Date(szuroDatumIg + 'T23:59:59');
+                    if (kiszallitasDatum > igDatum) return false;
+                }
+                
+                return true;
+            });
             
             if (szurtKiszallitasok.length === 0) {
-                lista.innerHTML = '<p class="text-gray-500 text-center py-8">Még nincs kiszállítás rögzítve</p>';
+                lista.innerHTML = '<p class="text-gray-500 text-center py-8">Nincs a szűrésnek megfelelő kiszállítás</p>';
                 osszesito.innerHTML = '';
                 return;
             }
@@ -804,7 +979,7 @@
                     <div class="text-2xl font-bold text-indigo-700">${hetiKiszallitas} db</div>
                 </div>
                 <div class="bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
-                    <div class="text-sm text-gray-600 mb-1">Összes kiszállítás</div>
+                    <div class="text-sm text-gray-600 mb-1">Szűrt összesen</div>
                     <div class="text-2xl font-bold text-purple-700">${osszesKiszallitas} db</div>
                 </div>
             `;
@@ -821,7 +996,7 @@
                             </div>
                             <div class="text-sm text-gray-700">${k.termekTipusNev} - ${k.meret}</div>
                             <div class="text-xs text-gray-500 mt-1">📅 ${formatDatum(k.datum)}</div>
-                            ${k.partner ? `<div class="text-sm text-gray-700 mt-1">👤 ${k.partner}</div>` : ''}
+                            ${k.partnerNev ? `<div class="text-sm text-gray-700 mt-1">👤 ${k.partnerNev}</div>` : ''}
                             ${k.megjegyzes ? `<div class="text-xs text-gray-600 mt-1 italic">💬 ${k.megjegyzes}</div>` : ''}
                         </div>
                         <button onclick="kiszallitasTorol(${k.id})" class="text-red-600 hover:text-red-800 text-xs px-2 py-1" title="Törlés">
@@ -864,7 +1039,8 @@
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'meretek'), { data: meretek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'cimkeKeszlet'), { data: cimkeKeszlet }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'keszTermekek'), { data: keszTermekek }),
-                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiszallitasok'), { data: kiszallitasok })
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiszallitasok'), { data: kiszallitasok }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'partnerek'), { data: partnerek })
                 ]);
             } catch (error) {
                 console.error('Mentési hiba:', error);
