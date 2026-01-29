@@ -2019,6 +2019,9 @@
             
             cim.textContent = `📊 ${illat.nev} - Részletes statisztika`;
             
+            // Összes típus-méret kombináció gyűjtése
+            const osszesKombinacio = new Set();
+            
             // Adatok gyűjtése
             const cimkezetlenTermekek = {};
             const cimkeKeszletAdatok = {};
@@ -2028,6 +2031,7 @@
             kiontesek.forEach(k => {
                 if (k.illatId === illatId) {
                     const kulcs = `${k.termekTipusNev} - ${k.meret}`;
+                    osszesKombinacio.add(kulcs);
                     cimkezetlenTermekek[kulcs] = (cimkezetlenTermekek[kulcs] || 0) + k.darabszam;
                 }
             });
@@ -2039,6 +2043,7 @@
                     const termekTipusObj = termekTipusok.find(t => t.id === termekTipus);
                     const tipus = termekTipusObj ? termekTipusObj.nev : termekTipus;
                     const megnevezes = `${tipus} - ${meret}`;
+                    osszesKombinacio.add(megnevezes);
                     cimkeKeszletAdatok[megnevezes] = cimkeKeszlet[kulcs];
                 }
             });
@@ -2047,6 +2052,7 @@
             keszTermekek.forEach(k => {
                 if (k.illatNev === illat.nev) {
                     const kulcs = `${k.termekTipusNev} - ${k.meret}`;
+                    osszesKombinacio.add(kulcs);
                     keszTermekAdatok[kulcs] = (keszTermekAdatok[kulcs] || 0) + k.darabszam;
                 }
             });
@@ -2057,72 +2063,79 @@
             const eladasok = illatKiszallitasok.filter(k => k.tipus === 'eladas').reduce((sum, k) => sum + k.mennyiseg, 0);
             const fulfilment = illatKiszallitasok.filter(k => k.tipus === 'fulfilment').reduce((sum, k) => sum + k.mennyiseg, 0);
             
+            // Kombinációk rendezése ABC szerint
+            const kombinaciokRendezve = Array.from(osszesKombinacio).sort((a, b) => a.localeCompare(b, 'hu'));
+            
             // Összesítők
             const cimkezetlenOsszesen = Object.values(cimkezetlenTermekek).reduce((a, b) => a + b, 0);
             const cimkeKeszletOsszesen = Object.values(cimkeKeszletAdatok).reduce((a, b) => a + b, 0);
             const keszTermekOsszesen = Object.values(keszTermekAdatok).reduce((a, b) => a + b, 0);
             const gyartvaOsszesen = cimkezetlenOsszesen + keszTermekOsszesen + osszesKiszallitva;
             
-            // HTML építése
+            // HTML építése - MINDIG UGYANAZ A STRUKTÚRA
             let html = '';
             
-            // Címkézetlen termékek
-            if (cimkezetlenOsszesen > 0) {
-                html += `
-                    <div class="bg-orange-50 p-4 rounded-lg border-2 border-orange-200">
-                        <h3 class="font-bold text-orange-900 mb-2">🏭 Címkézetlen termékek</h3>
-                        ${Object.entries(cimkezetlenTermekek).map(([tipus, db]) => 
-                            `<div class="text-sm text-gray-700 ml-4">• ${tipus}: <span class="font-bold">${db} db</span></div>`
-                        ).join('')}
-                        <div class="text-sm font-bold text-orange-900 mt-2">Összesen: ${cimkezetlenOsszesen} db</div>
-                    </div>
-                `;
+            // 1. CÍMKÉZETLEN TERMÉKEK (mindig megjelenik)
+            html += `
+                <div class="bg-orange-50 p-4 rounded-lg border-2 border-orange-200">
+                    <h3 class="font-bold text-orange-900 mb-2">🏭 Címkézetlen termékek</h3>
+            `;
+            if (kombinaciokRendezve.length > 0) {
+                kombinaciokRendezve.forEach(tipus => {
+                    const db = cimkezetlenTermekek[tipus] || 0;
+                    html += `<div class="text-sm text-gray-700 ml-4">• ${tipus}: <span class="font-bold">${db} db</span></div>`;
+                });
+            } else {
+                html += `<div class="text-sm text-gray-500 ml-4 italic">Nincs adat</div>`;
             }
+            html += `<div class="text-sm font-bold text-orange-900 mt-2">Összesen: ${cimkezetlenOsszesen} db</div></div>`;
             
-            // Címke készlet
-            if (cimkeKeszletOsszesen > 0) {
-                html += `
-                    <div class="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-                        <h3 class="font-bold text-blue-900 mb-2">🏷️ Címke készlet</h3>
-                        ${Object.entries(cimkeKeszletAdatok).map(([tipus, db]) => 
-                            `<div class="text-sm text-gray-700 ml-4">• ${tipus}: <span class="font-bold">${db} db</span></div>`
-                        ).join('')}
-                        <div class="text-sm font-bold text-blue-900 mt-2">Összesen: ${cimkeKeszletOsszesen} db</div>
-                    </div>
-                `;
+            // 2. CÍMKE KÉSZLET (mindig megjelenik)
+            html += `
+                <div class="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+                    <h3 class="font-bold text-blue-900 mb-2">🏷️ Címke készlet</h3>
+            `;
+            if (kombinaciokRendezve.length > 0) {
+                kombinaciokRendezve.forEach(tipus => {
+                    const db = cimkeKeszletAdatok[tipus] || 0;
+                    html += `<div class="text-sm text-gray-700 ml-4">• ${tipus}: <span class="font-bold">${db} db</span></div>`;
+                });
+            } else {
+                html += `<div class="text-sm text-gray-500 ml-4 italic">Nincs adat</div>`;
             }
+            html += `<div class="text-sm font-bold text-blue-900 mt-2">Összesen: ${cimkeKeszletOsszesen} db</div></div>`;
             
-            // Kész termékek
-            if (keszTermekOsszesen > 0) {
-                html += `
-                    <div class="bg-emerald-50 p-4 rounded-lg border-2 border-emerald-200">
-                        <h3 class="font-bold text-emerald-900 mb-2">✅ Kész termékek (polcon)</h3>
-                        ${Object.entries(keszTermekAdatok).map(([tipus, db]) => 
-                            `<div class="text-sm text-gray-700 ml-4">• ${tipus}: <span class="font-bold">${db} db</span></div>`
-                        ).join('')}
-                        <div class="text-sm font-bold text-emerald-900 mt-2">Összesen: ${keszTermekOsszesen} db</div>
-                    </div>
-                `;
+            // 3. POLCON (KÉSZ TERMÉKEK) (mindig megjelenik)
+            html += `
+                <div class="bg-emerald-50 p-4 rounded-lg border-2 border-emerald-200">
+                    <h3 class="font-bold text-emerald-900 mb-2">✅ Polcon (kész termékek)</h3>
+            `;
+            if (kombinaciokRendezve.length > 0) {
+                kombinaciokRendezve.forEach(tipus => {
+                    const db = keszTermekAdatok[tipus] || 0;
+                    html += `<div class="text-sm text-gray-700 ml-4">• ${tipus}: <span class="font-bold">${db} db</span></div>`;
+                });
+            } else {
+                html += `<div class="text-sm text-gray-500 ml-4 italic">Nincs adat</div>`;
             }
+            html += `<div class="text-sm font-bold text-emerald-900 mt-2">Összesen: ${keszTermekOsszesen} db</div></div>`;
             
-            // Kiszállítások
-            if (osszesKiszallitva > 0) {
-                const utolsoKiszallitas = illatKiszallitasok.length > 0 
-                    ? formatDatum(illatKiszallitasok[0].datum) 
-                    : '-';
-                
-                html += `
-                    <div class="bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
-                        <h3 class="font-bold text-purple-900 mb-2">📤 Kiszállítások</h3>
-                        <div class="text-sm text-gray-700 ml-4">• Eladás: <span class="font-bold text-green-700">${eladasok} db</span> 🛒</div>
-                        <div class="text-sm text-gray-700 ml-4">• Fulfilment: <span class="font-bold text-blue-700">${fulfilment} db</span> 📦</div>
-                        <div class="text-sm text-gray-600 ml-4 mt-1">• Utolsó: ${utolsoKiszallitas}</div>
-                        <div class="text-sm font-bold text-purple-900 mt-2">Összesen kiszállítva: ${osszesKiszallitva} db</div>
-                    </div>
-                `;
-            }
+            // 4. KISZÁLLÍTVA (mindig megjelenik)
+            const utolsoKiszallitas = illatKiszallitasok.length > 0 
+                ? formatDatum(illatKiszallitasok[0].datum) 
+                : '-';
             
-            // Összesítő
+            html += `
+                <div class="bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
+                    <h3 class="font-bold text-purple-900 mb-2">📤 Kiszállítva</h3>
+                    <div class="text-sm text-gray-700 ml-4">• Eladás: <span class="font-bold text-green-700">${eladasok} db</span> 🛒</div>
+                    <div class="text-sm text-gray-700 ml-4">• Fulfilment: <span class="font-bold text-blue-700">${fulfilment} db</span> 📦</div>
+                    <div class="text-sm text-gray-600 ml-4 mt-1">• Utolsó kiszállítás: ${utolsoKiszallitas}</div>
+                    <div class="text-sm font-bold text-purple-900 mt-2">Összesen: ${osszesKiszallitva} db</div>
+                </div>
+            `;
+            
+            // 5. ÖSSZESÍTŐ
             html += `
                 <div class="bg-gradient-to-r from-amber-100 to-yellow-100 p-4 rounded-lg border-2 border-amber-300">
                     <h3 class="font-bold text-amber-900 mb-2">📈 Összesítő</h3>
@@ -2132,10 +2145,6 @@
                     <div class="text-sm text-gray-700">• Címkézetlen: <span class="font-bold text-orange-700">${cimkezetlenOsszesen} db</span></div>
                 </div>
             `;
-            
-            if (html === '') {
-                html = '<p class="text-gray-500 text-center py-8">Még nincs adat ehhez az illathoz</p>';
-            }
             
             content.innerHTML = html;
             modal.classList.remove('hidden');
