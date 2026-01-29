@@ -281,14 +281,53 @@
             </div>
         </div>
 
+        <!-- Illat szerkesztés modal -->
+        <div id="illatSzerkesztesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-amber-900 mb-4">✏️ Illat szerkesztése</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Válaszd ki a szerkesztendő illatot</label>
+                        <select id="szerkesztIllatSelect" class="w-full px-4 py-2 border rounded-lg mb-4">
+                            <option value="">Válassz illatot...</option>
+                        </select>
+                    </div>
+                    <div id="szerkesztIllatForm" class="hidden">
+                        <div class="bg-amber-50 p-4 rounded-lg mb-4">
+                            <div class="text-sm text-gray-600 mb-1">Jelenlegi név:</div>
+                            <div id="szerkesztIllatJelenlegiNev" class="font-bold text-amber-900"></div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Új név</label>
+                            <input type="text" id="szerkesztIllatUjNev" 
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="illatSzerkesztMent()" class="flex-1 bg-amber-600 text-white px-4 py-3 rounded-lg hover:bg-amber-700 font-semibold">
+                                Mentés
+                            </button>
+                            <button onclick="toggleIllatSzerkesztes()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                                Mégsem
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="grid md:grid-cols-2 gap-6 mb-6">
             <!-- Illatok kezelése -->
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold text-amber-900">Illatok</h2>
-                    <button onclick="toggleUjIllat()" class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition text-sm">
-                        + Új illat
-                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="toggleUjIllat()" class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition text-sm">
+                            + Új illat
+                        </button>
+                        <button onclick="toggleIllatSzerkesztes()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm">
+                            ✏️ Szerkeszt
+                        </button>
+                    </div>
                 </div>
 
                 <div id="ujIllatForm" class="mb-4 p-4 bg-amber-50 rounded-lg hidden">
@@ -419,6 +458,10 @@
                     </select>
                 </div>
             </div>
+            
+            <!-- Készlet összesítő -->
+            <div id="keszTermekOsszesito" class="mb-4"></div>
+            
             <div id="keszTermekekLista" class="space-y-3 max-h-96 overflow-y-auto"></div>
         </div>
     </div>
@@ -1364,6 +1407,88 @@
             }
         }
 
+        function toggleIllatSzerkesztes() {
+            const modal = document.getElementById('illatSzerkesztesModal');
+            const form = document.getElementById('szerkesztIllatForm');
+            const select = document.getElementById('szerkesztIllatSelect');
+            
+            if (modal.classList.contains('hidden')) {
+                // Megnyitás
+                modal.classList.remove('hidden');
+                form.classList.add('hidden');
+                
+                // Illatok betöltése ABC sorrendben
+                const rendezetIllatok = [...illatok].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+                select.innerHTML = '<option value="">Válassz illatot...</option>' +
+                    rendezetIllatok.map(i => `<option value="${i.id}">${i.nev}</option>`).join('');
+                
+                // Eseménykezelő
+                select.onchange = illatSzerkesztesValasztas;
+            } else {
+                // Bezárás
+                modal.classList.add('hidden');
+                form.classList.add('hidden');
+                select.value = '';
+                document.getElementById('szerkesztIllatUjNev').value = '';
+            }
+        }
+
+        function illatSzerkesztesValasztas() {
+            const illatId = parseInt(document.getElementById('szerkesztIllatSelect').value);
+            const form = document.getElementById('szerkesztIllatForm');
+            
+            if (illatId) {
+                const illat = illatok.find(i => i.id === illatId);
+                document.getElementById('szerkesztIllatJelenlegiNev').textContent = illat.nev;
+                document.getElementById('szerkesztIllatUjNev').value = illat.nev;
+                form.classList.remove('hidden');
+            } else {
+                form.classList.add('hidden');
+            }
+        }
+
+        async function illatSzerkesztMent() {
+            const illatId = parseInt(document.getElementById('szerkesztIllatSelect').value);
+            const ujNev = document.getElementById('szerkesztIllatUjNev').value.trim();
+            
+            if (!illatId || !ujNev) {
+                alert('Adj meg egy új nevet!');
+                return;
+            }
+            
+            const illat = illatok.find(i => i.id === illatId);
+            const regiNev = illat.nev;
+            
+            // Duplikáció ellenőrzése (kivéve saját magát)
+            const letezikMar = illatok.some(i => i.id !== illatId && i.nev.toLowerCase() === ujNev.toLowerCase());
+            if (letezikMar) {
+                alert(`"${ujNev}" illat már létezik!`);
+                return;
+            }
+            
+            if (!confirm(`Biztosan átnevezed "${regiNev}" illatot "${ujNev}" névre?\n\nEz minden terméknél frissül!`)) {
+                return;
+            }
+            
+            // Illat név frissítése
+            illat.nev = ujNev;
+            
+            // Minden termékben frissítés ahol ez az illat szerepel
+            kiontesek.forEach(k => {
+                if (k.illatId === illatId) k.illatNev = ujNev;
+            });
+            
+            keszTermekek.forEach(k => {
+                if (k.illatId === illatId) k.illatNev = ujNev;
+            });
+            
+            await ment();
+            render();
+            toggleIllatSzerkesztes();
+            
+            alert(`✅ "${regiNev}" átnevezve "${ujNev}" névre!`);
+        }
+
         function illatHozzaad() {
             const nev = document.getElementById('ujIllatNev').value.trim();
             if (nev) {
@@ -1800,9 +1925,12 @@
 
             // Kész termékek lista - CSOPORTOSÍTVA - KOMPAKT
             const keszTermekekLista = document.getElementById('keszTermekekLista');
+            const keszTermekOsszesito = document.getElementById('keszTermekOsszesito');
+            
             if (keszTermekekLista) {
                 if (keszTermekek.length === 0) {
                     keszTermekekLista.innerHTML = '<p class="text-gray-500 text-center py-8">Még nincs kész címkézett termék</p>';
+                    keszTermekOsszesito.innerHTML = '';
                 } else {
                     // Csoportosítás illat+típus+méret szerint
                     const csoportositott = {};
@@ -1836,6 +1964,38 @@
                     });
                     
                     let csoportositottTomb = Object.values(csoportositott);
+                    
+                    // ÖSSZESÍTŐ SZÁMÍTÁS - Típus + méret szerint
+                    const osszesites = {};
+                    csoportositottTomb.forEach(c => {
+                        const kulcs = `${c.termekTipusNev} - ${c.meret}`;
+                        if (!osszesites[kulcs]) {
+                            osszesites[kulcs] = 0;
+                        }
+                        osszesites[kulcs] += c.osszesDarab;
+                    });
+                    
+                    // Összesítő megjelenítése
+                    const osszesitesHTML = Object.entries(osszesites)
+                        .sort(([a], [b]) => a.localeCompare(b, 'hu'))
+                        .map(([tipus, darab]) => 
+                            `<div class="flex justify-between items-center p-2 bg-emerald-50 rounded">
+                                <span class="text-sm font-medium text-emerald-900">${tipus}</span>
+                                <span class="font-bold text-emerald-700">${darab} db</span>
+                            </div>`
+                        ).join('');
+                    
+                    keszTermekOsszesito.innerHTML = `
+                        <div class="bg-gradient-to-r from-emerald-100 to-teal-100 rounded-lg p-4 border-2 border-emerald-300">
+                            <h3 class="font-bold text-emerald-900 mb-3 flex items-center gap-2">
+                                <span>📊</span>
+                                <span>Készlet összesítő kategóriánként</span>
+                            </h3>
+                            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                ${osszesitesHTML}
+                            </div>
+                        </div>
+                    `;
                     
                     // RENDEZÉS a kiválasztott mód szerint
                     if (keszTermekRendezes === 'abc') {
