@@ -54,6 +54,20 @@
             </div>
         </div>
 
+        <!-- Tab navigáció -->
+        <div class="bg-white rounded-xl shadow-lg mb-6">
+            <div class="flex border-b border-gray-200">
+                <button id="gyartasTabBtn" onclick="switchTab('gyartas')" 
+                    class="flex-1 px-6 py-4 text-center font-semibold transition border-b-2 border-amber-600 text-amber-900">
+                    🏭 Gyártás
+                </button>
+                <button id="kiszallitasTabBtn" onclick="switchTab('kiszallitas')" 
+                    class="flex-1 px-6 py-4 text-center font-semibold transition border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                    📤 Kiszállítás
+                </button>
+            </div>
+        </div>
+
         <!-- Beállítások modal -->
         <div id="beallitasokModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -315,6 +329,58 @@
             </div>
         </div>
 
+        <!-- Kiszállítás modal -->
+        <div id="kiszallitasModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-blue-900 mb-4">💰 Kiszállítás rögzítése</h2>
+                    <div id="kiszallitasTermekInfo" class="bg-blue-50 p-4 rounded-lg mb-4"></div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Típus</label>
+                            <select id="kiszallitasTipus" class="w-full px-4 py-2 border rounded-lg">
+                                <option value="eladas">🛒 Közvetlen eladás</option>
+                                <option value="fulfilment">📦 Fulfilment</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Mennyiség (db)</label>
+                            <div class="flex gap-2 items-center">
+                                <button onclick="kiszallitasMennyisegValtoztat(-1)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold">
+                                    -
+                                </button>
+                                <input type="number" id="kiszallitasMennyiseg" min="1" 
+                                    class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-center font-bold text-lg">
+                                <button onclick="kiszallitasMennyisegValtoztat(1)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold">
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Partner neve</label>
+                            <input type="text" id="kiszallitasPartner" placeholder="pl. Kiss Anna vagy Fulfilment Kft." 
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Megjegyzés (opcionális)</label>
+                            <textarea id="kiszallitasMegjegyzes" rows="2" placeholder="pl. Piacon eladva"
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-6">
+                        <button onclick="kiszallitasRogzit()" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                            Rögzít
+                        </button>
+                        <button onclick="kiszallitasModalBezar()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Mégsem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GYÁRTÁS TAB -->
+        <div id="gyartasTab">
         <div class="grid md:grid-cols-2 gap-6 mb-6">
             <!-- Illatok kezelése -->
             <div class="bg-white rounded-xl shadow-lg p-6">
@@ -464,6 +530,34 @@
             
             <div id="keszTermekekLista" class="space-y-3 max-h-96 overflow-y-auto"></div>
         </div>
+        </div>
+        <!-- GYÁRTÁS TAB VÉGE -->
+
+        <!-- KISZÁLLÍTÁS TAB -->
+        <div id="kiszallitasTab" class="hidden">
+            <!-- Kiszállítások összesítő -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-blue-900 mb-4">📊 Kiszállítás összesítő</h2>
+                <div id="kiszallitasOsszesito" class="grid md:grid-cols-3 gap-4"></div>
+            </div>
+
+            <!-- Kiszállítások története -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-blue-900">📦 Kiszállítások története</h2>
+                    <div class="flex gap-2 items-center">
+                        <label class="text-sm text-gray-600">Szűrés:</label>
+                        <select id="kiszallitasSzuro" onchange="renderKiszallitasok()" class="px-3 py-1.5 border rounded-lg text-sm">
+                            <option value="mind">Összes</option>
+                            <option value="eladas">Csak eladás</option>
+                            <option value="fulfilment">Csak fulfilment</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="kiszallitasokLista" class="space-y-3 max-h-[600px] overflow-y-auto"></div>
+            </div>
+        </div>
+        <!-- KISZÁLLÍTÁS TAB VÉGE -->
     </div>
 
     <script>
@@ -471,8 +565,10 @@
         let kiontesek = [];
         let cimkeKeszlet = {}; // Címke készlet tárolása: { "illatId-termekTipus-meret": darabszam }
         let keszTermekek = []; // Címkézett kész termékek
+        let kiszallitasok = []; // Kiszállítások
         let idCounter = 0; // Egyedi ID számláló
         let keszTermekRendezes = 'datum'; // Rendezési mód: datum, abc, mennyiseg
+        let aktívTab = 'gyartas'; // Aktív tab követése
         
         // Termék típusok és méretek
         const termekTipusok = [
@@ -532,6 +628,12 @@
                     keszTermekek = keszTermekekDoc.data().data || [];
                 }
                 
+                // Kiszállítások betöltése
+                const kiszallitasokDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'kiszallitasok'));
+                if (kiszallitasokDoc.exists()) {
+                    kiszallitasok = kiszallitasokDoc.data().data || [];
+                }
+                
                 render();
                 
                 // Loading indicator elrejtése
@@ -541,6 +643,203 @@
                 document.getElementById('loadingIndicator').classList.add('hidden');
                 alert('Hiba történt az adatok betöltése közben! Ellenőrizd az internet kapcsolatot.');
             }
+        }
+
+        function switchTab(tabName) {
+            aktívTab = tabName;
+            
+            // Tab gombok frissítése
+            document.getElementById('gyartasTabBtn').className = tabName === 'gyartas' 
+                ? 'flex-1 px-6 py-4 text-center font-semibold transition border-b-2 border-amber-600 text-amber-900'
+                : 'flex-1 px-6 py-4 text-center font-semibold transition border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+            
+            document.getElementById('kiszallitasTabBtn').className = tabName === 'kiszallitas' 
+                ? 'flex-1 px-6 py-4 text-center font-semibold transition border-b-2 border-blue-600 text-blue-900'
+                : 'flex-1 px-6 py-4 text-center font-semibold transition border-b-2 border-transparent text-gray-500 hover:text-gray-700';
+            
+            // Tab tartalmak váltása
+            document.getElementById('gyartasTab').classList.toggle('hidden', tabName !== 'gyartas');
+            document.getElementById('kiszallitasTab').classList.toggle('hidden', tabName !== 'kiszallitas');
+            
+            // Ha kiszállítás tab, rendereljük
+            if (tabName === 'kiszallitas') {
+                renderKiszallitasok();
+            }
+        }
+
+        let kiszallitasData = null; // Modal adatok
+
+        function kiszallitasModal(illatNev, termekTipusNev, meret, osszesDarab) {
+            kiszallitasData = { illatNev, termekTipusNev, meret, osszesDarab };
+            
+            const modal = document.getElementById('kiszallitasModal');
+            const info = document.getElementById('kiszallitasTermekInfo');
+            const mennyisegInput = document.getElementById('kiszallitasMennyiseg');
+            
+            info.innerHTML = `
+                <div class="font-medium mb-1">${illatNev}</div>
+                <div class="text-sm text-gray-600">${termekTipusNev} - ${meret}</div>
+                <div class="text-sm text-gray-600 mt-2">Elérhető: <span class="font-bold text-blue-700">${osszesDarab} db</span></div>
+            `;
+            
+            mennyisegInput.value = 1;
+            mennyisegInput.max = osszesDarab;
+            document.getElementById('kiszallitasPartner').value = '';
+            document.getElementById('kiszallitasMegjegyzes').value = '';
+            document.getElementById('kiszallitasTipus').value = 'eladas';
+            
+            modal.classList.remove('hidden');
+        }
+
+        function kiszallitasMennyisegValtoztat(valtozas) {
+            if (!kiszallitasData) return;
+            const input = document.getElementById('kiszallitasMennyiseg');
+            const jelenlegiErtek = parseInt(input.value) || 0;
+            const ujErtek = Math.max(1, Math.min(kiszallitasData.osszesDarab, jelenlegiErtek + valtozas));
+            input.value = ujErtek;
+        }
+
+        function kiszallitasModalBezar() {
+            document.getElementById('kiszallitasModal').classList.add('hidden');
+            kiszallitasData = null;
+        }
+
+        async function kiszallitasRogzit() {
+            if (!kiszallitasData) return;
+            
+            const mennyiseg = parseInt(document.getElementById('kiszallitasMennyiseg').value);
+            const tipus = document.getElementById('kiszallitasTipus').value;
+            const partner = document.getElementById('kiszallitasPartner').value.trim();
+            const megjegyzes = document.getElementById('kiszallitasMegjegyzes').value.trim();
+            
+            if (!mennyiseg || mennyiseg < 1 || mennyiseg > kiszallitasData.osszesDarab) {
+                alert('Érvénytelen mennyiség!');
+                return;
+            }
+            
+            const { illatNev, termekTipusNev, meret, osszesDarab } = kiszallitasData;
+            
+            // Új kiszállítás rögzítése
+            const ujKiszallitas = {
+                id: generateId(),
+                datum: new Date().toISOString(),
+                illatNev,
+                termekTipusNev,
+                meret,
+                mennyiseg,
+                tipus,
+                partner,
+                megjegyzes
+            };
+            
+            kiszallitasok.unshift(ujKiszallitas);
+            
+            // Készlet csökkentése - Arányos csökkentés a kész termékek között
+            const tetelek = keszTermekek.filter(t => 
+                t.illatNev === illatNev && 
+                t.termekTipusNev === termekTipusNev && 
+                t.meret === meret
+            );
+            
+            let maradekCsokkentes = mennyiseg;
+            tetelek.forEach(tetel => {
+                if (maradekCsokkentes <= 0) return;
+                
+                const csokkentes = Math.min(tetel.darabszam, maradekCsokkentes);
+                tetel.darabszam -= csokkentes;
+                maradekCsokkentes -= csokkentes;
+            });
+            
+            // 0-ra csökkent tételek törlése
+            keszTermekek = keszTermekek.filter(t => t.darabszam > 0);
+            
+            await ment();
+            render();
+            renderKiszallitasok();
+            kiszallitasModalBezar();
+            
+            alert(`✅ Kiszállítás rögzítve!\n${mennyiseg} db - ${illatNev}`);
+        }
+
+        function renderKiszallitasok() {
+            const lista = document.getElementById('kiszallitasokLista');
+            const osszesito = document.getElementById('kiszallitasOsszesito');
+            const szuro = document.getElementById('kiszallitasSzuro').value;
+            
+            // Szűrés
+            let szurtKiszallitasok = kiszallitasok;
+            if (szuro !== 'mind') {
+                szurtKiszallitasok = kiszallitasok.filter(k => k.tipus === szuro);
+            }
+            
+            if (szurtKiszallitasok.length === 0) {
+                lista.innerHTML = '<p class="text-gray-500 text-center py-8">Még nincs kiszállítás rögzítve</p>';
+                osszesito.innerHTML = '';
+                return;
+            }
+            
+            // Összesítő számítások
+            const maiKiszallitas = szurtKiszallitasok.filter(k => {
+                const kiszallitasDatum = new Date(k.datum);
+                const ma = new Date();
+                return kiszallitasDatum.toDateString() === ma.toDateString();
+            }).reduce((sum, k) => sum + k.mennyiseg, 0);
+            
+            const hetiKiszallitas = szurtKiszallitasok.filter(k => {
+                const kiszallitasDatum = new Date(k.datum);
+                const ma = new Date();
+                const hetElodje = new Date(ma.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return kiszallitasDatum >= hetElodje;
+            }).reduce((sum, k) => sum + k.mennyiseg, 0);
+            
+            const osszesKiszallitas = szurtKiszallitasok.reduce((sum, k) => sum + k.mennyiseg, 0);
+            
+            osszesito.innerHTML = `
+                <div class="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+                    <div class="text-sm text-gray-600 mb-1">Mai kiszállítás</div>
+                    <div class="text-2xl font-bold text-blue-700">${maiKiszallitas} db</div>
+                </div>
+                <div class="bg-indigo-50 p-4 rounded-lg border-2 border-indigo-200">
+                    <div class="text-sm text-gray-600 mb-1">Heti kiszállítás</div>
+                    <div class="text-2xl font-bold text-indigo-700">${hetiKiszallitas} db</div>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
+                    <div class="text-sm text-gray-600 mb-1">Összes kiszállítás</div>
+                    <div class="text-2xl font-bold text-purple-700">${osszesKiszallitas} db</div>
+                </div>
+            `;
+            
+            // Lista renderelés
+            lista.innerHTML = szurtKiszallitasok.map(k => `
+                <div class="p-4 rounded-lg border-2 ${k.tipus === 'eladas' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-lg">${k.tipus === 'eladas' ? '🛒' : '📦'}</span>
+                                <span class="font-bold text-gray-900">${k.illatNev}</span>
+                                <span class="text-sm font-bold ${k.tipus === 'eladas' ? 'text-green-700' : 'text-blue-700'}">${k.mennyiseg} db</span>
+                            </div>
+                            <div class="text-sm text-gray-700">${k.termekTipusNev} - ${k.meret}</div>
+                            <div class="text-xs text-gray-500 mt-1">📅 ${formatDatum(k.datum)}</div>
+                            ${k.partner ? `<div class="text-sm text-gray-700 mt-1">👤 ${k.partner}</div>` : ''}
+                            ${k.megjegyzes ? `<div class="text-xs text-gray-600 mt-1 italic">💬 ${k.megjegyzes}</div>` : ''}
+                        </div>
+                        <button onclick="kiszallitasTorol(${k.id})" class="text-red-600 hover:text-red-800 text-xs px-2 py-1" title="Törlés">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function kiszallitasTorol(id) {
+            if (!confirm('Biztosan törlöd ezt a kiszállítást?\n\nFigyelem: Ez NEM állítja vissza a készletet!')) {
+                return;
+            }
+            
+            kiszallitasok = kiszallitasok.filter(k => k.id !== id);
+            await ment();
+            renderKiszallitasok();
         }
 
         function scrollToProductForm() {
@@ -564,7 +863,8 @@
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiontesek'), { data: kiontesek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'meretek'), { data: meretek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'cimkeKeszlet'), { data: cimkeKeszlet }),
-                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'keszTermekek'), { data: keszTermekek })
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'keszTermekek'), { data: keszTermekek }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiszallitasok'), { data: kiszallitasok })
                 ]);
             } catch (error) {
                 console.error('Mentési hiba:', error);
@@ -2031,6 +2331,10 @@
                                             <td class="p-2 text-center text-xs text-gray-600">${formatDatum(csoport.utolsoCimkezesIdopont)}</td>
                                             <td class="p-2 text-center">
                                                 <div class="flex gap-1 justify-center">
+                                                    <button onclick="kiszallitasModal('${csoport.illatNev}', '${csoport.termekTipusNev}', '${csoport.meret}', ${csoport.osszesDarab})" 
+                                                        class="text-green-600 hover:text-green-800 text-xs px-2 py-1" title="Kiszállítás">
+                                                        💰
+                                                    </button>
                                                     <button onclick="keszTermekSzerkeszt('${csoport.illatNev}', '${csoport.termekTipusNev}', '${csoport.meret}', ${csoport.osszesDarab})" 
                                                         class="text-blue-600 hover:text-blue-800 text-xs px-2 py-1" title="Mennyiség szerkesztése">
                                                         ✏️
