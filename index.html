@@ -310,13 +310,28 @@
 
         <!-- Termékek listája -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <h2 class="text-xl font-bold text-amber-900 mb-4">📋 Címkézetlen termékek</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-amber-900">📋 Címkézetlen termékek</h2>
+                <button onclick="scrollToProductForm()" class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 text-sm font-semibold">
+                    ➕ Új termék
+                </button>
+            </div>
             <div id="kiontesLista" class="space-y-3 max-h-96 overflow-y-auto"></div>
         </div>
 
         <!-- Kész termékek -->
         <div class="bg-white rounded-xl shadow-lg p-6">
-            <h2 class="text-xl font-bold text-amber-900 mb-4">✅ Kész címkézett termékek</h2>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+                <h2 class="text-xl font-bold text-amber-900">✅ Kész címkézett termékek</h2>
+                <div class="flex gap-2 items-center">
+                    <label class="text-sm text-gray-600">Rendezés:</label>
+                    <select id="keszTermekRendezes" onchange="keszTermekRendezesValtozas()" class="px-3 py-1.5 border rounded-lg text-sm">
+                        <option value="datum">Dátum (legfrissebb)</option>
+                        <option value="abc">Név (ABC)</option>
+                        <option value="mennyiseg">Mennyiség (több→kevesebb)</option>
+                    </select>
+                </div>
+            </div>
             <div id="keszTermekekLista" class="space-y-3 max-h-96 overflow-y-auto"></div>
         </div>
     </div>
@@ -327,6 +342,7 @@
         let cimkeKeszlet = {}; // Címke készlet tárolása: { "illatId-termekTipus-meret": darabszam }
         let keszTermekek = []; // Címkézett kész termékek
         let idCounter = 0; // Egyedi ID számláló
+        let keszTermekRendezes = 'datum'; // Rendezési mód: datum, abc, mennyiseg
         
         // Termék típusok és méretek
         const termekTipusok = [
@@ -395,6 +411,18 @@
                 document.getElementById('loadingIndicator').classList.add('hidden');
                 alert('Hiba történt az adatok betöltése közben! Ellenőrizd az internet kapcsolatot.');
             }
+        }
+
+        function scrollToProductForm() {
+            const formElement = document.getElementById('kiontesForm');
+            if (formElement) {
+                formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function keszTermekRendezesValtozas() {
+            keszTermekRendezes = document.getElementById('keszTermekRendezes').value;
+            render();
         }
 
         // Firebase mentés
@@ -1134,12 +1162,13 @@
         }
 
         function render() {
-            // Illat lista
+            // Illat lista - ABC SORREND
             const illatLista = document.getElementById('illatLista');
             if (illatok.length === 0) {
                 illatLista.innerHTML = '<p class="text-gray-500 text-center py-8">Még nincs illat hozzáadva</p>';
             } else {
-                illatLista.innerHTML = illatok.map(illat => `
+                const rendezetIllatok = [...illatok].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+                illatLista.innerHTML = rendezetIllatok.map(illat => `
                     <div class="flex justify-between items-center p-3 bg-amber-50 rounded-lg hover:bg-amber-100 transition">
                         <span class="font-medium text-amber-900">${illat.nev}</span>
                         <button onclick="illatTorol(${illat.id})" class="text-red-600 hover:text-red-800 text-sm">
@@ -1289,8 +1318,11 @@
                     }
                 }
                 
-                // Rendezés és megjelenítés
-                Array.from(osszesKombinacio.values()).forEach(info => {
+                // Rendezés ABC sorrendbe és megjelenítés
+                const rendezetKombinacio = Array.from(osszesKombinacio.values())
+                    .sort((a, b) => a.illatNev.localeCompare(b.illatNev, 'hu'));
+                
+                rendezetKombinacio.forEach(info => {
                     const mennyiseg = cimkeKeszlet[info.kulcs] || 0;
                     const cssClass = mennyiseg < 12 ? 'bg-red-50 border-red-300' : mennyiseg === 0 ? 'bg-gray-50 border-gray-300' : 'bg-green-50 border-green-300';
                     
@@ -1424,7 +1456,8 @@
                     }
                 });
                 
-                const csoportositottTomb = Object.values(csoportositott);
+                const csoportositottTomb = Object.values(csoportositott)
+                    .sort((a, b) => a.illatNev.localeCompare(b.illatNev, 'hu')); // ABC SORREND
                 
                 kiontesLista.innerHTML = csoportositottTomb.map(csoport => {
                     const kulcs = getCimkeKulcs(csoport.illatId, csoport.termekTipus, csoport.meret);
@@ -1505,7 +1538,19 @@
                         }
                     });
                     
-                    const csoportositottTomb = Object.values(csoportositott);
+                    let csoportositottTomb = Object.values(csoportositott);
+                    
+                    // RENDEZÉS a kiválasztott mód szerint
+                    if (keszTermekRendezes === 'abc') {
+                        csoportositottTomb.sort((a, b) => a.illatNev.localeCompare(b.illatNev, 'hu'));
+                    } else if (keszTermekRendezes === 'mennyiseg') {
+                        csoportositottTomb.sort((a, b) => b.osszesDarab - a.osszesDarab);
+                    } else {
+                        // datum - legfrissebb címkézés
+                        csoportositottTomb.sort((a, b) => 
+                            new Date(b.utolsoCimkezesIdopont) - new Date(a.utolsoCimkezesIdopont)
+                        );
+                    }
                     
                     // KOMPAKT táblázat stílus
                     keszTermekekLista.innerHTML = `
