@@ -2024,7 +2024,7 @@
             const cimkeKeszletAdatok = {};
             const keszTermekAdatok = {};
             
-            // Címkézetlen termékek
+            // Címkézetlen termékek - ID szerint
             kiontesek.forEach(k => {
                 if (k.illatId === illatId) {
                     const kulcs = `${k.termekTipusNev} - ${k.meret}`;
@@ -2032,7 +2032,7 @@
                 }
             });
             
-            // Címke készlet
+            // Címke készlet - ID szerint
             Object.keys(cimkeKeszlet).forEach(kulcs => {
                 const [cimkeIllatId, termekTipus, meret] = kulcs.split('-');
                 if (parseInt(cimkeIllatId) === illatId) {
@@ -2043,15 +2043,15 @@
                 }
             });
             
-            // Kész termékek
+            // Kész termékek - NÉV szerint (mert manuális hozzáadásnál lehet más az ID!)
             keszTermekek.forEach(k => {
-                if (k.illatId === illatId) {
+                if (k.illatNev === illat.nev) {
                     const kulcs = `${k.termekTipusNev} - ${k.meret}`;
                     keszTermekAdatok[kulcs] = (keszTermekAdatok[kulcs] || 0) + k.darabszam;
                 }
             });
             
-            // Kiszállítások
+            // Kiszállítások - NÉV szerint
             const illatKiszallitasok = kiszallitasok.filter(k => k.illatNev === illat.nev);
             const osszesKiszallitva = illatKiszallitasok.reduce((sum, k) => sum + k.mennyiseg, 0);
             const eladasok = illatKiszallitasok.filter(k => k.tipus === 'eladas').reduce((sum, k) => sum + k.mennyiseg, 0);
