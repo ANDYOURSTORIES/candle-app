@@ -396,6 +396,21 @@
             </div>
         </div>
 
+        <!-- Illat statisztika modal -->
+        <div id="illatStatisztikaModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <h2 id="illatStatisztikaCim" class="text-xl font-bold text-amber-900 mb-4">📊 Illat statisztika</h2>
+                    <div id="illatStatisztikaContent" class="space-y-4"></div>
+                    <div class="mt-6">
+                        <button onclick="illatStatisztikaModalBezar()" class="w-full px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-semibold">
+                            Bezár
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- GYÁRTÁS TAB -->
         <div id="gyartasTab">
         <div class="grid md:grid-cols-2 gap-6 mb-6">
@@ -1572,10 +1587,11 @@
             modal.classList.toggle('hidden');
             
             if (!modal.classList.contains('hidden')) {
-                // Modal megnyitása - populáljuk a selecteket
+                // Modal megnyitása - populáljuk a selecteket ABC SORRENDBEN
                 const illatSelect = document.getElementById('manualCimkeIllat');
+                const rendezetIllatok = [...illatok].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
                 illatSelect.innerHTML = '<option value="">Válassz meglévő illatot...</option>' +
-                    illatok.map(i => `<option value="${i.id}">${i.nev}</option>`).join('');
+                    rendezetIllatok.map(i => `<option value="${i.id}">${i.nev}</option>`).join('');
                 illatSelect.disabled = false; // FONTOS: Enable select
                 
                 const tipusSelect = document.getElementById('manualCimkeTermekTipus');
@@ -1993,6 +2009,142 @@
             alert(`✅ "${regiNev}" átnevezve "${ujNev}" névre!`);
         }
 
+        function illatStatisztika(illatId) {
+            const illat = illatok.find(i => i.id === illatId);
+            if (!illat) return;
+            
+            const modal = document.getElementById('illatStatisztikaModal');
+            const cim = document.getElementById('illatStatisztikaCim');
+            const content = document.getElementById('illatStatisztikaContent');
+            
+            cim.textContent = `📊 ${illat.nev} - Részletes statisztika`;
+            
+            // Adatok gyűjtése
+            const cimkezetlenTermekek = {};
+            const cimkeKeszletAdatok = {};
+            const keszTermekAdatok = {};
+            
+            // Címkézetlen termékek
+            kiontesek.forEach(k => {
+                if (k.illatId === illatId) {
+                    const kulcs = `${k.termekTipusNev} - ${k.meret}`;
+                    cimkezetlenTermekek[kulcs] = (cimkezetlenTermekek[kulcs] || 0) + k.darabszam;
+                }
+            });
+            
+            // Címke készlet
+            Object.keys(cimkeKeszlet).forEach(kulcs => {
+                const [cimkeIllatId, termekTipus, meret] = kulcs.split('-');
+                if (parseInt(cimkeIllatId) === illatId) {
+                    const termekTipusObj = termekTipusok.find(t => t.id === termekTipus);
+                    const tipus = termekTipusObj ? termekTipusObj.nev : termekTipus;
+                    const megnevezes = `${tipus} - ${meret}`;
+                    cimkeKeszletAdatok[megnevezes] = cimkeKeszlet[kulcs];
+                }
+            });
+            
+            // Kész termékek
+            keszTermekek.forEach(k => {
+                if (k.illatId === illatId) {
+                    const kulcs = `${k.termekTipusNev} - ${k.meret}`;
+                    keszTermekAdatok[kulcs] = (keszTermekAdatok[kulcs] || 0) + k.darabszam;
+                }
+            });
+            
+            // Kiszállítások
+            const illatKiszallitasok = kiszallitasok.filter(k => k.illatNev === illat.nev);
+            const osszesKiszallitva = illatKiszallitasok.reduce((sum, k) => sum + k.mennyiseg, 0);
+            const eladasok = illatKiszallitasok.filter(k => k.tipus === 'eladas').reduce((sum, k) => sum + k.mennyiseg, 0);
+            const fulfilment = illatKiszallitasok.filter(k => k.tipus === 'fulfilment').reduce((sum, k) => sum + k.mennyiseg, 0);
+            
+            // Összesítők
+            const cimkezetlenOsszesen = Object.values(cimkezetlenTermekek).reduce((a, b) => a + b, 0);
+            const cimkeKeszletOsszesen = Object.values(cimkeKeszletAdatok).reduce((a, b) => a + b, 0);
+            const keszTermekOsszesen = Object.values(keszTermekAdatok).reduce((a, b) => a + b, 0);
+            const gyartvaOsszesen = cimkezetlenOsszesen + keszTermekOsszesen + osszesKiszallitva;
+            
+            // HTML építése
+            let html = '';
+            
+            // Címkézetlen termékek
+            if (cimkezetlenOsszesen > 0) {
+                html += `
+                    <div class="bg-orange-50 p-4 rounded-lg border-2 border-orange-200">
+                        <h3 class="font-bold text-orange-900 mb-2">🏭 Címkézetlen termékek</h3>
+                        ${Object.entries(cimkezetlenTermekek).map(([tipus, db]) => 
+                            `<div class="text-sm text-gray-700 ml-4">• ${tipus}: <span class="font-bold">${db} db</span></div>`
+                        ).join('')}
+                        <div class="text-sm font-bold text-orange-900 mt-2">Összesen: ${cimkezetlenOsszesen} db</div>
+                    </div>
+                `;
+            }
+            
+            // Címke készlet
+            if (cimkeKeszletOsszesen > 0) {
+                html += `
+                    <div class="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+                        <h3 class="font-bold text-blue-900 mb-2">🏷️ Címke készlet</h3>
+                        ${Object.entries(cimkeKeszletAdatok).map(([tipus, db]) => 
+                            `<div class="text-sm text-gray-700 ml-4">• ${tipus}: <span class="font-bold">${db} db</span></div>`
+                        ).join('')}
+                        <div class="text-sm font-bold text-blue-900 mt-2">Összesen: ${cimkeKeszletOsszesen} db</div>
+                    </div>
+                `;
+            }
+            
+            // Kész termékek
+            if (keszTermekOsszesen > 0) {
+                html += `
+                    <div class="bg-emerald-50 p-4 rounded-lg border-2 border-emerald-200">
+                        <h3 class="font-bold text-emerald-900 mb-2">✅ Kész termékek (polcon)</h3>
+                        ${Object.entries(keszTermekAdatok).map(([tipus, db]) => 
+                            `<div class="text-sm text-gray-700 ml-4">• ${tipus}: <span class="font-bold">${db} db</span></div>`
+                        ).join('')}
+                        <div class="text-sm font-bold text-emerald-900 mt-2">Összesen: ${keszTermekOsszesen} db</div>
+                    </div>
+                `;
+            }
+            
+            // Kiszállítások
+            if (osszesKiszallitva > 0) {
+                const utolsoKiszallitas = illatKiszallitasok.length > 0 
+                    ? formatDatum(illatKiszallitasok[0].datum) 
+                    : '-';
+                
+                html += `
+                    <div class="bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
+                        <h3 class="font-bold text-purple-900 mb-2">📤 Kiszállítások</h3>
+                        <div class="text-sm text-gray-700 ml-4">• Eladás: <span class="font-bold text-green-700">${eladasok} db</span> 🛒</div>
+                        <div class="text-sm text-gray-700 ml-4">• Fulfilment: <span class="font-bold text-blue-700">${fulfilment} db</span> 📦</div>
+                        <div class="text-sm text-gray-600 ml-4 mt-1">• Utolsó: ${utolsoKiszallitas}</div>
+                        <div class="text-sm font-bold text-purple-900 mt-2">Összesen kiszállítva: ${osszesKiszallitva} db</div>
+                    </div>
+                `;
+            }
+            
+            // Összesítő
+            html += `
+                <div class="bg-gradient-to-r from-amber-100 to-yellow-100 p-4 rounded-lg border-2 border-amber-300">
+                    <h3 class="font-bold text-amber-900 mb-2">📈 Összesítő</h3>
+                    <div class="text-sm text-gray-700">• Gyártva összesen: <span class="font-bold">${gyartvaOsszesen} db</span></div>
+                    <div class="text-sm text-gray-700">• Polcon van: <span class="font-bold text-emerald-700">${keszTermekOsszesen} db</span></div>
+                    <div class="text-sm text-gray-700">• Kiszállítva: <span class="font-bold text-purple-700">${osszesKiszallitva} db</span></div>
+                    <div class="text-sm text-gray-700">• Címkézetlen: <span class="font-bold text-orange-700">${cimkezetlenOsszesen} db</span></div>
+                </div>
+            `;
+            
+            if (html === '') {
+                html = '<p class="text-gray-500 text-center py-8">Még nincs adat ehhez az illathoz</p>';
+            }
+            
+            content.innerHTML = html;
+            modal.classList.remove('hidden');
+        }
+
+        function illatStatisztikaModalBezar() {
+            document.getElementById('illatStatisztikaModal').classList.add('hidden');
+        }
+
         function illatHozzaad() {
             const nev = document.getElementById('ujIllatNev').value.trim();
             if (nev) {
@@ -2095,8 +2247,12 @@
                 const rendezetIllatok = [...illatok].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
                 illatLista.innerHTML = rendezetIllatok.map(illat => `
                     <div class="flex justify-between items-center p-3 bg-amber-50 rounded-lg hover:bg-amber-100 transition">
-                        <span class="font-medium text-amber-900">${illat.nev}</span>
-                        <button onclick="illatTorol(${illat.id})" class="text-red-600 hover:text-red-800 text-sm">
+                        <span class="font-medium text-amber-900 cursor-pointer hover:text-amber-700 flex-1" 
+                              onclick="illatStatisztika(${illat.id})" 
+                              title="Kattints a részletes statisztikához">
+                            ${illat.nev} 📊
+                        </span>
+                        <button onclick="illatTorol(${illat.id})" class="text-red-600 hover:text-red-800 text-sm ml-2">
                             Törlés
                         </button>
                     </div>
