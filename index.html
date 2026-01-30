@@ -411,8 +411,132 @@
             </div>
         </div>
 
+        <!-- Új kiszállítás modal -->
+        <div id="ujKiszallitasModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-blue-900 mb-4">📦 Új kiszállítás létrehozása</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Dátum</label>
+                            <div class="flex gap-2">
+                                <input type="date" id="ujKiszallitasDatum" 
+                                    class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <button onclick="ujKiszallitasMaiDatum()" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-medium text-sm whitespace-nowrap">
+                                    📅 Mai
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Típus</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="ujKiszallitasTipusValaszt('eladas')" id="tipusEladasBtn"
+                                    class="px-6 py-4 rounded-lg font-bold text-lg border-2 border-green-500 bg-green-50 text-green-700 hover:bg-green-100">
+                                    🛒 Eladás
+                                </button>
+                                <button onclick="ujKiszallitasTipusValaszt('fulfilment')" id="tipusFulfilmentBtn"
+                                    class="px-6 py-4 rounded-lg font-bold text-lg border-2 border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100">
+                                    📦 Fulfilment
+                                </button>
+                            </div>
+                            <input type="hidden" id="ujKiszallitasTipus" value="eladas">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Partner</label>
+                            <select id="ujKiszallitasPartnerSelect" onchange="ujKiszallitasPartnerChange()" class="w-full px-4 py-2 border rounded-lg mb-2">
+                                <option value="">Válassz partnert...</option>
+                            </select>
+                            <div id="ujKiszallitasUjPartnerForm" class="hidden">
+                                <input type="text" id="ujKiszallitasUjPartnerNev" placeholder="Új partner neve" 
+                                    class="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Megjegyzés (opcionális)</label>
+                            <textarea id="ujKiszallitasMegjegyzes" rows="2" placeholder="pl. Piacon eladva"
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-6">
+                        <button onclick="ujKiszallitasLetrehoz()" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                            Létrehoz
+                        </button>
+                        <button onclick="ujKiszallitasModalBezar()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Mégsem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kiszállítás szerkesztés modal -->
+        <div id="kiszallitasSzerkesztModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-blue-900 mb-4">✏️ Kiszállítás szerkesztése</h2>
+                    <div id="szerkesztKiszallitasInfo" class="bg-blue-50 p-4 rounded-lg mb-4"></div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Típus</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="szerkesztTipusValaszt('eladas')" id="szerkesztTipusEladasBtn"
+                                    class="px-6 py-3 rounded-lg font-bold border-2">
+                                    🛒 Eladás
+                                </button>
+                                <button onclick="szerkesztTipusValaszt('fulfilment')" id="szerkesztTipusFulfilmentBtn"
+                                    class="px-6 py-3 rounded-lg font-bold border-2">
+                                    📦 Fulfilment
+                                </button>
+                            </div>
+                            <input type="hidden" id="szerkesztTipus">
+                            <input type="hidden" id="szerkesztKiszallitasId">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Partner</label>
+                            <select id="szerkesztPartnerSelect" class="w-full px-4 py-2 border rounded-lg">
+                                <option value="">Válassz partnert...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Mennyiség (db)</label>
+                            <div class="flex gap-2 items-center">
+                                <button onclick="szerkesztMennyisegValtoztat(-1)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold">
+                                    -
+                                </button>
+                                <input type="number" id="szerkesztMennyiseg" min="1" 
+                                    class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-center font-bold text-lg">
+                                <button onclick="szerkesztMennyisegValtoztat(1)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold">
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Dátum</label>
+                            <input type="date" id="szerkesztDatum" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Megjegyzés</label>
+                            <textarea id="szerkesztMegjegyzes" rows="2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-6">
+                        <button onclick="kiszallitasSzerkesztMent()" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                            Mentés
+                        </button>
+                        <button onclick="kiszallitasSzerkesztModalBezar()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Mégsem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- GYÁRTÁS TAB -->
         <div id="gyartasTab">
+        
+        <!-- Draft kiszállítás doboz -->
+        <div id="draftDoboz" class="hidden mb-6"></div>
+        
         <div class="grid md:grid-cols-2 gap-6 mb-6">
             <!-- Illatok kezelése -->
             <div class="bg-white rounded-xl shadow-lg p-6">
@@ -567,6 +691,58 @@
 
         <!-- KISZÁLLÍTÁS TAB -->
         <div id="kiszallitasTab" class="hidden">
+            <!-- Kiszállítási statisztika -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-blue-900 mb-4">📊 Kiszállítási statisztika</h2>
+                
+                <!-- Időszak gombok -->
+                <div class="flex gap-2 mb-4 flex-wrap">
+                    <button onclick="statisztikaIdoszakValtoztat('heti')" id="statHeti" 
+                        class="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white">
+                        Heti
+                    </button>
+                    <button onclick="statisztikaIdoszakValtoztat('havi')" id="statHavi"
+                        class="px-4 py-2 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">
+                        Havi
+                    </button>
+                    <button onclick="statisztikaIdoszakValtoztat('evi')" id="statEvi"
+                        class="px-4 py-2 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">
+                        Évi
+                    </button>
+                    <button onclick="toggleEgyeniIdoszak()" id="statEgyeni"
+                        class="px-4 py-2 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">
+                        📅 Egyéni időszak
+                    </button>
+                </div>
+                
+                <!-- Egyéni időszak form (hidden) -->
+                <div id="egyeniIdoszakForm" class="hidden mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="grid md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Dátumtól</label>
+                            <input type="date" id="statDatumTol" class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Dátumig</label>
+                            <input type="date" id="statDatumIg" class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                    </div>
+                    <button onclick="egyeniIdoszakAlkalmaz()" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm">
+                        Alkalmaz
+                    </button>
+                </div>
+                
+                <!-- Statisztika adatok -->
+                <div id="statisztikaAdatok" class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border-2 border-blue-200"></div>
+            </div>
+            
+            <!-- Új kiszállítás gomb -->
+            <div class="mb-6">
+                <button onclick="ujKiszallitasModal()" class="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold text-lg shadow-lg">
+                    📦 Új kiszállítás indítása
+                </button>
+            </div>
+
             <!-- Kiszállítások összesítő -->
             <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
                 <h2 class="text-xl font-bold text-blue-900 mb-4">📊 Kiszállítás összesítő</h2>
@@ -632,9 +808,11 @@
         let keszTermekek = []; // Címkézett kész termékek
         let kiszallitasok = []; // Kiszállítások
         let partnerek = []; // Partnerek listája
+        let aktivDraft = null; // Aktív kiszállítás draft
         let idCounter = 0; // Egyedi ID számláló
         let keszTermekRendezes = 'datum'; // Rendezési mód: datum, abc, mennyiseg
         let aktívTab = 'gyartas'; // Aktív tab követése
+        let statisztikaIdoszak = 'heti'; // Statisztika időszak: heti, havi, evi, egyeni
         
         // Termék típusok és méretek
         const termekTipusok = [
@@ -706,7 +884,14 @@
                     partnerek = partnerekDoc.data().data || [];
                 }
                 
+                // Aktív draft betöltése
+                const aktivDraftDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'aktivDraft'));
+                if (aktivDraftDoc.exists()) {
+                    aktivDraft = aktivDraftDoc.data().data || null;
+                }
+                
                 render();
+                renderDraftDoboz();
                 
                 // Loading indicator elrejtése
                 document.getElementById('loadingIndicator').classList.add('hidden');
@@ -715,6 +900,540 @@
                 document.getElementById('loadingIndicator').classList.add('hidden');
                 alert('Hiba történt az adatok betöltése közben! Ellenőrizd az internet kapcsolatot.');
             }
+        }
+
+        // ===== KISZÁLLÍTÁS DRAFT ÉS STATISZTIKA FUNKCIÓK =====
+        
+        let statisztikaEgyeniTol = null;
+        let statisztikaEgyeniIg = null;
+        
+        function statisztikaIdoszakValtoztat(idoszak) {
+            statisztikaIdoszak = idoszak;
+            
+            // Gombok frissítése
+            ['statHeti', 'statHavi', 'statEvi', 'statEgyeni'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (id === 'stat' + idoszak.charAt(0).toUpperCase() + idoszak.slice(1)) {
+                    btn.className = 'px-4 py-2 rounded-lg font-medium bg-blue-600 text-white';
+                } else {
+                    btn.className = 'px-4 py-2 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300';
+                }
+            });
+            
+            document.getElementById('egyeniIdoszakForm').classList.add('hidden');
+            renderStatisztika();
+        }
+        
+        function toggleEgyeniIdoszak() {
+            const form = document.getElementById('egyeniIdoszakForm');
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                statisztikaIdoszak = 'egyeni';
+                // Gombok frissítése
+                ['statHeti', 'statHavi', 'statEvi'].forEach(id => {
+                    document.getElementById(id).className = 'px-4 py-2 rounded-lg font-medium bg-gray-200 text-gray-700 hover:bg-gray-300';
+                });
+                document.getElementById('statEgyeni').className = 'px-4 py-2 rounded-lg font-medium bg-blue-600 text-white';
+            }
+        }
+        
+        function egyeniIdoszakAlkalmaz() {
+            const tol = document.getElementById('statDatumTol').value;
+            const ig = document.getElementById('statDatumIg').value;
+            
+            if (!tol || !ig) {
+                alert('Kérlek add meg mindkét dátumot!');
+                return;
+            }
+            
+            statisztikaEgyeniTol = tol;
+            statisztikaEgyeniIg = ig;
+            renderStatisztika();
+        }
+        
+        function renderStatisztika() {
+            const container = document.getElementById('statisztikaAdatok');
+            
+            // Időszak kiszámítása
+            let datumTol, datumIg;
+            const ma = new Date();
+            
+            if (statisztikaIdoszak === 'heti') {
+                datumTol = new Date(ma.getTime() - 7 * 24 * 60 * 60 * 1000);
+                datumIg = ma;
+            } else if (statisztikaIdoszak === 'havi') {
+                datumTol = new Date(ma.getFullYear(), ma.getMonth(), 1);
+                datumIg = ma;
+            } else if (statisztikaIdoszak === 'evi') {
+                datumTol = new Date(ma.getFullYear(), 0, 1);
+                datumIg = ma;
+            } else if (statisztikaIdoszak === 'egyeni') {
+                if (!statisztikaEgyeniTol || !statisztikaEgyeniIg) {
+                    container.innerHTML = '<p class="text-gray-500 text-sm">Válassz dátumokat az egyéni időszakhoz</p>';
+                    return;
+                }
+                datumTol = new Date(statisztikaEgyeniTol);
+                datumIg = new Date(statisztikaEgyeniIg + 'T23:59:59');
+            }
+            
+            // Szűrt kiszállítások
+            const szurtKiszallitasok = kiszallitasok.filter(k => {
+                const kDatum = new Date(k.datum);
+                return kDatum >= datumTol && kDatum <= datumIg;
+            });
+            
+            if (szurtKiszallitasok.length === 0) {
+                container.innerHTML = `
+                    <p class="text-gray-600 font-medium">${formatDatum(datumTol.toISOString())} - ${formatDatum(datumIg.toISOString())}</p>
+                    <p class="text-gray-500 text-sm mt-2">Nincs kiszállítás ebben az időszakban</p>
+                `;
+                return;
+            }
+            
+            // Típusonként összesítés
+            const tipusonkent = {};
+            szurtKiszallitasok.forEach(k => {
+                const kulcs = `${k.termekTipusNev} - ${k.meret}`;
+                tipusonkent[kulcs] = (tipusonkent[kulcs] || 0) + k.mennyiseg;
+            });
+            
+            // Eladás/Fulfilment
+            const eladas = szurtKiszallitasok.filter(k => k.tipus === 'eladas').reduce((sum, k) => sum + k.mennyiseg, 0);
+            const fulfilment = szurtKiszallitasok.filter(k => k.tipus === 'fulfilment').reduce((sum, k) => sum + k.mennyiseg, 0);
+            const osszes = eladas + fulfilment;
+            
+            // Rendezés ABC szerint
+            const tipusokRendezve = Object.entries(tipusonkent).sort(([a], [b]) => a.localeCompare(b, 'hu'));
+            
+            container.innerHTML = `
+                <div class="text-sm font-semibold text-blue-900 mb-2">
+                    ${formatDatum(datumTol.toISOString())} - ${formatDatum(datumIg.toISOString())}
+                </div>
+                <div class="mb-3">
+                    ${tipusokRendezve.map(([tipus, db]) => 
+                        `<div class="text-sm text-gray-700">• ${tipus}: <span class="font-bold">${db} db</span></div>`
+                    ).join('')}
+                </div>
+                <div class="border-t-2 border-blue-300 pt-2 mb-2"></div>
+                <div class="flex justify-between items-center text-sm mb-1">
+                    <span class="text-gray-700">Eladás:</span>
+                    <span class="font-bold text-green-700">${eladas} db 🛒</span>
+                </div>
+                <div class="flex justify-between items-center text-sm mb-2">
+                    <span class="text-gray-700">Fulfilment:</span>
+                    <span class="font-bold text-blue-700">${fulfilment} db 📦</span>
+                </div>
+                <div class="border-t-2 border-blue-300 pt-2"></div>
+                <div class="flex justify-between items-center font-bold text-blue-900">
+                    <span>ÖSSZESEN:</span>
+                    <span class="text-lg">${osszes} db</span>
+                </div>
+            `;
+        }
+        
+        function ujKiszallitasModal() {
+            const modal = document.getElementById('ujKiszallitasModal');
+            const partnerSelect = document.getElementById('ujKiszallitasPartnerSelect');
+            
+            // Partner dropdown populálása
+            const rendezetPartnerek = [...partnerek].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+            partnerSelect.innerHTML = '<option value="">Válassz partnert...</option>' +
+                rendezetPartnerek.map(p => `<option value="${p.id}">${p.nev}</option>`).join('') +
+                '<option value="__UJ__">+ Új partner...</option>';
+            
+            // Mai dátum
+            ujKiszallitasMaiDatum();
+            
+            // Default típus: eladás
+            document.getElementById('ujKiszallitasTipus').value = 'eladas';
+            ujKiszallitasTipusValaszt('eladas');
+            
+            // Törlés
+            document.getElementById('ujKiszallitasMegjegyzes').value = '';
+            document.getElementById('ujKiszallitasUjPartnerForm').classList.add('hidden');
+            document.getElementById('ujKiszallitasUjPartnerNev').value = '';
+            
+            modal.classList.remove('hidden');
+        }
+        
+        function ujKiszallitasModalBezar() {
+            document.getElementById('ujKiszallitasModal').classList.add('hidden');
+        }
+        
+        function ujKiszallitasMaiDatum() {
+            const ma = new Date();
+            document.getElementById('ujKiszallitasDatum').value = ma.toISOString().split('T')[0];
+        }
+        
+        function ujKiszallitasTipusValaszt(tipus) {
+            document.getElementById('ujKiszallitasTipus').value = tipus;
+            
+            const eladasBtn = document.getElementById('tipusEladasBtn');
+            const fulfilmentBtn = document.getElementById('tipusFulfilmentBtn');
+            
+            if (tipus === 'eladas') {
+                eladasBtn.className = 'px-6 py-4 rounded-lg font-bold text-lg border-2 border-green-500 bg-green-50 text-green-700';
+                fulfilmentBtn.className = 'px-6 py-4 rounded-lg font-bold text-lg border-2 border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100';
+            } else {
+                eladasBtn.className = 'px-6 py-4 rounded-lg font-bold text-lg border-2 border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100';
+                fulfilmentBtn.className = 'px-6 py-4 rounded-lg font-bold text-lg border-2 border-blue-500 bg-blue-50 text-blue-700';
+            }
+        }
+        
+        function ujKiszallitasPartnerChange() {
+            const select = document.getElementById('ujKiszallitasPartnerSelect');
+            const ujForm = document.getElementById('ujKiszallitasUjPartnerForm');
+            
+            if (select.value === '__UJ__') {
+                ujForm.classList.remove('hidden');
+                document.getElementById('ujKiszallitasUjPartnerNev').focus();
+            } else {
+                ujForm.classList.add('hidden');
+            }
+        }
+        
+        async function ujKiszallitasLetrehoz() {
+            const datum = document.getElementById('ujKiszallitasDatum').value;
+            const tipus = document.getElementById('ujKiszallitasTipus').value;
+            const partnerSelectValue = document.getElementById('ujKiszallitasPartnerSelect').value;
+            const ujPartnerNev = document.getElementById('ujKiszallitasUjPartnerNev').value.trim();
+            const megjegyzes = document.getElementById('ujKiszallitasMegjegyzes').value.trim();
+            
+            if (!datum) {
+                alert('Kérlek válassz dátumot!');
+                return;
+            }
+            
+            let partnerId = null;
+            let partnerNev = '';
+            
+            // Partner kezelés
+            if (partnerSelectValue === '__UJ__') {
+                if (!ujPartnerNev) {
+                    alert('Add meg az új partner nevét!');
+                    return;
+                }
+                
+                const letezikMar = partnerek.some(p => p.nev.toLowerCase() === ujPartnerNev.toLowerCase());
+                if (letezikMar) {
+                    const letezőPartner = partnerek.find(p => p.nev.toLowerCase() === ujPartnerNev.toLowerCase());
+                    partnerId = letezőPartner.id;
+                    partnerNev = letezőPartner.nev;
+                } else {
+                    partnerId = generateId();
+                    partnerek.push({ id: partnerId, nev: ujPartnerNev });
+                    partnerNev = ujPartnerNev;
+                }
+            } else if (partnerSelectValue) {
+                partnerId = parseInt(partnerSelectValue);
+                const partner = partnerek.find(p => p.id === partnerId);
+                partnerNev = partner ? partner.nev : '';
+            }
+            
+            // Draft létrehozása
+            aktivDraft = {
+                id: generateId(),
+                datum: datum + 'T12:00:00',
+                tipus,
+                partnerId,
+                partnerNev,
+                megjegyzes,
+                termekek: [],
+                status: 'draft',
+                created: new Date().toISOString()
+            };
+            
+            await ment();
+            ujKiszallitasModalBezar();
+            
+            // Váltás Gyártás tab-ra
+            switchTab('gyartas');
+            renderDraftDoboz();
+            
+            alert('✅ Kiszállítás draft létrehozva!\nMost add hozzá a termékeket a kész termékek listájából.');
+        }
+        
+        function renderDraftDoboz() {
+            const doboz = document.getElementById('draftDoboz');
+            
+            if (!aktivDraft) {
+                doboz.classList.add('hidden');
+                doboz.innerHTML = '';
+                return;
+            }
+            
+            const tipusIcon = aktivDraft.tipus === 'eladas' ? '🛒' : '📦';
+            const tipusNev = aktivDraft.tipus === 'eladas' ? 'Eladás' : 'Fulfilment';
+            const tipusColor = aktivDraft.tipus === 'eladas' ? 'green' : 'blue';
+            
+            doboz.className = `bg-${tipusColor}-50 border-2 border-${tipusColor}-300 rounded-xl p-4 mb-6`;
+            doboz.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <h3 class="text-lg font-bold text-${tipusColor}-900">🚧 AKTÍV KISZÁLLÍTÁS (draft)</h3>
+                        <div class="text-sm text-gray-700 mt-1">
+                            ${aktivDraft.partnerNev || 'Partner nincs megadva'} | ${tipusIcon} ${tipusNev} | ${formatDatum(aktivDraft.datum)}
+                        </div>
+                        ${aktivDraft.megjegyzes ? `<div class="text-xs text-gray-600 italic mt-1">💬 ${aktivDraft.megjegyzes}</div>` : ''}
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg p-3 mb-3">
+                    <div class="font-semibold text-gray-700 mb-2 text-sm">Hozzáadott termékek:</div>
+                    ${aktivDraft.termekek.length === 0 
+                        ? '<p class="text-gray-500 text-sm italic">Még nincs termék hozzáadva</p>'
+                        : `<div class="space-y-2">
+                            ${aktivDraft.termekek.map((t, idx) => `
+                                <div class="flex justify-between items-center text-sm">
+                                    <div>
+                                        <span class="font-medium">${t.illatNev}</span>
+                                        <span class="text-gray-600"> - ${t.termekTipusNev} ${t.meret}</span>
+                                        <span class="font-bold text-${tipusColor}-700"> ${t.mennyiseg} db</span>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <button onclick="draftTermekSzerkeszt(${idx})" class="text-blue-600 hover:text-blue-800 px-1">✏️</button>
+                                        <button onclick="draftTermekTorol(${idx})" class="text-red-600 hover:text-red-800 px-1">🗑️</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>`
+                    }
+                </div>
+                
+                <div class="flex gap-2">
+                    <button onclick="draftVeglegesit()" class="flex-1 bg-${tipusColor}-600 text-white px-4 py-2 rounded-lg hover:bg-${tipusColor}-700 font-semibold">
+                        ✅ Véglegesít
+                    </button>
+                    <button onclick="draftElvet()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                        🗑️ Elvet
+                    </button>
+                </div>
+            `;
+            
+            doboz.classList.remove('hidden');
+        }
+        
+        async function draftTermekHozzaad(illatNev, termekTipusNev, meret, maxDb) {
+            if (!aktivDraft) {
+                alert('Nincs aktív kiszállítás! Először hozz létre egyet a Kiszállítás tab-on.');
+                return;
+            }
+            
+            const mennyiseg = prompt(`Mennyiség (max: ${maxDb} db):`, '1');
+            if (!mennyiseg || mennyiseg < 1 || mennyiseg > maxDb) {
+                return;
+            }
+            
+            const mennyisegInt = parseInt(mennyiseg);
+            
+            // Ellenőrzés: már szerepel-e
+            const index = aktivDraft.termekek.findIndex(t => 
+                t.illatNev === illatNev && 
+                t.termekTipusNev === termekTipusNev && 
+                t.meret === meret
+            );
+            
+            if (index >= 0) {
+                // Már van, növeljük
+                aktivDraft.termekek[index].mennyiseg += mennyisegInt;
+            } else {
+                // Új termék
+                aktivDraft.termekek.push({
+                    illatNev,
+                    termekTipusNev,
+                    meret,
+                    mennyiseg: mennyisegInt
+                });
+            }
+            
+            await ment();
+            renderDraftDoboz();
+        }
+        
+        async function draftTermekTorol(index) {
+            if (!confirm('Biztosan törlöd ezt a tételt a draft-ból?')) return;
+            
+            aktivDraft.termekek.splice(index, 1);
+            await ment();
+            renderDraftDoboz();
+        }
+        
+        function draftTermekSzerkeszt(index) {
+            const termek = aktivDraft.termekek[index];
+            const ujMennyiseg = prompt(`Új mennyiség (${termek.illatNev}):`, termek.mennyiseg);
+            
+            if (!ujMennyiseg || ujMennyiseg < 1) return;
+            
+            termek.mennyiseg = parseInt(ujMennyiseg);
+            ment();
+            renderDraftDoboz();
+        }
+        
+        async function draftVeglegesit() {
+            if (!aktivDraft || aktivDraft.termekek.length === 0) {
+                alert('Nincs termék a kiszállításban!');
+                return;
+            }
+            
+            const osszDb = aktivDraft.termekek.reduce((sum, t) => sum + t.mennyiseg, 0);
+            
+            const megerosites = confirm(
+                `Véglegesíted a kiszállítást?\n\n` +
+                `${aktivDraft.partnerNev}\n` +
+                `${aktivDraft.tipus === 'eladas' ? '🛒 Eladás' : '📦 Fulfilment'}\n\n` +
+                aktivDraft.termekek.map(t => `• ${t.illatNev} - ${t.termekTipusNev} ${t.meret}: ${t.mennyiseg} db`).join('\n') +
+                `\n\nÖSSZESEN: ${osszDb} db`
+            );
+            
+            if (!megerosites) return;
+            
+            // Kiszállítások létrehozása (minden termékből külön rekord)
+            aktivDraft.termekek.forEach(termek => {
+                kiszallitasok.unshift({
+                    id: generateId(),
+                    datum: aktivDraft.datum,
+                    illatNev: termek.illatNev,
+                    termekTipusNev: termek.termekTipusNev,
+                    meret: termek.meret,
+                    mennyiseg: termek.mennyiseg,
+                    tipus: aktivDraft.tipus,
+                    partnerId: aktivDraft.partnerId,
+                    partnerNev: aktivDraft.partnerNev,
+                    megjegyzes: aktivDraft.megjegyzes
+                });
+                
+                // Készlet csökkentése
+                const tetelek = keszTermekek.filter(kt => 
+                    kt.illatNev === termek.illatNev && 
+                    kt.termekTipusNev === termek.termekTipusNev && 
+                    kt.meret === termek.meret
+                );
+                
+                let maradekCsokkentes = termek.mennyiseg;
+                tetelek.forEach(tetel => {
+                    if (maradekCsokkentes <= 0) return;
+                    
+                    const csokkentes = Math.min(tetel.darabszam, maradekCsokkentes);
+                    tetel.darabszam -= csokkentes;
+                    maradekCsokkentes -= csokkentes;
+                });
+            });
+            
+            // 0-ra csökkent tételek törlése
+            keszTermekek = keszTermekek.filter(t => t.darabszam > 0);
+            
+            // Draft törlése
+            aktivDraft = null;
+            
+            await ment();
+            render();
+            renderDraftDoboz();
+            
+            // Váltás Kiszállítás tab-ra
+            switchTab('kiszallitas');
+            
+            alert(`✅ Kiszállítás véglegesítve!\n${osszDb} db termék kiszállítva.`);
+        }
+        
+        async function draftElvet() {
+            if (!confirm('Biztosan elveted a draft kiszállítást?\n\nEz NEM törli a termékeket a készletből.')) return;
+            
+            aktivDraft = null;
+            await ment();
+            renderDraftDoboz();
+        }
+        
+        function kiszallitasSzerkeszt(id) {
+            const kiszallitas = kiszallitasok.find(k => k.id === id);
+            if (!kiszallitas) return;
+            
+            const modal = document.getElementById('kiszallitasSzerkesztModal');
+            const info = document.getElementById('szerkesztKiszallitasInfo');
+            const partnerSelect = document.getElementById('szerkesztPartnerSelect');
+            
+            // Info
+            info.innerHTML = `
+                <div class="font-medium mb-1">${kiszallitas.illatNev}</div>
+                <div class="text-sm text-gray-600">${kiszallitas.termekTipusNev} - ${kiszallitas.meret}</div>
+            `;
+            
+            // Partner dropdown
+            const rendezetPartnerek = [...partnerek].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+            partnerSelect.innerHTML = '<option value="">Nincs partner</option>' +
+                rendezetPartnerek.map(p => 
+                    `<option value="${p.id}" ${p.id === kiszallitas.partnerId ? 'selected' : ''}>${p.nev}</option>`
+                ).join('');
+            
+            // Adatok
+            document.getElementById('szerkesztKiszallitasId').value = id;
+            document.getElementById('szerkesztTipus').value = kiszallitas.tipus;
+            document.getElementById('szerkesztMennyiseg').value = kiszallitas.mennyiseg;
+            document.getElementById('szerkesztDatum').value = kiszallitas.datum.split('T')[0];
+            document.getElementById('szerkesztMegjegyzes').value = kiszallitas.megjegyzes || '';
+            
+            // Típus gombok
+            szerkesztTipusValaszt(kiszallitas.tipus);
+            
+            modal.classList.remove('hidden');
+        }
+        
+        function kiszallitasSzerkesztModalBezar() {
+            document.getElementById('kiszallitasSzerkesztModal').classList.add('hidden');
+        }
+        
+        function szerkesztTipusValaszt(tipus) {
+            document.getElementById('szerkesztTipus').value = tipus;
+            
+            const eladasBtn = document.getElementById('szerkesztTipusEladasBtn');
+            const fulfilmentBtn = document.getElementById('szerkesztTipusFulfilmentBtn');
+            
+            if (tipus === 'eladas') {
+                eladasBtn.className = 'px-6 py-3 rounded-lg font-bold border-2 border-green-500 bg-green-50 text-green-700';
+                fulfilmentBtn.className = 'px-6 py-3 rounded-lg font-bold border-2 border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100';
+            } else {
+                eladasBtn.className = 'px-6 py-3 rounded-lg font-bold border-2 border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100';
+                fulfilmentBtn.className = 'px-6 py-3 rounded-lg font-bold border-2 border-blue-500 bg-blue-50 text-blue-700';
+            }
+        }
+        
+        function szerkesztMennyisegValtoztat(valtozas) {
+            const input = document.getElementById('szerkesztMennyiseg');
+            const jelenlegiErtek = parseInt(input.value) || 0;
+            const ujErtek = Math.max(1, jelenlegiErtek + valtozas);
+            input.value = ujErtek;
+        }
+        
+        async function kiszallitasSzerkesztMent() {
+            const id = parseInt(document.getElementById('szerkesztKiszallitasId').value);
+            const kiszallitas = kiszallitasok.find(k => k.id === id);
+            if (!kiszallitas) return;
+            
+            const ujTipus = document.getElementById('szerkesztTipus').value;
+            const ujPartnerId = document.getElementById('szerkesztPartnerSelect').value;
+            const ujMennyiseg = parseInt(document.getElementById('szerkesztMennyiseg').value);
+            const ujDatum = document.getElementById('szerkesztDatum').value;
+            const ujMegjegyzes = document.getElementById('szerkesztMegjegyzes').value.trim();
+            
+            // Partner név
+            let ujPartnerNev = '';
+            if (ujPartnerId) {
+                const partner = partnerek.find(p => p.id === parseInt(ujPartnerId));
+                ujPartnerNev = partner ? partner.nev : '';
+            }
+            
+            // Módosítás
+            kiszallitas.tipus = ujTipus;
+            kiszallitas.partnerId = ujPartnerId ? parseInt(ujPartnerId) : null;
+            kiszallitas.partnerNev = ujPartnerNev;
+            kiszallitas.mennyiseg = ujMennyiseg;
+            kiszallitas.datum = ujDatum + 'T12:00:00';
+            kiszallitas.megjegyzes = ujMegjegyzes;
+            
+            await ment();
+            renderKiszallitasok();
+            kiszallitasSzerkesztModalBezar();
+            
+            alert('✅ Kiszállítás módosítva!');
         }
 
         function switchTab(tabName) {
@@ -733,8 +1452,14 @@
             document.getElementById('gyartasTab').classList.toggle('hidden', tabName !== 'gyartas');
             document.getElementById('kiszallitasTab').classList.toggle('hidden', tabName !== 'kiszallitas');
             
+            // Ha gyártás tab, draft doboz renderelése
+            if (tabName === 'gyartas') {
+                renderDraftDoboz();
+            }
+            
             // Ha kiszállítás tab, rendereljük
             if (tabName === 'kiszallitas') {
+                renderStatisztika();
                 renderKiszallitasok();
             }
         }
@@ -1038,9 +1763,14 @@
                                     <td class="p-1 md:p-2 text-gray-700 hidden md:table-cell">${k.partnerNev || '-'}</td>
                                     <td class="p-1 md:p-2 text-xs text-gray-600 italic hidden lg:table-cell">${k.megjegyzes || '-'}</td>
                                     <td class="p-1 md:p-2 text-center">
-                                        <button onclick="kiszallitasTorol(${k.id})" class="text-red-600 hover:text-red-800 text-base px-1 py-0.5" title="Törlés">
-                                            🗑️
-                                        </button>
+                                        <div class="flex gap-0.5 justify-center">
+                                            <button onclick="kiszallitasSzerkeszt(${k.id})" class="text-blue-600 hover:text-blue-800 text-base px-1 py-0.5" title="Szerkesztés">
+                                                ✏️
+                                            </button>
+                                            <button onclick="kiszallitasTorol(${k.id})" class="text-red-600 hover:text-red-800 text-base px-1 py-0.5" title="Törlés">
+                                                🗑️
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             `).join('')}
@@ -1083,7 +1813,8 @@
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'cimkeKeszlet'), { data: cimkeKeszlet }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'keszTermekek'), { data: keszTermekek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiszallitasok'), { data: kiszallitasok }),
-                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'partnerek'), { data: partnerek })
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'partnerek'), { data: partnerek }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'aktivDraft'), { data: aktivDraft })
                 ]);
             } catch (error) {
                 console.error('Mentési hiba:', error);
@@ -2752,10 +3483,16 @@
                                             <td class="p-1 md:p-2 text-center text-xs text-gray-600 hidden md:table-cell">${formatDatum(csoport.utolsoCimkezesIdopont)}</td>
                                             <td class="p-1 md:p-2 text-center">
                                                 <div class="flex gap-0.5 md:gap-1 justify-center">
-                                                    <button onclick="kiszallitasModal('${csoport.illatNev}', '${csoport.termekTipusNev}', '${csoport.meret}', ${csoport.osszesDarab})" 
-                                                        class="text-green-600 hover:text-green-800 text-base md:text-lg px-1 md:px-2 py-0.5 md:py-1" title="Kiszállítás">
-                                                        💰
-                                                    </button>
+                                                    ${aktivDraft 
+                                                        ? `<button onclick="draftTermekHozzaad('${csoport.illatNev}', '${csoport.termekTipusNev}', '${csoport.meret}', ${csoport.osszesDarab})" 
+                                                            class="text-blue-600 hover:text-blue-800 text-base md:text-lg px-1 md:px-2 py-0.5 md:py-1 font-bold" title="Hozzáad a kiszállításhoz">
+                                                            ➕
+                                                        </button>`
+                                                        : `<button onclick="alert('Nincs aktív kiszállítás! Hozz létre egyet a Kiszállítás tab-on.')" 
+                                                            class="text-gray-400 text-base md:text-lg px-1 md:px-2 py-0.5 md:py-1" title="Nincs aktív kiszállítás">
+                                                            🔒
+                                                        </button>`
+                                                    }
                                                     <button onclick="keszTermekSzerkeszt('${csoport.illatNev}', '${csoport.termekTipusNev}', '${csoport.meret}', ${csoport.osszesDarab})" 
                                                         class="text-blue-600 hover:text-blue-800 text-base md:text-lg px-1 md:px-2 py-0.5 md:py-1" title="Mennyiség szerkesztése">
                                                         ✏️
