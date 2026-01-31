@@ -1165,19 +1165,25 @@
             
             const tipusIcon = aktivDraft.tipus === 'eladas' ? '🛒' : '📦';
             const tipusNev = aktivDraft.tipus === 'eladas' ? 'Eladás' : 'Fulfilment';
-            const tipusColor = aktivDraft.tipus === 'eladas' ? 'green' : 'blue';
             
-            doboz.className = `bg-${tipusColor}-50 border-2 border-${tipusColor}-300 rounded-xl p-4 mb-6`;
+            // Teljes Tailwind osztálynevek (nem dinamikus!)
+            const bgColor = aktivDraft.tipus === 'eladas' ? 'bg-green-50' : 'bg-blue-50';
+            const borderColor = aktivDraft.tipus === 'eladas' ? 'border-green-300' : 'border-blue-300';
+            const titleColor = aktivDraft.tipus === 'eladas' ? 'text-green-900' : 'text-blue-900';
+            const buttonBg = aktivDraft.tipus === 'eladas' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700';
+            const boldColor = aktivDraft.tipus === 'eladas' ? 'text-green-700' : 'text-blue-700';
+            
+            doboz.className = `${bgColor} border-2 ${borderColor} rounded-xl p-4 mb-6`;
             doboz.innerHTML = `
                 <div class="flex justify-between items-start mb-3">
                     <div>
-                        <h3 class="text-lg font-bold text-${tipusColor}-900">🚧 AKTÍV KISZÁLLÍTÁS (draft)</h3>
+                        <h3 class="text-lg font-bold ${titleColor}">🚧 AKTÍV KISZÁLLÍTÁS (draft)</h3>
                         <div class="text-sm text-gray-700 mt-1">
                             ${aktivDraft.partnerNev || 'Partner nincs megadva'} | ${tipusIcon} ${tipusNev} | ${formatDatum(aktivDraft.datum)}
                         </div>
                         ${aktivDraft.megjegyzes ? `<div class="text-xs text-gray-600 italic mt-1">💬 ${aktivDraft.megjegyzes}</div>` : ''}
                     </div>
-                    <button onclick="gyorsTermekHozzaadModal()" class="bg-${tipusColor}-600 text-white px-3 py-2 rounded-lg hover:bg-${tipusColor}-700 font-bold text-lg" title="Termék hozzáadása">
+                    <button onclick="gyorsTermekHozzaadModal()" class="${buttonBg} text-white px-3 py-2 rounded-lg font-bold text-lg" title="Termék hozzáadása">
                         ➕
                     </button>
                 </div>
@@ -1192,7 +1198,7 @@
                                     <div>
                                         <span class="font-medium">${t.illatNev}</span>
                                         <span class="text-gray-600"> - ${t.termekTipusNev} ${t.meret}</span>
-                                        <span class="font-bold text-${tipusColor}-700"> ${t.mennyiseg} db</span>
+                                        <span class="font-bold ${boldColor}"> ${t.mennyiseg} db</span>
                                     </div>
                                     <div class="flex gap-1">
                                         <button onclick="draftTermekSzerkeszt(${idx})" class="text-blue-600 hover:text-blue-800 px-1">✏️</button>
@@ -1205,7 +1211,7 @@
                 </div>
                 
                 <div class="flex gap-2">
-                    <button onclick="draftVeglegesit()" class="flex-1 bg-${tipusColor}-600 text-white px-4 py-2 rounded-lg hover:bg-${tipusColor}-700 font-semibold">
+                    <button onclick="draftVeglegesit()" class="flex-1 ${buttonBg} text-white px-4 py-2 rounded-lg font-semibold">
                         ✅ Véglegesít
                     </button>
                     <button onclick="draftElvet()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
@@ -1953,49 +1959,57 @@
                 <div class="space-y-3">
                     ${csoportokTomb.map((csoport, idx) => {
                         const tipusIcon = csoport.tipus === 'eladas' ? '🛒' : '📦';
-                        const tipusColor = csoport.tipus === 'eladas' ? 'green' : 'blue';
                         const tipusNev = csoport.tipus === 'eladas' ? 'Eladás' : 'Fulfilment';
                         
+                        // Teljes Tailwind osztálynevek
+                        const borderColor = csoport.tipus === 'eladas' ? 'border-green-200' : 'border-blue-200';
+                        const bgColor = csoport.tipus === 'eladas' ? 'bg-green-50' : 'bg-blue-50';
+                        const hoverBg = csoport.tipus === 'eladas' ? 'hover:bg-green-100' : 'hover:bg-blue-100';
+                        const titleColor = csoport.tipus === 'eladas' ? 'text-green-900' : 'text-blue-900';
+                        const boldColor = csoport.tipus === 'eladas' ? 'text-green-700' : 'text-blue-700';
+                        const theadBg = csoport.tipus === 'eladas' ? 'bg-green-100' : 'bg-blue-100';
+                        const borderThin = csoport.tipus === 'eladas' ? 'border-green-100' : 'border-blue-100';
+                        
                         return `
-                            <div class="border-2 border-${tipusColor}-200 rounded-lg bg-${tipusColor}-50 overflow-hidden">
+                            <div class="border-2 ${borderColor} rounded-lg ${bgColor} overflow-hidden">
                                 <!-- Összefoglaló (mindig látszik) -->
-                                <div class="p-3 md:p-4 cursor-pointer hover:bg-${tipusColor}-100" onclick="toggleKiszallitasCsoport(${idx})">
+                                <div class="p-3 md:p-4 cursor-pointer ${hoverBg}" onclick="toggleKiszallitasCsoport(${idx})">
                                     <div class="flex justify-between items-center">
                                         <div class="flex-1">
                                             <div class="flex items-center gap-2 mb-1">
                                                 <span class="text-lg">${tipusIcon}</span>
-                                                <span class="font-bold text-${tipusColor}-900">${tipusNev}</span>
+                                                <span class="font-bold ${titleColor}">${tipusNev}</span>
                                                 <span class="text-sm text-gray-600">${formatDatum(csoport.datum)}</span>
                                             </div>
                                             ${csoport.partnerNev ? `<div class="text-sm text-gray-700">👤 ${csoport.partnerNev}</div>` : ''}
                                             ${csoport.megjegyzes ? `<div class="text-xs text-gray-600 italic mt-1">💬 ${csoport.megjegyzes}</div>` : ''}
                                         </div>
                                         <div class="text-right">
-                                            <div class="text-2xl font-bold text-${tipusColor}-700">${csoport.osszesDb} db</div>
+                                            <div class="text-2xl font-bold ${boldColor}">${csoport.osszesDb} db</div>
                                             <div class="text-xs text-gray-600">${csoport.termekek.length} tétel</div>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <!-- Részletek (kibontható) -->
-                                <div id="kiszallitasCsoport${idx}" class="hidden border-t-2 border-${tipusColor}-200 bg-white">
+                                <div id="kiszallitasCsoport${idx}" class="hidden border-t-2 ${borderColor} bg-white">
                                     <div class="overflow-x-auto">
                                         <table class="w-full text-xs md:text-sm">
-                                            <thead class="bg-${tipusColor}-100">
+                                            <thead class="${theadBg}">
                                                 <tr>
-                                                    <th class="text-left p-2 font-semibold text-${tipusColor}-900">Termék</th>
-                                                    <th class="text-center p-2 font-semibold text-${tipusColor}-900">Db</th>
-                                                    <th class="text-center p-2 font-semibold text-${tipusColor}-900"></th>
+                                                    <th class="text-left p-2 font-semibold ${titleColor}">Termék</th>
+                                                    <th class="text-center p-2 font-semibold ${titleColor}">Db</th>
+                                                    <th class="text-center p-2 font-semibold ${titleColor}"></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 ${csoport.termekek.map(t => `
-                                                    <tr class="border-b border-${tipusColor}-100">
+                                                    <tr class="border-b ${borderThin}">
                                                         <td class="p-2">
                                                             <div class="font-medium">${t.illatNev}</div>
                                                             <div class="text-xs text-gray-600">${t.termekTipusNev} - ${t.meret}</div>
                                                         </td>
-                                                        <td class="p-2 text-center font-bold text-${tipusColor}-700">${t.mennyiseg} db</td>
+                                                        <td class="p-2 text-center font-bold ${boldColor}">${t.mennyiseg} db</td>
                                                         <td class="p-2 text-center">
                                                             <div class="flex gap-1 justify-center">
                                                                 <button onclick="event.stopPropagation(); kiszallitasSzerkeszt(${t.id})" class="text-blue-600 hover:text-blue-800 px-1" title="Szerkesztés">
