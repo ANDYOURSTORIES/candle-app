@@ -533,10 +533,6 @@
 
         <!-- GYÁRTÁS TAB -->
         <div id="gyartasTab">
-        
-        <!-- Draft kiszállítás doboz -->
-        <div id="draftDoboz" class="hidden mb-6"></div>
-        
         <div class="grid md:grid-cols-2 gap-6 mb-6">
             <!-- Illatok kezelése -->
             <div class="bg-white rounded-xl shadow-lg p-6">
@@ -691,6 +687,10 @@
 
         <!-- KISZÁLLÍTÁS TAB -->
         <div id="kiszallitasTab" class="hidden">
+        
+            <!-- Draft kiszállítás doboz -->
+            <div id="draftDoboz" class="hidden mb-6"></div>
+        
             <!-- Kiszállítási statisztika -->
             <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
                 <h2 class="text-xl font-bold text-blue-900 mb-4">📊 Kiszállítási statisztika</h2>
@@ -1146,11 +1146,12 @@
             await ment();
             ujKiszallitasModalBezar();
             
-            // Váltás Gyártás tab-ra
-            switchTab('gyartas');
+            // Váltás Kiszállítás tab-ra (NEM gyártás!)
+            switchTab('kiszallitas');
             renderDraftDoboz();
+            render(); // FONTOS: + gombok megjelennek!
             
-            alert('✅ Kiszállítás draft létrehozva!\nMost add hozzá a termékeket a kész termékek listájából.');
+            alert('✅ Kiszállítás draft létrehozva!\nMost add hozzá a termékeket a Gyártás tab-on.');
         }
         
         function renderDraftDoboz() {
@@ -1176,12 +1177,15 @@
                         </div>
                         ${aktivDraft.megjegyzes ? `<div class="text-xs text-gray-600 italic mt-1">💬 ${aktivDraft.megjegyzes}</div>` : ''}
                     </div>
+                    <button onclick="gyorsTermekHozzaadModal()" class="bg-${tipusColor}-600 text-white px-3 py-2 rounded-lg hover:bg-${tipusColor}-700 font-bold text-lg" title="Termék hozzáadása">
+                        ➕
+                    </button>
                 </div>
                 
                 <div class="bg-white rounded-lg p-3 mb-3">
                     <div class="font-semibold text-gray-700 mb-2 text-sm">Hozzáadott termékek:</div>
                     ${aktivDraft.termekek.length === 0 
-                        ? '<p class="text-gray-500 text-sm italic">Még nincs termék hozzáadva</p>'
+                        ? '<p class="text-gray-500 text-sm italic">Még nincs termék hozzáadva. Kattints a ➕ gombra vagy használd a Gyártás tab-on a termékek melletti gombokat.</p>'
                         : `<div class="space-y-2">
                             ${aktivDraft.termekek.map((t, idx) => `
                                 <div class="flex justify-between items-center text-sm">
@@ -1211,6 +1215,57 @@
             `;
             
             doboz.classList.remove('hidden');
+        }
+        
+        function gyorsTermekHozzaadModal() {
+            if (!aktivDraft) {
+                alert('Nincs aktív kiszállítás!');
+                return;
+            }
+            
+            // Kész termékek listája
+            const termekek = [];
+            const csoportositott = {};
+            
+            keszTermekek.forEach(kt => {
+                const kulcs = `${kt.illatNev}|${kt.termekTipusNev}|${kt.meret}`;
+                if (!csoportositott[kulcs]) {
+                    csoportositott[kulcs] = {
+                        illatNev: kt.illatNev,
+                        termekTipusNev: kt.termekTipusNev,
+                        meret: kt.meret,
+                        osszesDarab: 0
+                    };
+                }
+                csoportositott[kulcs].osszesDarab += kt.darabszam;
+            });
+            
+            const termekekTomb = Object.values(csoportositott).sort((a, b) => 
+                a.illatNev.localeCompare(b.illatNev, 'hu')
+            );
+            
+            if (termekekTomb.length === 0) {
+                alert('Nincs kész termék a készletben!');
+                return;
+            }
+            
+            // Egyszerű select prompt
+            let options = 'Válassz terméket:\n\n';
+            termekekTomb.forEach((t, idx) => {
+                options += `${idx + 1}. ${t.illatNev} - ${t.termekTipusNev} ${t.meret} (${t.osszesDarab} db)\n`;
+            });
+            
+            const valasztas = prompt(options + '\nÍrd be a sorszámot:');
+            if (!valasztas) return;
+            
+            const index = parseInt(valasztas) - 1;
+            if (index < 0 || index >= termekekTomb.length) {
+                alert('Érvénytelen választás!');
+                return;
+            }
+            
+            const kivalasztott = termekekTomb[index];
+            draftTermekHozzaad(kivalasztott.illatNev, kivalasztott.termekTipusNev, kivalasztott.meret, kivalasztott.osszesDarab);
         }
         
         async function draftTermekHozzaad(illatNev, termekTipusNev, meret, maxDb) {
@@ -1248,6 +1303,7 @@
             
             await ment();
             renderDraftDoboz();
+            render(); // FONTOS: frissíti a Gyártás tab terméklistáját is
         }
         
         async function draftTermekTorol(index) {
@@ -1452,13 +1508,9 @@
             document.getElementById('gyartasTab').classList.toggle('hidden', tabName !== 'gyartas');
             document.getElementById('kiszallitasTab').classList.toggle('hidden', tabName !== 'kiszallitas');
             
-            // Ha gyártás tab, draft doboz renderelése
-            if (tabName === 'gyartas') {
-                renderDraftDoboz();
-            }
-            
-            // Ha kiszállítás tab, rendereljük
+            // Ha kiszállítás tab, rendereljük a draft-ot és statisztikát
             if (tabName === 'kiszallitas') {
+                renderDraftDoboz();
                 renderStatisztika();
                 renderKiszallitasok();
             }
@@ -1726,58 +1778,113 @@
                 </div>
             `;
             
-            // Lista renderelés - TÁBLÁZAT FORMÁTUM
+            // Lista renderelés - CSOPORTOSÍTOTT FORMÁTUM
+            // Csoportosítás dátum + partner + típus szerint
+            const csoportok = {};
+            szurtKiszallitasok.forEach(k => {
+                const kulcs = `${k.datum.split('T')[0]}_${k.tipus}_${k.partnerNev || 'nincs'}`;
+                if (!csoportok[kulcs]) {
+                    csoportok[kulcs] = {
+                        datum: k.datum,
+                        tipus: k.tipus,
+                        partnerNev: k.partnerNev,
+                        termekek: [],
+                        osszesDb: 0,
+                        megjegyzes: k.megjegyzes
+                    };
+                }
+                csoportok[kulcs].termekek.push({
+                    id: k.id,
+                    illatNev: k.illatNev,
+                    termekTipusNev: k.termekTipusNev,
+                    meret: k.meret,
+                    mennyiseg: k.mennyiseg
+                });
+                csoportok[kulcs].osszesDb += k.mennyiseg;
+            });
+            
+            const csoportokTomb = Object.values(csoportok).sort((a, b) => 
+                new Date(b.datum) - new Date(a.datum)
+            );
+            
+            if (csoportokTomb.length === 0) {
+                lista.innerHTML = '<p class="text-gray-500 text-center py-8">Nincs kiszállítás</p>';
+                return;
+            }
+            
             lista.innerHTML = `
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs md:text-sm">
-                        <thead class="bg-blue-100 border-b-2 border-blue-300">
-                            <tr>
-                                <th class="text-left p-1 md:p-2 font-semibold text-blue-900">Dátum</th>
-                                <th class="text-left p-1 md:p-2 font-semibold text-blue-900">Illat</th>
-                                <th class="text-left p-1 md:p-2 font-semibold text-blue-900 hidden md:table-cell">Típus</th>
-                                <th class="text-center p-1 md:p-2 font-semibold text-blue-900">Db</th>
-                                <th class="text-left p-1 md:p-2 font-semibold text-blue-900 hidden md:table-cell">Partner</th>
-                                <th class="text-left p-1 md:p-2 font-semibold text-blue-900 hidden lg:table-cell">Megjegyzés</th>
-                                <th class="text-center p-1 md:p-2 font-semibold text-blue-900"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${szurtKiszallitasok.map(k => `
-                                <tr class="border-b ${k.tipus === 'eladas' ? 'bg-green-50 border-green-200 hover:bg-green-100' : 'bg-blue-50 border-blue-200 hover:bg-blue-100'}">
-                                    <td class="p-1 md:p-2 text-xs text-gray-600 whitespace-nowrap">${formatDatum(k.datum)}</td>
-                                    <td class="p-1 md:p-2">
-                                        <div class="flex items-center gap-1">
-                                            <span>${k.tipus === 'eladas' ? '🛒' : '📦'}</span>
-                                            <span class="font-medium ${k.tipus === 'eladas' ? 'text-green-900' : 'text-blue-900'}">${k.illatNev}</span>
+                <div class="space-y-3">
+                    ${csoportokTomb.map((csoport, idx) => {
+                        const tipusIcon = csoport.tipus === 'eladas' ? '🛒' : '📦';
+                        const tipusColor = csoport.tipus === 'eladas' ? 'green' : 'blue';
+                        const tipusNev = csoport.tipus === 'eladas' ? 'Eladás' : 'Fulfilment';
+                        
+                        return `
+                            <div class="border-2 border-${tipusColor}-200 rounded-lg bg-${tipusColor}-50 overflow-hidden">
+                                <!-- Összefoglaló (mindig látszik) -->
+                                <div class="p-3 md:p-4 cursor-pointer hover:bg-${tipusColor}-100" onclick="toggleKiszallitasCsoport(${idx})">
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="text-lg">${tipusIcon}</span>
+                                                <span class="font-bold text-${tipusColor}-900">${tipusNev}</span>
+                                                <span class="text-sm text-gray-600">${formatDatum(csoport.datum)}</span>
+                                            </div>
+                                            ${csoport.partnerNev ? `<div class="text-sm text-gray-700">👤 ${csoport.partnerNev}</div>` : ''}
+                                            ${csoport.megjegyzes ? `<div class="text-xs text-gray-600 italic mt-1">💬 ${csoport.megjegyzes}</div>` : ''}
                                         </div>
-                                        <div class="md:hidden text-xs text-gray-600 mt-0.5">${k.termekTipusNev.substring(0, 6)}-${k.meret.substring(0, 5)}</div>
-                                        ${k.partnerNev && k.partnerNev.trim() ? `<div class="md:hidden text-xs text-gray-700 mt-0.5">👤 ${k.partnerNev}</div>` : ''}
-                                    </td>
-                                    <td class="p-1 md:p-2 text-gray-700 hidden md:table-cell">
-                                        <span class="hidden lg:inline">${k.termekTipusNev} - ${k.meret}</span>
-                                        <span class="lg:hidden">${k.termekTipusNev.substring(0, 6)}-${k.meret.substring(0, 5)}</span>
-                                    </td>
-                                    <td class="p-1 md:p-2 text-center">
-                                        <span class="font-bold ${k.tipus === 'eladas' ? 'text-green-700' : 'text-blue-700'}">${k.mennyiseg}</span>
-                                    </td>
-                                    <td class="p-1 md:p-2 text-gray-700 hidden md:table-cell">${k.partnerNev || '-'}</td>
-                                    <td class="p-1 md:p-2 text-xs text-gray-600 italic hidden lg:table-cell">${k.megjegyzes || '-'}</td>
-                                    <td class="p-1 md:p-2 text-center">
-                                        <div class="flex gap-0.5 justify-center">
-                                            <button onclick="kiszallitasSzerkeszt(${k.id})" class="text-blue-600 hover:text-blue-800 text-base px-1 py-0.5" title="Szerkesztés">
-                                                ✏️
-                                            </button>
-                                            <button onclick="kiszallitasTorol(${k.id})" class="text-red-600 hover:text-red-800 text-base px-1 py-0.5" title="Törlés">
-                                                🗑️
-                                            </button>
+                                        <div class="text-right">
+                                            <div class="text-2xl font-bold text-${tipusColor}-700">${csoport.osszesDb} db</div>
+                                            <div class="text-xs text-gray-600">${csoport.termekek.length} tétel</div>
                                         </div>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- Részletek (kibontható) -->
+                                <div id="kiszallitasCsoport${idx}" class="hidden border-t-2 border-${tipusColor}-200 bg-white">
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-xs md:text-sm">
+                                            <thead class="bg-${tipusColor}-100">
+                                                <tr>
+                                                    <th class="text-left p-2 font-semibold text-${tipusColor}-900">Termék</th>
+                                                    <th class="text-center p-2 font-semibold text-${tipusColor}-900">Db</th>
+                                                    <th class="text-center p-2 font-semibold text-${tipusColor}-900"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${csoport.termekek.map(t => `
+                                                    <tr class="border-b border-${tipusColor}-100">
+                                                        <td class="p-2">
+                                                            <div class="font-medium">${t.illatNev}</div>
+                                                            <div class="text-xs text-gray-600">${t.termekTipusNev} - ${t.meret}</div>
+                                                        </td>
+                                                        <td class="p-2 text-center font-bold text-${tipusColor}-700">${t.mennyiseg} db</td>
+                                                        <td class="p-2 text-center">
+                                                            <div class="flex gap-1 justify-center">
+                                                                <button onclick="event.stopPropagation(); kiszallitasSzerkeszt(${t.id})" class="text-blue-600 hover:text-blue-800 px-1" title="Szerkesztés">
+                                                                    ✏️
+                                                                </button>
+                                                                <button onclick="event.stopPropagation(); kiszallitasTorol(${t.id})" class="text-red-600 hover:text-red-800 px-1" title="Törlés">
+                                                                    🗑️
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             `;
+        }
+        
+        function toggleKiszallitasCsoport(index) {
+            const elem = document.getElementById(`kiszallitasCsoport${index}`);
+            elem.classList.toggle('hidden');
         }
 
         async function kiszallitasTorol(id) {
