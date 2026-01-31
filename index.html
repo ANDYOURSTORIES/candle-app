@@ -1223,8 +1223,7 @@
                 return;
             }
             
-            // Kész termékek listája
-            const termekek = [];
+            // Kész termékek csoportosítva
             const csoportositott = {};
             
             keszTermekek.forEach(kt => {
@@ -1249,23 +1248,161 @@
                 return;
             }
             
-            // Egyszerű select prompt
-            let options = 'Válassz terméket:\n\n';
-            termekekTomb.forEach((t, idx) => {
-                options += `${idx + 1}. ${t.illatNev} - ${t.termekTipusNev} ${t.meret} (${t.osszesDarab} db)\n`;
-            });
+            // Modal létrehozása
+            const modal = document.createElement('div');
+            modal.id = 'gyorsTermekModal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+                    <div class="p-4 border-b border-gray-200">
+                        <h2 class="text-xl font-bold text-blue-900">Termék hozzáadása draft-hoz</h2>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs md:text-sm">
+                                <thead class="bg-emerald-100 border-b-2 border-emerald-300">
+                                    <tr>
+                                        <th class="text-left p-2 font-semibold text-emerald-900">Illat</th>
+                                        <th class="text-left p-2 font-semibold text-emerald-900">Típus / Méret</th>
+                                        <th class="text-center p-2 font-semibold text-emerald-900">Készlet</th>
+                                        <th class="text-center p-2 font-semibold text-emerald-900"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${termekekTomb.map((t, idx) => `
+                                        <tr class="border-b border-emerald-200 hover:bg-emerald-50">
+                                            <td class="p-2 font-medium text-emerald-900">${t.illatNev}</td>
+                                            <td class="p-2 text-gray-700">
+                                                <span class="hidden md:inline">${t.termekTipusNev} - ${t.meret}</span>
+                                                <span class="md:hidden text-xs">${t.termekTipusNev.substring(0, 4)}-${t.meret.substring(0, 5)}</span>
+                                            </td>
+                                            <td class="p-2 text-center font-bold text-emerald-900">${t.osszesDarab} db</td>
+                                            <td class="p-2 text-center">
+                                                <button onclick="gyorsTermekKivalaszt('${t.illatNev}', '${t.termekTipusNev}', '${t.meret}', ${t.osszesDarab})" 
+                                                    class="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 font-bold text-lg">
+                                                    ➕
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="p-4 border-t border-gray-200">
+                        <button onclick="gyorsTermekModalBezar()" class="w-full px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-semibold">
+                            Bezár
+                        </button>
+                    </div>
+                </div>
+            `;
             
-            const valasztas = prompt(options + '\nÍrd be a sorszámot:');
-            if (!valasztas) return;
+            document.body.appendChild(modal);
+        }
+        
+        function gyorsTermekModalBezar() {
+            const modal = document.getElementById('gyorsTermekModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        function gyorsTermekKivalaszt(illatNev, termekTipusNev, meret, maxDb) {
+            // Mini modal mennyiség választáshoz
+            const miniModal = document.createElement('div');
+            miniModal.id = 'mennyisegModal';
+            miniModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4';
+            miniModal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+                    <h3 class="text-lg font-bold text-blue-900 mb-2">${illatNev}</h3>
+                    <p class="text-sm text-gray-700 mb-1">${termekTipusNev} - ${meret}</p>
+                    <p class="text-sm text-gray-600 mb-4">Elérhető: <span class="font-bold text-emerald-700">${maxDb} db</span></p>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mennyiség</label>
+                        <div class="flex gap-2 items-center">
+                            <button onclick="mennyisegValtoztat(-1, ${maxDb})" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-xl">
+                                -
+                            </button>
+                            <input type="number" id="mennyisegInput" value="1" min="1" max="${maxDb}" 
+                                class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-center font-bold text-xl">
+                            <button onclick="mennyisegValtoztat(1, ${maxDb})" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-xl">
+                                +
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="mennyisegMegerosit('${illatNev}', '${termekTipusNev}', '${meret}', ${maxDb})" 
+                            class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                            Hozzáad
+                        </button>
+                        <button onclick="mennyisegModalBezar()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Mégsem
+                        </button>
+                    </div>
+                </div>
+            `;
             
-            const index = parseInt(valasztas) - 1;
-            if (index < 0 || index >= termekekTomb.length) {
-                alert('Érvénytelen választás!');
+            document.body.appendChild(miniModal);
+            document.getElementById('mennyisegInput').focus();
+        }
+        
+        function mennyisegValtoztat(delta, max) {
+            const input = document.getElementById('mennyisegInput');
+            const ujErtek = Math.max(1, Math.min(max, parseInt(input.value) + delta));
+            input.value = ujErtek;
+        }
+        
+        function mennyisegModalBezar() {
+            const modal = document.getElementById('mennyisegModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        async function mennyisegMegerosit(illatNev, termekTipusNev, meret, maxDb) {
+            const mennyiseg = parseInt(document.getElementById('mennyisegInput').value);
+            
+            if (mennyiseg < 1 || mennyiseg > maxDb) {
+                alert(`Érvénytelen mennyiség! (1-${maxDb})`);
                 return;
             }
             
-            const kivalasztott = termekekTomb[index];
-            draftTermekHozzaad(kivalasztott.illatNev, kivalasztott.termekTipusNev, kivalasztott.meret, kivalasztott.osszesDarab);
+            // Ellenőrzés: már szerepel-e
+            const index = aktivDraft.termekek.findIndex(t => 
+                t.illatNev === illatNev && 
+                t.termekTipusNev === termekTipusNev && 
+                t.meret === meret
+            );
+            
+            if (index >= 0) {
+                // Már van, növeljük
+                aktivDraft.termekek[index].mennyiseg += mennyiseg;
+            } else {
+                // Új termék
+                aktivDraft.termekek.push({
+                    illatNev,
+                    termekTipusNev,
+                    meret,
+                    mennyiseg
+                });
+            }
+            
+            await ment();
+            renderDraftDoboz();
+            render();
+            
+            // Bezárás
+            mennyisegModalBezar();
+            gyorsTermekModalBezar();
+            
+            // Siker üzenet
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[70] font-semibold';
+            toast.textContent = `✅ ${illatNev} hozzáadva (${mennyiseg} db)`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
         }
         
         async function draftTermekHozzaad(illatNev, termekTipusNev, meret, maxDb) {
