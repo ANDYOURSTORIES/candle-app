@@ -10,6 +10,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         
         // Firebase konfiguráció
         const firebaseConfig = {
@@ -24,16 +25,53 @@
         // Firebase inicializálás
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
         
         // Global elérés
         window.db = db;
+        window.auth = auth;
         window.firestore = { collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot };
+        window.authFunctions = { signInWithEmailAndPassword, onAuthStateChanged, signOut };
     </script>
 
 </head>
 <body class="bg-gradient-to-br from-amber-50 to-orange-50 min-h-screen p-4">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-amber-50 to-orange-50 z-[200] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <div class="text-center mb-8">
+                <div class="text-6xl mb-4">🕯️</div>
+                <h1 class="text-3xl font-bold text-amber-900 mb-2">AYS Production</h1>
+                <p class="text-amber-700">Bejelentkezés szükséges</p>
+            </div>
+            
+            <div id="loginError" class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
+            
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="loginEmail" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        placeholder="email@andyourstories.com">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Jelszó</label>
+                    <input type="password" id="loginPassword" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        placeholder="••••••••">
+                </div>
+                
+                <button type="submit" id="loginButton"
+                    class="w-full bg-amber-600 text-white px-6 py-3 rounded-lg hover:bg-amber-700 font-semibold text-lg transition">
+                    Bejelentkezés
+                </button>
+            </form>
+        </div>
+    </div>
+    
     <!-- Loading indicator -->
-    <div id="loadingIndicator" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div id="loadingIndicator" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
         <div class="bg-white rounded-xl p-8 text-center">
             <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-amber-600 mx-auto mb-4"></div>
             <p class="text-amber-900 font-semibold">Adatok betöltése...</p>
@@ -48,6 +86,13 @@
                     <h1 class="text-3xl font-bold text-amber-900 mb-2">🕯️ AYS Production</h1>
                     <p class="text-amber-700">Kövesd nyomon a kiöntött illatokat és a szükséges címkéket</p>
                 </div>
+                <div>
+                    <div id="userInfo" class="text-right mb-2 text-sm text-gray-600"></div>
+                    <button onclick="kijelentkezes()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 font-semibold text-sm">
+                        Kijelentkezés
+                    </button>
+                </div>
+            </div>
                 <button onclick="toggleBeallitasok()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm">
                     ⚙️ Beállítások
                 </button>
@@ -836,6 +881,84 @@
         }
 
         // Firebase betöltés
+        // ===== AUTHENTICATION =====
+        
+        let jelenlegiUser = null;
+        
+        // Authentication state listener
+        window.authFunctions.onAuthStateChanged(window.auth, (user) => {
+            if (user) {
+                // Bejelentkezve
+                jelenlegiUser = user;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('userInfo').textContent = user.email;
+                betolt(); // Adatok betöltése
+            } else {
+                // Nincs bejelentkezve
+                jelenlegiUser = null;
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('app').style.display = 'none';
+            }
+        });
+        
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            const loginButton = document.getElementById('loginButton');
+            
+            // Hide previous errors
+            errorDiv.classList.add('hidden');
+            
+            // Disable button
+            loginButton.disabled = true;
+            loginButton.textContent = 'Bejelentkezés...';
+            
+            try {
+                await window.authFunctions.signInWithEmailAndPassword(window.auth, email, password);
+                // Success - onAuthStateChanged will handle the rest
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                // Show error message
+                let errorMessage = 'Hiba történt a bejelentkezés során.';
+                
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                    errorMessage = 'Hibás email vagy jelszó!';
+                } else if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'Nincs ilyen felhasználó!';
+                } else if (error.code === 'auth/user-disabled') {
+                    errorMessage = 'Ez a fiók le van tiltva!';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage = 'Túl sok sikertelen próbálkozás! Próbáld később.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Érvénytelen email cím!';
+                }
+                
+                errorDiv.textContent = errorMessage;
+                errorDiv.classList.remove('hidden');
+                
+                // Re-enable button
+                loginButton.disabled = false;
+                loginButton.textContent = 'Bejelentkezés';
+            }
+        });
+        
+        // Logout function
+        function kijelentkezes() {
+            if (confirm('Biztosan kijelentkezel?')) {
+                window.authFunctions.signOut(window.auth);
+            }
+        }
+        
+        // Make logout function global
+        window.kijelentkezes = kijelentkezes;
+
+        // ===== DATA LOADING =====
+
         async function betolt() {
             try {
                 // Illatok betöltése
@@ -3877,7 +4000,7 @@
 
         // Enter billentyű kezelés
         document.addEventListener('DOMContentLoaded', () => {
-            betolt();
+            // betolt() már nem kell itt - az onAuthStateChanged hívja meg
             
             document.getElementById('ujIllatNev').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') illatHozzaad();
