@@ -40,9 +40,8 @@
     <div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-amber-50 to-orange-50 z-[200] flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
             <div class="text-center mb-8">
-                <div class="text-6xl mb-4">🕯️</div>
-                <h1 class="text-3xl font-bold text-amber-900 mb-2">AYS Production</h1>
-                <p class="text-amber-700">Bejelentkezés szükséges</p>
+                <img src="AYS_new.png" alt="AYS" class="w-48 h-auto mx-auto mb-4">
+                <p class="text-amber-700 text-lg font-medium">Bejelentkezés szükséges</p>
             </div>
             
             <div id="loginError" class="hidden mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"></div>
@@ -67,6 +66,9 @@
                     Bejelentkezés
                 </button>
             </form>
+            
+            <!-- Debug info (TEMPORARY) -->
+            <div id="debugInfo" class="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600"></div>
         </div>
     </div>
     
@@ -82,9 +84,12 @@
         <!-- Header -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
             <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-3xl font-bold text-amber-900 mb-2">🕯️ AYS Production</h1>
-                    <p class="text-amber-700">Kövesd nyomon a kiöntött illatokat és a szükséges címkéket</p>
+                <div class="flex items-center gap-4">
+                    <img src="AYS_new.png" alt="AYS" class="h-12 w-auto">
+                    <div>
+                        <h1 class="text-2xl font-bold text-amber-900">Production</h1>
+                        <p class="text-amber-700 text-sm">Gyártás követő</p>
+                    </div>
                 </div>
                 <div>
                     <div id="userInfo" class="text-right mb-2 text-sm text-gray-600"></div>
@@ -885,66 +890,87 @@
         
         let jelenlegiUser = null;
         
-        // Authentication state listener
-        window.authFunctions.onAuthStateChanged(window.auth, (user) => {
-            if (user) {
-                // Bejelentkezve
-                jelenlegiUser = user;
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('userInfo').textContent = user.email;
-                betolt(); // Adatok betöltése
-            } else {
-                // Nincs bejelentkezve
-                jelenlegiUser = null;
-                document.getElementById('loginScreen').classList.remove('hidden');
-                document.getElementById('app').style.display = 'none';
+        // Wait for DOM and Firebase to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if auth is available
+            if (!window.auth || !window.authFunctions) {
+                console.error('Firebase Auth not loaded!');
+                document.getElementById('debugInfo').textContent = '❌ Firebase Auth nem töltődött be!';
+                return;
             }
-        });
-        
-        // Login form handler
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
             
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorDiv = document.getElementById('loginError');
-            const loginButton = document.getElementById('loginButton');
+            document.getElementById('debugInfo').textContent = '✅ Firebase Auth betöltve, várakozás...';
             
-            // Hide previous errors
-            errorDiv.classList.add('hidden');
-            
-            // Disable button
-            loginButton.disabled = true;
-            loginButton.textContent = 'Bejelentkezés...';
-            
-            try {
-                await window.authFunctions.signInWithEmailAndPassword(window.auth, email, password);
-                // Success - onAuthStateChanged will handle the rest
-            } catch (error) {
-                console.error('Login error:', error);
-                
-                // Show error message
-                let errorMessage = 'Hiba történt a bejelentkezés során.';
-                
-                if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-                    errorMessage = 'Hibás email vagy jelszó!';
-                } else if (error.code === 'auth/user-not-found') {
-                    errorMessage = 'Nincs ilyen felhasználó!';
-                } else if (error.code === 'auth/user-disabled') {
-                    errorMessage = 'Ez a fiók le van tiltva!';
-                } else if (error.code === 'auth/too-many-requests') {
-                    errorMessage = 'Túl sok sikertelen próbálkozás! Próbáld később.';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'Érvénytelen email cím!';
+            // Authentication state listener
+            window.authFunctions.onAuthStateChanged(window.auth, (user) => {
+                if (user) {
+                    // Bejelentkezve
+                    jelenlegiUser = user;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('userInfo').textContent = user.email;
+                    document.getElementById('loadingIndicator').classList.remove('hidden');
+                    betolt(); // Adatok betöltése
+                } else {
+                    // Nincs bejelentkezve
+                    jelenlegiUser = null;
+                    document.getElementById('loginScreen').classList.remove('hidden');
+                    document.getElementById('app').style.display = 'none';
+                    document.getElementById('debugInfo').textContent = 'Várakozás bejelentkezésre...';
                 }
+            });
+            
+            // Login form handler
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
                 
-                errorDiv.textContent = errorMessage;
-                errorDiv.classList.remove('hidden');
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                const errorDiv = document.getElementById('loginError');
+                const loginButton = document.getElementById('loginButton');
+                const debugDiv = document.getElementById('debugInfo');
                 
-                // Re-enable button
-                loginButton.disabled = false;
-                loginButton.textContent = 'Bejelentkezés';
-            }
+                // Debug output
+                debugDiv.textContent = 'Bejelentkezés próbálkozás...';
+                
+                // Hide previous errors
+                errorDiv.classList.add('hidden');
+                
+                // Disable button
+                loginButton.disabled = true;
+                loginButton.textContent = 'Bejelentkezés...';
+                
+                try {
+                    debugDiv.textContent = 'Firebase signIn hívás...';
+                    const userCredential = await window.authFunctions.signInWithEmailAndPassword(window.auth, email, password);
+                    debugDiv.textContent = '✅ Sikeres bejelentkezés! User: ' + userCredential.user.email;
+                    // Success - onAuthStateChanged will handle the rest
+                } catch (error) {
+                    console.error('Login error:', error);
+                    debugDiv.textContent = '❌ Hiba: ' + error.code + ' - ' + error.message;
+                    
+                    // Show error message
+                    let errorMessage = 'Hiba történt a bejelentkezés során.';
+                    
+                    if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                        errorMessage = 'Hibás email vagy jelszó!';
+                    } else if (error.code === 'auth/user-not-found') {
+                        errorMessage = 'Nincs ilyen felhasználó!';
+                    } else if (error.code === 'auth/user-disabled') {
+                        errorMessage = 'Ez a fiók le van tiltva!';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorMessage = 'Túl sok sikertelen próbálkozás! Próbáld később.';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = 'Érvénytelen email cím!';
+                    }
+                    
+                    errorDiv.textContent = errorMessage;
+                    errorDiv.classList.remove('hidden');
+                    
+                    // Re-enable button
+                    loginButton.disabled = false;
+                    loginButton.textContent = 'Bejelentkezés';
+                }
+            });
         });
         
         // Logout function
