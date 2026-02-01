@@ -1173,7 +1173,7 @@
             const buttonBg = aktivDraft.tipus === 'eladas' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700';
             const boldColor = aktivDraft.tipus === 'eladas' ? 'text-green-700' : 'text-blue-700';
             
-            doboz.className = `${bgColor} border-2 ${borderColor} rounded-xl p-4 mb-6`;
+            doboz.className = `${bgColor} border-2 ${borderColor} rounded-xl p-4 mb-6 relative z-10`;
             doboz.innerHTML = `
                 <div class="flex justify-between items-start mb-3">
                     <div>
@@ -1183,7 +1183,7 @@
                         </div>
                         ${aktivDraft.megjegyzes ? `<div class="text-xs text-gray-600 italic mt-1">💬 ${aktivDraft.megjegyzes}</div>` : ''}
                     </div>
-                    <button onclick="gyorsTermekHozzaadModal()" class="${buttonBg} text-white px-3 py-2 rounded-lg font-bold text-lg" title="Termék hozzáadása">
+                    <button onclick="event.stopPropagation(); gyorsTermekHozzaadModal();" class="${buttonBg} text-white px-3 py-2 rounded-lg font-bold text-lg touch-manipulation" title="Termék hozzáadása">
                         ➕
                     </button>
                 </div>
@@ -1194,15 +1194,15 @@
                         ? '<p class="text-gray-500 text-sm italic">Még nincs termék hozzáadva. Kattints a ➕ gombra vagy használd a Gyártás tab-on a termékek melletti gombokat.</p>'
                         : `<div class="space-y-2">
                             ${aktivDraft.termekek.map((t, idx) => `
-                                <div class="flex justify-between items-center text-sm">
-                                    <div>
+                                <div class="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
+                                    <div class="flex-1 min-w-0 pr-2">
                                         <span class="font-medium">${t.illatNev}</span>
                                         <span class="text-gray-600"> - ${t.termekTipusNev} ${t.meret}</span>
                                         <span class="font-bold ${boldColor}"> ${t.mennyiseg} db</span>
                                     </div>
-                                    <div class="flex gap-1">
-                                        <button onclick="draftTermekSzerkeszt(${idx})" class="text-blue-600 hover:text-blue-800 px-1">✏️</button>
-                                        <button onclick="draftTermekTorol(${idx})" class="text-red-600 hover:text-red-800 px-1">🗑️</button>
+                                    <div class="flex gap-2 flex-shrink-0">
+                                        <button onclick="event.stopPropagation(); draftTermekSzerkeszt(${idx});" class="text-blue-600 hover:text-blue-800 px-2 py-1 touch-manipulation text-lg">✏️</button>
+                                        <button onclick="event.stopPropagation(); draftTermekTorol(${idx});" class="text-red-600 hover:text-red-800 px-2 py-1 touch-manipulation text-lg">🗑️</button>
                                     </div>
                                 </div>
                             `).join('')}
@@ -1211,10 +1211,10 @@
                 </div>
                 
                 <div class="flex gap-2">
-                    <button onclick="draftVeglegesit()" class="flex-1 ${buttonBg} text-white px-4 py-2 rounded-lg font-semibold">
+                    <button onclick="event.stopPropagation(); draftVeglegesit();" class="flex-1 ${buttonBg} text-white px-4 py-3 rounded-lg font-semibold touch-manipulation">
                         ✅ Véglegesít
                     </button>
-                    <button onclick="draftElvet()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    <button onclick="event.stopPropagation(); draftElvet();" class="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 touch-manipulation">
                         🗑️ Elvet
                     </button>
                 </div>
