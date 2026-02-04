@@ -34,6 +34,29 @@
         window.authFunctions = { signInWithEmailAndPassword, onAuthStateChanged, signOut };
     </script>
 
+    <style>
+        /* Desktop betűméret csökkentés (20-30% kisebb) */
+        @media (min-width: 768px) {
+            body {
+                font-size: 14px; /* base 16px → 14px (~12% csökkentés) */
+            }
+            
+            /* Táblázatok */
+            table {
+                font-size: 0.8rem; /* még kisebb */
+            }
+            
+            /* Dropdown-ok */
+            select, input[type="text"], input[type="number"], input[type="date"] {
+                font-size: 0.875rem; /* 14px */
+            }
+            
+            /* Gombok */
+            button {
+                font-size: 0.875rem;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gradient-to-br from-amber-50 to-orange-50 min-h-screen p-4">
     <!-- Login Screen -->
