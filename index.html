@@ -280,43 +280,16 @@
                     <p class="text-sm text-gray-600 mb-4">Polcon lévő kész termékek rögzítéséhez (nem von le címkét)</p>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Illat</label>
-                            <select id="manualKeszTermekIllat" onchange="manualKeszTermekIllatChange()" class="w-full px-4 py-2 border rounded-lg">
-                                <option value="">Válassz meglévő illatot...</option>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Termék választás</label>
+                            <select id="manualKeszTermekValasztas" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+                                <option value="">Válassz terméket...</option>
                             </select>
-                            <div class="mt-2 flex items-center gap-2">
-                                <span class="text-sm text-gray-600">vagy</span>
-                                <button onclick="toggleUjIllatManualKeszTermek()" class="text-sm text-emerald-600 hover:text-emerald-800 font-medium">
-                                    + Új illat
-                                </button>
-                            </div>
-                            <div id="ujIllatManualKeszTermekForm" class="hidden mt-2">
-                                <input type="text" id="ujIllatManualKeszTermekNev" placeholder="Új illat neve (pl. Levendula)" 
-                                    class="w-full px-4 py-2 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Termék típus</label>
-                            <select id="manualKeszTermekTermekTipus" onchange="updateManualKeszTermekMeret()" class="w-full px-4 py-2 border rounded-lg">
-                                <option value="">Válassz típust...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Méret</label>
-                            <select id="manualKeszTermekMeret" class="w-full px-4 py-2 border rounded-lg">
-                                <option value="">Először válassz típust</option>
-                            </select>
+                            <p class="text-xs text-gray-500 mt-1">Ha nincs a listában, adj hozzá új variánst a Termékek listában!</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Mennyiség (db)</label>
                             <input type="number" id="manualKeszTermekMennyiseg" min="1" placeholder="pl. 24"
                                 class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">SKU (opcionális)</label>
-                            <input type="text" id="manualKeszTermekSKU" placeholder="pl. AC-GY-100"
-                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500">
-                            <p class="text-xs text-gray-500 mt-1">Egyedi termék azonosító</p>
                         </div>
                     </div>
                     <div class="flex gap-2 mt-6">
@@ -3522,50 +3495,33 @@
         }
 
         async function manualKeszTermekHozzaad() {
-            let illatId = parseInt(document.getElementById('manualKeszTermekIllat').value);
-            const ujIllatNev = document.getElementById('ujIllatManualKeszTermekNev').value.trim();
-            const termekTipus = document.getElementById('manualKeszTermekTermekTipus').value;
-            const meret = document.getElementById('manualKeszTermekMeret').value;
+            const termekVariansId = parseInt(document.getElementById('manualKeszTermekValasztas').value);
             const mennyiseg = parseInt(document.getElementById('manualKeszTermekMennyiseg').value);
-            const sku = document.getElementById('manualKeszTermekSKU').value.trim();
             
-            // Ellenőrzés
-            if (!illatId && !ujIllatNev) {
-                alert('Válassz egy illatot vagy adj meg egy új illat nevet!');
+            if (!termekVariansId || !mennyiseg || mennyiseg < 1) {
+                alert('Válassz terméket és add meg a mennyiséget!');
                 return;
             }
             
-            if (!termekTipus || !meret || !mennyiseg || mennyiseg < 1) {
-                alert('Kérlek töltsd ki az összes mezőt!');
+            // Termék variáns adatainak lekérése
+            const varianss = termekVariansok.find(v => v.id === termekVariansId);
+            if (!varianss) {
+                alert('Hiba: A kiválasztott termék nem található!');
                 return;
             }
-            
-            // Ha új illat, hozzáadjuk
-            if (ujIllatNev && !illatId) {
-                // Duplikáció ellenőrzése
-                const letezikMar = illatok.some(i => i.nev.toLowerCase() === ujIllatNev.toLowerCase());
-                if (letezikMar) {
-                    const letezőIllat = illatok.find(i => i.nev.toLowerCase() === ujIllatNev.toLowerCase());
-                    illatId = letezőIllat.id;
-                } else {
-                    illatId = generateId();
-                    illatok.push({ id: illatId, nev: ujIllatNev });
-                }
-            }
-            
-            const illat = illatok.find(i => i.id === illatId);
-            const termekTipusObj = termekTipusok.find(t => t.id === termekTipus);
             
             // Kész termék létrehozása - NEM VON LE CÍMKÉT!
             const ujKeszTermek = {
                 id: generateId(),
-                illatId: illatId,
-                illatNev: illat.nev,
-                termekTipus: termekTipus,
-                termekTipusNev: termekTipusObj.nev,
-                meret: meret,
+                termekVariansId: termekVariansId,
+                // Backward compatibility mezők
+                illatId: varianss.illatId,
+                illatNev: varianss.illatNev,
+                termekTipus: varianss.termekTipus,
+                termekTipusNev: varianss.termekTipusNev,
+                meret: varianss.meret,
+                sku: varianss.sku,
                 darabszam: mennyiseg,
-                sku: sku || null,
                 datum: new Date().toISOString(),
                 cimkezveIdopont: new Date().toISOString(),
                 megjegyzes: 'Manuálisan hozzáadva (polcon lévő készlet)'
@@ -3574,17 +3530,14 @@
             keszTermekek.unshift(ujKeszTermek);
             
             // Form reset
-            document.getElementById('manualKeszTermekIllat').value = '';
-            document.getElementById('manualKeszTermekTermekTipus').value = '';
-            document.getElementById('manualKeszTermekMeret').innerHTML = '<option value="">Először válassz típust</option>';
+            document.getElementById('manualKeszTermekValasztas').value = '';
             document.getElementById('manualKeszTermekMennyiseg').value = '';
-            document.getElementById('manualKeszTermekSKU').value = '';
             
             await ment();
             render();
             toggleManualKeszTermekModal();
             
-            alert(`${mennyiseg} db kész termék hozzáadva: ${illat.nev}\n(Címke készlet nem változott)`);
+            alert(`${mennyiseg} db kész termék hozzáadva: ${varianss.displayNev}\n(Címke készlet nem változott)`);
         }
 
         function keszTermekTorol(id) {
@@ -4324,6 +4277,33 @@
                 const rendezetIllatok = [...illatok].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
                 select.innerHTML = '<option value="">Válassz illatot...</option>' + 
                     rendezetIllatok.map(illat => `<option value="${illat.id}">${illat.nev}</option>`).join('');
+            }
+            
+            // Manuális kész termék választás dropdown (termékVariánsok alapján)
+            const manualKeszTermekValasztasSelect = document.getElementById('manualKeszTermekValasztas');
+            if (manualKeszTermekValasztasSelect) {
+                if (termekVariansok.length === 0) {
+                    manualKeszTermekValasztasSelect.innerHTML = '<option value="">Még nincs termék - adj hozzá variánsokat!</option>';
+                } else {
+                    // Csoportosítás illat szerint
+                    let html = '<option value="">Válassz terméket...</option>';
+                    
+                    illatok.forEach(illat => {
+                        const illatVariansok = termekVariansok.filter(v => v.illatId === illat.id)
+                            .sort((a, b) => a.displayNev.localeCompare(b.displayNev, 'hu'));
+                        
+                        if (illatVariansok.length > 0) {
+                            html += `<optgroup label="📦 ${illat.nev}">`;
+                            illatVariansok.forEach(v => {
+                                const skuText = v.sku ? ` (${v.sku})` : ' (N/A)';
+                                html += `<option value="${v.id}">${v.termekTipusNev} ${v.meret}${skuText}</option>`;
+                            });
+                            html += '</optgroup>';
+                        }
+                    });
+                    
+                    manualKeszTermekValasztasSelect.innerHTML = html;
+                }
             }
 
             // Nyomtatás illat select
