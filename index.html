@@ -4237,13 +4237,12 @@
                 }).join('');
             }
             
-            // Termék választás dropdown (grouped by illat)
+            // Termék választás dropdown (flat list with indented variants)
             const termekValasztasSelect = document.getElementById('termekValasztas');
             if (termekValasztasSelect) {
                 if (termekVariansok.length === 0) {
                     termekValasztasSelect.innerHTML = '<option value="">Még nincs termék - adj hozzá variánsokat!</option>';
                 } else {
-                    // Csoportosítás illat szerint
                     let html = '<option value="">Válassz terméket...</option>';
                     
                     illatok.forEach(illat => {
@@ -4251,12 +4250,14 @@
                             .sort((a, b) => a.displayNev.localeCompare(b.displayNev, 'hu'));
                         
                         if (illatVariansok.length > 0) {
-                            html += `<optgroup label="📦 ${illat.nev}">`;
+                            // Illat név (nagybetű, félkövér) - nem választható
+                            html += `<option disabled style="font-weight: bold; color: #78350f;">▼ ${illat.nev.toUpperCase()}</option>`;
+                            
+                            // Variánsok behúzva
                             illatVariansok.forEach(v => {
                                 const skuText = v.sku ? ` (${v.sku})` : ' (N/A)';
-                                html += `<option value="${v.id}">${v.termekTipusNev} ${v.meret}${skuText}</option>`;
+                                html += `<option value="${v.id}" style="padding-left: 20px; color: #6b7280;">  ↳ ${v.termekTipusNev} ${v.meret}${skuText}</option>`;
                             });
-                            html += '</optgroup>';
                         }
                     });
                     
@@ -4279,13 +4280,12 @@
                     rendezetIllatok.map(illat => `<option value="${illat.id}">${illat.nev}</option>`).join('');
             }
             
-            // Manuális kész termék választás dropdown (termékVariánsok alapján)
+            // Manuális kész termék választás dropdown (flat list with indented variants)
             const manualKeszTermekValasztasSelect = document.getElementById('manualKeszTermekValasztas');
             if (manualKeszTermekValasztasSelect) {
                 if (termekVariansok.length === 0) {
                     manualKeszTermekValasztasSelect.innerHTML = '<option value="">Még nincs termék - adj hozzá variánsokat!</option>';
                 } else {
-                    // Csoportosítás illat szerint
                     let html = '<option value="">Válassz terméket...</option>';
                     
                     illatok.forEach(illat => {
@@ -4293,12 +4293,14 @@
                             .sort((a, b) => a.displayNev.localeCompare(b.displayNev, 'hu'));
                         
                         if (illatVariansok.length > 0) {
-                            html += `<optgroup label="📦 ${illat.nev}">`;
+                            // Illat név (nagybetű, félkövér) - nem választható
+                            html += `<option disabled style="font-weight: bold; color: #78350f;">▼ ${illat.nev.toUpperCase()}</option>`;
+                            
+                            // Variánsok behúzva
                             illatVariansok.forEach(v => {
                                 const skuText = v.sku ? ` (${v.sku})` : ' (N/A)';
-                                html += `<option value="${v.id}">${v.termekTipusNev} ${v.meret}${skuText}</option>`;
+                                html += `<option value="${v.id}" style="padding-left: 20px; color: #6b7280;">  ↳ ${v.termekTipusNev} ${v.meret}${skuText}</option>`;
                             });
-                            html += '</optgroup>';
                         }
                     });
                     
