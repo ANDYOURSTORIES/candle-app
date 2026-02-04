@@ -1105,6 +1105,9 @@
                 // SKU backfill régi kiszállításokhoz
                 await backfillKiszallitasokSKU();
                 
+                // TermekVariansId backfill régi kész termékekhez
+                await backfillKeszTermekekVariansId();
+                
                 render();
                 renderDraftDoboz();
                 
@@ -1291,6 +1294,44 @@
                 await ment();
             } else {
                 console.log('✅ Minden kiszállításnak van illatId és SKU!');
+            }
+        }
+
+        // ===== KÉSZ TERMÉKEK BACKFILL (termekVariansId hozzáadása) =====
+        
+        async function backfillKeszTermekekVariansId() {
+            console.log('🔄 Kész termékek termekVariansId feltöltése...');
+            
+            let frissitett = 0;
+            
+            keszTermekek.forEach(kt => {
+                // Ha már van termekVariansId, skip
+                if (kt.termekVariansId) return;
+                
+                // Keressük meg a megfelelő variánst
+                const varianss = termekVariansok.find(v => 
+                    v.illatNev === kt.illatNev && 
+                    v.termekTipusNev === kt.termekTipusNev && 
+                    v.meret === kt.meret
+                );
+                
+                if (varianss) {
+                    kt.termekVariansId = varianss.id;
+                    
+                    // Ha a variánsnak van SKU-ja, frissítsük a kész terméket is
+                    if (varianss.sku && !kt.sku) {
+                        kt.sku = varianss.sku;
+                    }
+                    
+                    frissitett++;
+                }
+            });
+            
+            if (frissitett > 0) {
+                console.log(`✅ ${frissitett} kész termék frissítve (termekVariansId + SKU)`);
+                await ment();
+            } else {
+                console.log('✅ Minden kész terméknek van termekVariansId!');
             }
         }
 
