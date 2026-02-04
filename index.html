@@ -1706,7 +1706,11 @@
             modal.innerHTML = `
                 <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
                     <div class="p-4 border-b border-gray-200">
-                        <h2 class="text-xl font-bold text-blue-900">Termék hozzáadása draft-hoz</h2>
+                        <h2 class="text-xl font-bold text-blue-900 mb-3">Termék hozzáadása draft-hoz</h2>
+                        <input type="text" id="gyorsTermekKereses" 
+                            placeholder="🔍 Keresés illat név, SKU alapján..." 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            oninput="gyorsTermekSzures()">
                     </div>
                     <div class="flex-1 overflow-y-auto p-4">
                         <div class="overflow-x-auto">
@@ -1720,9 +1724,11 @@
                                         <th class="text-center p-2 font-semibold text-emerald-900"></th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="gyorsTermekTablazat">
                                     ${termekekTomb.map((t, idx) => `
-                                        <tr class="border-b border-emerald-200 hover:bg-emerald-50">
+                                        <tr class="termek-sor border-b border-emerald-200 hover:bg-emerald-50" 
+                                            data-illat="${t.illatNev.toLowerCase()}" 
+                                            data-sku="${(t.sku || '').toLowerCase()}">
                                             <td class="p-2 font-medium text-emerald-900">${t.illatNev}</td>
                                             <td class="p-2 text-gray-700">
                                                 <span class="hidden md:inline">${t.termekTipusNev} - ${t.meret}</span>
@@ -1751,6 +1757,22 @@
             `;
             
             document.body.appendChild(modal);
+        }
+        
+        function gyorsTermekSzures() {
+            const kereses = document.getElementById('gyorsTermekKereses').value.toLowerCase();
+            const sorok = document.querySelectorAll('.termek-sor');
+            
+            sorok.forEach(sor => {
+                const illat = sor.getAttribute('data-illat');
+                const sku = sor.getAttribute('data-sku');
+                
+                if (illat.includes(kereses) || sku.includes(kereses)) {
+                    sor.style.display = '';
+                } else {
+                    sor.style.display = 'none';
+                }
+            });
         }
         
         function gyorsTermekModalBezar() {
@@ -1925,13 +1947,22 @@
             const modalHTML = `
                 <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center p-4">
                     <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
-                        <h3 class="text-lg font-bold text-gray-900 mb-3">Biztosan törlöd?</h3>
-                        <p class="text-gray-700 mb-4">${termek.illatNev} - ${termek.termekTipusNev} ${termek.meret} (${termek.mennyiseg} db)</p>
-                        <div class="flex gap-3">
-                            <button onclick="confirmDraftTermekTorol(${index})" class="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 font-semibold touch-manipulation">
-                                Törlés
+                        <h3 class="text-lg font-bold text-gray-900 mb-3">Mit szeretnél csinálni?</h3>
+                        <div class="bg-blue-50 p-3 rounded-lg mb-4 border border-blue-200">
+                            <p class="font-medium text-blue-900">${termek.illatNev}</p>
+                            <p class="text-sm text-gray-700">${termek.termekTipusNev} ${termek.meret}</p>
+                            <p class="text-lg font-bold text-blue-900 mt-1">${termek.mennyiseg} db</p>
+                        </div>
+                        <div class="space-y-2">
+                            <button onclick="confirmDraftTermekVissza(${index})" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold touch-manipulation flex items-center justify-center gap-2">
+                                <span>↩️</span>
+                                <span>Visszahelyezés készletre</span>
                             </button>
-                            <button onclick="closeConfirmModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-400 font-semibold touch-manipulation">
+                            <button onclick="confirmDraftTermekTorol(${index})" class="w-full bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 font-semibold touch-manipulation flex items-center justify-center gap-2">
+                                <span>🗑️</span>
+                                <span>Végleges törlés</span>
+                            </button>
+                            <button onclick="closeConfirmModal()" class="w-full bg-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-400 font-semibold touch-manipulation">
                                 Mégsem
                             </button>
                         </div>
@@ -1940,6 +1971,48 @@
             `;
             
             document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+        
+        async function confirmDraftTermekVissza(index) {
+            const termek = aktivDraft.termekek[index];
+            
+            // Új kész termék létrehozása
+            const ujKeszTermek = {
+                id: generateId(),
+                illatNev: termek.illatNev,
+                termekTipusNev: termek.termekTipusNev,
+                meret: termek.meret,
+                sku: termek.sku || null,
+                darabszam: termek.mennyiseg,
+                datum: new Date().toISOString(),
+                cimkezveIdopont: new Date().toISOString(),
+                megjegyzes: 'Draft-ból visszahelyezve'
+            };
+            
+            // Ha van termekVariansId, hozzáadjuk
+            if (termek.illatNev && termek.termekTipusNev && termek.meret) {
+                const varianss = termekVariansok.find(v => 
+                    v.illatNev === termek.illatNev && 
+                    v.termekTipusNev === termek.termekTipusNev && 
+                    v.meret === termek.meret
+                );
+                if (varianss) {
+                    ujKeszTermek.termekVariansId = varianss.id;
+                    ujKeszTermek.illatId = varianss.illatId;
+                }
+            }
+            
+            keszTermekek.unshift(ujKeszTermek);
+            
+            // Törlés a draft-ból
+            aktivDraft.termekek.splice(index, 1);
+            
+            await ment();
+            renderDraftDoboz();
+            render();
+            closeConfirmModal();
+            
+            alert(`✅ ${termek.mennyiseg} db visszahelyezve készletre!`);
         }
         
         async function confirmDraftTermekTorol(index) {
