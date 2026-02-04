@@ -1126,6 +1126,9 @@
                     await migrateToVariansok();
                 }
                 
+                // Duplikációk tisztítása (minden betöltéskor, de csak ha van duplikáció)
+                await cleanDuplicateVariansok();
+                
                 render();
                 renderDraftDoboz();
                 
@@ -1225,6 +1228,51 @@
             );
             
             console.log(`✅ Migráció kész! ${termekVariansok.length} termék variáns létrehozva.`);
+        }
+        
+        // ===== DUPLIKÁCIÓK TISZTÍTÁSA =====
+        
+        async function cleanDuplicateVariansok() {
+            console.log('🧹 Duplikáció tisztítás kezdése...');
+            
+            const seen = new Map();
+            const toKeep = [];
+            const toRemove = [];
+            
+            termekVariansok.forEach(v => {
+                const kulcs = `${v.illatId}-${v.termekTipus}-${v.meret}`;
+                
+                if (!seen.has(kulcs)) {
+                    // Első előfordulás - megtartjuk
+                    seen.set(kulcs, v);
+                    toKeep.push(v);
+                } else {
+                    // Duplikáció!
+                    const existing = seen.get(kulcs);
+                    
+                    // Ha az új variánsnak VAN SKU-ja de a réginek nincs, akkor az újat tartjuk meg
+                    if (v.sku && !existing.sku) {
+                        // Lecseréljük: az újat tartjuk, a régit töröljük
+                        toKeep[toKeep.indexOf(existing)] = v;
+                        seen.set(kulcs, v);
+                        toRemove.push(existing);
+                        console.log(`  ⚠️ Duplikáció: ${v.displayNev} - SKU-s variánst megtartjuk, SKU nélkülit töröljük`);
+                    } else {
+                        // Egyébként a régit tartjuk meg, az újat töröljük
+                        toRemove.push(v);
+                        console.log(`  ⚠️ Duplikáció: ${v.displayNev} - Megtartjuk a régit, újat töröljük`);
+                    }
+                }
+            });
+            
+            if (toRemove.length > 0) {
+                console.log(`🗑️ ${toRemove.length} duplikált variáns törlése...`);
+                termekVariansok = toKeep;
+                await ment();
+                console.log('✅ Duplikációk kitisztítva!');
+            } else {
+                console.log('✅ Nincs duplikáció!');
+            }
         }
 
         // ===== KISZÁLLÍTÁS DRAFT ÉS STATISZTIKA FUNKCIÓK =====
