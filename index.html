@@ -90,7 +90,7 @@
                         <h1 class="text-lg md:text-2xl font-bold text-amber-900">Production</h1>
                         <p class="text-amber-700 text-xs md:text-sm">Gyártás követő</p>
                     </div>
-                    <button onclick="toggleBeallitasok()" class="md:hidden bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 font-semibold text-xs touch-manipulation flex-shrink-0">
+                    <button onclick="toggleBeallitasok()" class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 font-semibold text-xs md:text-sm touch-manipulation flex-shrink-0">
                         ⚙️ Beállítások
                     </button>
                 </div>
@@ -156,6 +156,16 @@
                             <div class="flex flex-col sm:flex-row gap-2">
                                 <input type="text" id="ujDiffuserMeret" placeholder="pl. 1000ml" class="flex-1 px-3 py-2 border rounded-lg text-sm">
                                 <button onclick="meretHozzaad('diffuser')" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 whitespace-nowrap text-sm md:text-base">+ Hozzáad</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Termék típusok -->
+                        <div class="border-2 border-purple-200 rounded-lg p-3 md:p-4">
+                            <h3 class="font-bold text-base md:text-lg text-purple-900 mb-3">Termék típusok</h3>
+                            <div id="termekTipusLista" class="space-y-2 mb-3"></div>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <input type="text" id="ujTermekTipus" placeholder="pl. Wax Melt" class="flex-1 px-3 py-2 border rounded-lg text-sm">
+                                <button onclick="termekTipusHozzaad()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 whitespace-nowrap text-sm md:text-base">+ Hozzáad</button>
                             </div>
                         </div>
                     </div>
@@ -301,6 +311,12 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Mennyiség (db)</label>
                             <input type="number" id="manualKeszTermekMennyiseg" min="1" placeholder="pl. 24"
                                 class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">SKU (opcionális)</label>
+                            <input type="text" id="manualKeszTermekSKU" placeholder="pl. AC-GY-100"
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+                            <p class="text-xs text-gray-500 mt-1">Egyedi termék azonosító</p>
                         </div>
                     </div>
                     <div class="flex gap-2 mt-6">
@@ -652,6 +668,17 @@
                             placeholder="Hány darabot készítettél?"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                         />
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">SKU (opcionális)</label>
+                        <input
+                            type="text"
+                            id="sku"
+                            placeholder="pl. AC-GY-100"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        />
+                        <p class="text-xs text-gray-500 mt-1">Egyedi termék azonosító</p>
                     </div>
 
                     <div>
@@ -2438,6 +2465,36 @@
                     diffuserLista.appendChild(div);
                 });
             }
+            
+            // Termék típusok
+            const termekTipusLista = document.getElementById('termekTipusLista');
+            if (termekTipusLista) {
+                termekTipusLista.innerHTML = '';
+                
+                // Csak custom típusokat listázzuk (amiket a user adott hozzá)
+                const customTipusok = termekTipusok.filter(t => t.id.startsWith('custom_'));
+                
+                if (customTipusok.length === 0) {
+                    termekTipusLista.innerHTML = '<p class="text-sm text-gray-500 italic">Még nincs egyedi termék típus hozzáadva.</p>';
+                } else {
+                    customTipusok.forEach(tipus => {
+                        const div = document.createElement('div');
+                        div.className = 'flex justify-between items-center p-2 bg-purple-50 rounded';
+                        
+                        const span = document.createElement('span');
+                        span.textContent = tipus.nev;
+                        
+                        const button = document.createElement('button');
+                        button.textContent = 'Törlés';
+                        button.className = 'text-red-600 hover:text-red-800 text-sm';
+                        button.onclick = () => termekTipusTorol(tipus.id);
+                        
+                        div.appendChild(span);
+                        div.appendChild(button);
+                        termekTipusLista.appendChild(div);
+                    });
+                }
+            }
         }
 
         function meretHozzaad(tipus) {
@@ -2460,6 +2517,64 @@
                 ment();
                 renderBeallitasok();
                 render(); // Frissítjük a fő nézetet is
+            }
+        }
+        
+        function termekTipusHozzaad() {
+            const input = document.getElementById('ujTermekTipus');
+            const ujTipus = input.value.trim();
+            
+            if (!ujTipus) {
+                alert('Add meg a termék típus nevét!');
+                return;
+            }
+            
+            // Ellenőrzés: már létezik-e
+            const letezik = termekTipusok.some(t => t.nev.toLowerCase() === ujTipus.toLowerCase());
+            if (letezik) {
+                alert('Ez a termék típus már létezik!');
+                return;
+            }
+            
+            // Új ID generálás (egyszerű: következő szabad szám vagy egyedi string)
+            const ujId = `custom_${Date.now()}`;
+            
+            termekTipusok.push({
+                id: ujId,
+                nev: ujTipus
+            });
+            
+            // Üres méretek tömb az új típushoz
+            meretek[ujId] = [];
+            
+            input.value = '';
+            ment();
+            renderBeallitasok();
+            render();
+        }
+        
+        function termekTipusTorol(id) {
+            const tipus = termekTipusok.find(t => t.id === id);
+            if (!tipus) return;
+            
+            // Ellenőrzés: van-e használatban?
+            const hasznaltKiontesben = kiontesek.some(k => k.termekTipus === id);
+            const hasznaltKeszben = keszTermekek.some(k => k.termekTipus === id);
+            
+            if (hasznaltKiontesben || hasznaltKeszben) {
+                alert(`Nem törölhető! Ez a termék típus (${tipus.nev}) már használatban van.`);
+                return;
+            }
+            
+            if (confirm(`Biztosan törlöd ezt a termék típust?\n\n${tipus.nev}`)) {
+                termekTipusok = termekTipusok.filter(t => t.id !== id);
+                
+                // Méretek törlése is
+                delete meretek[id];
+                
+                ment();
+                renderBeallitasok();
+                render();
             }
         }
 
@@ -3223,6 +3338,7 @@
             const termekTipus = document.getElementById('manualKeszTermekTermekTipus').value;
             const meret = document.getElementById('manualKeszTermekMeret').value;
             const mennyiseg = parseInt(document.getElementById('manualKeszTermekMennyiseg').value);
+            const sku = document.getElementById('manualKeszTermekSKU').value.trim();
             
             // Ellenőrzés
             if (!illatId && !ujIllatNev) {
@@ -3260,12 +3376,20 @@
                 termekTipusNev: termekTipusObj.nev,
                 meret: meret,
                 darabszam: mennyiseg,
+                sku: sku || null,
                 datum: new Date().toISOString(),
                 cimkezveIdopont: new Date().toISOString(),
                 megjegyzes: 'Manuálisan hozzáadva (polcon lévő készlet)'
             };
             
             keszTermekek.unshift(ujKeszTermek);
+            
+            // Form reset
+            document.getElementById('manualKeszTermekIllat').value = '';
+            document.getElementById('manualKeszTermekTermekTipus').value = '';
+            document.getElementById('manualKeszTermekMeret').innerHTML = '<option value="">Először válassz típust</option>';
+            document.getElementById('manualKeszTermekMennyiseg').value = '';
+            document.getElementById('manualKeszTermekSKU').value = '';
             
             await ment();
             render();
@@ -3597,6 +3721,7 @@
             const meret = document.getElementById('meret').value;
             const illatId = parseInt(document.getElementById('kivalasztottIllat').value);
             const darab = parseInt(document.getElementById('darabszam').value);
+            const sku = document.getElementById('sku').value.trim();
             const megj = document.getElementById('megjegyzes').value.trim();
             
             if (termekTipus && meret && illatId && darab > 0) {
@@ -3611,6 +3736,7 @@
                     illatId,
                     illatNev: illat.nev,
                     darabszam: darab,
+                    sku: sku || null,
                     datum: new Date().toISOString(),
                     megjegyzes: megj,
                     cimkeGyartva: false
@@ -3620,6 +3746,7 @@
                 document.getElementById('meret').innerHTML = '<option value="">Először válassz termék típust</option>';
                 document.getElementById('kivalasztottIllat').value = '';
                 document.getElementById('darabszam').value = '';
+                document.getElementById('sku').value = '';
                 document.getElementById('megjegyzes').value = '';
                 
                 ment();
