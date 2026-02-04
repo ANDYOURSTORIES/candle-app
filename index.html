@@ -386,15 +386,14 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Termék típus</label>
-                                <select id="ujVariansTipus" onchange="updateUjVariansMeret()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <select id="ujVariansTipus" class="w-full px-3 py-2 border rounded-lg text-sm">
                                     <option value="">Válassz...</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Méret</label>
-                                <select id="ujVariansMeret" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                    <option value="">Először típust...</option>
-                                </select>
+                                <input type="text" id="ujVariansMeret" placeholder="pl. 100g, Standard, Large, 10cm..." class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <p class="text-xs text-gray-500 mt-1">Bármilyen méretet megadhatsz</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">SKU (opcionális)</label>
@@ -4022,18 +4021,6 @@
             aktívIllatId = null;
         }
         
-        function updateUjVariansMeret() {
-            const tipus = document.getElementById('ujVariansTipus').value;
-            const meretSelect = document.getElementById('ujVariansMeret');
-            
-            if (tipus && meretek[tipus]) {
-                meretSelect.innerHTML = '<option value="">Válassz méretet...</option>' +
-                    meretek[tipus].map(m => `<option value="${m}">${m}</option>`).join('');
-            } else {
-                meretSelect.innerHTML = '<option value="">Először típust...</option>';
-            }
-        }
-        
         function ujVariansHozzaad() {
             if (!aktívIllatId) return;
             
@@ -4076,7 +4063,7 @@
             
             // Form reset
             document.getElementById('ujVariansTipus').value = '';
-            document.getElementById('ujVariansMeret').innerHTML = '<option value="">Először típust...</option>';
+            document.getElementById('ujVariansMeret').value = '';
             document.getElementById('ujVariansSKU').value = '';
             
             ment();
