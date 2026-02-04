@@ -4018,12 +4018,16 @@
             const lista = document.getElementById(`varianslista-${illatId}`);
             const arrow = document.getElementById(`arrow-${illatId}`);
             
-            if (lista.style.display === 'none') {
+            if (lista.style.display === 'none' || lista.style.display === '') {
+                // Kinyitás
                 lista.style.display = 'block';
                 arrow.style.transform = 'rotate(0deg)';
+                arrow.textContent = '▼';
             } else {
+                // Becsukás
                 lista.style.display = 'none';
                 arrow.style.transform = 'rotate(-90deg)';
+                arrow.textContent = '▶';
             }
         }
         
@@ -4182,7 +4186,7 @@
                             <div class="bg-amber-50 p-3 flex justify-between items-center cursor-pointer hover:bg-amber-100" 
                                  onclick="toggleIllatVariansok(${illat.id})">
                                 <div class="flex items-center gap-2 flex-1">
-                                    <span id="arrow-${illat.id}" class="text-amber-900 transition-transform">▼</span>
+                                    <span id="arrow-${illat.id}" class="text-amber-900 transition-transform" style="transform: rotate(-90deg)">▶</span>
                                     <span class="font-bold text-amber-900">📦 ${illat.nev}</span>
                                     <span class="text-xs text-gray-500">(${illatVariansok.length} variáns)</span>
                                 </div>
@@ -4210,8 +4214,8 @@
                                 </div>
                             </div>
                             
-                            <!-- Variánsok lista (collapsible) -->
-                            <div id="varianslista-${illat.id}" class="transition-all">
+                            <!-- Variánsok lista (collapsible) - ALAPBÓL ELREJTVE -->
+                            <div id="varianslista-${illat.id}" class="transition-all" style="display: none;">
                                 ${illatVariansok.length > 0 ? `
                                     <div class="p-2 space-y-1">
                                         ${illatVariansok.map(v => `
