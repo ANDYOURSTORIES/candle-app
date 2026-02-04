@@ -2046,16 +2046,16 @@
                 kiszallitasok.unshift({
                     id: generateId(),
                     datum: aktivDraft.datum,
-                    illatId: illatId,  // Új mező!
-                    illatNev: termek.illatNev,
-                    termekTipusNev: termek.termekTipusNev,
-                    meret: termek.meret,
-                    sku: termek.sku,  // Új mező!
-                    mennyiseg: termek.mennyiseg,
-                    tipus: aktivDraft.tipus,
-                    partnerId: aktivDraft.partnerId,
-                    partnerNev: aktivDraft.partnerNev,
-                    megjegyzes: aktivDraft.megjegyzes
+                    illatId: illatId || null,
+                    illatNev: termek.illatNev || '',
+                    termekTipusNev: termek.termekTipusNev || '',
+                    meret: termek.meret || '',
+                    sku: termek.sku || null,
+                    mennyiseg: termek.mennyiseg || 0,
+                    tipus: aktivDraft.tipus || '',
+                    partnerId: aktivDraft.partnerId || null,
+                    partnerNev: aktivDraft.partnerNev || '',
+                    megjegyzes: aktivDraft.megjegyzes || null
                 });
                 
                 // Készlet csökkentése
