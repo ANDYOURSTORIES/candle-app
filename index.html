@@ -4437,7 +4437,7 @@
                                 <tr>
                                     <th class="text-left p-1 md:p-2 font-semibold text-orange-900">Illat</th>
                                     <th class="text-left p-1 md:p-2 font-semibold text-orange-900">Típus / Méret</th>
-                                    <th class="text-left p-1 md:p-2 font-semibold text-orange-900 hidden sm:table-cell">SKU</th>
+                                    <th class="text-left p-1 md:p-2 font-semibold text-orange-900 text-xs">SKU</th>
                                     <th class="text-center p-1 md:p-2 font-semibold text-orange-900">Darab</th>
                                     <th class="text-center p-1 md:p-2 font-semibold text-orange-900 hidden md:table-cell">Címke</th>
                                     <th class="text-center p-1 md:p-2 font-semibold text-orange-900 hidden md:table-cell">Kiöntve</th>
@@ -4470,7 +4470,7 @@
                                                 <div class="hidden md:block">${csoport.termekTipusNev} - ${csoport.meret}</div>
                                                 <div class="md:hidden text-xs">${csoport.termekTipusNev.substring(0, 4)}-${csoport.meret.substring(0, 5)}</div>
                                             </td>
-                                            <td class="p-1 md:p-2 text-gray-600 font-mono text-xs hidden sm:table-cell">${sku}</td>
+                                            <td class="p-1 md:p-2 text-gray-600 font-mono text-xs">${sku}</td>
                                             <td class="p-1 md:p-2 text-center">
                                                 <span class="font-bold text-orange-900">${csoport.osszesDarab} db</span>
                                                 ${csoport.tetelek.length > 1 ? `<div class="text-xs text-gray-500">(${csoport.tetelek.length} tétel)</div>` : ''}
@@ -4484,23 +4484,23 @@
                                             <td class="p-1 md:p-2 text-center">
                                                 <div class="flex gap-0.5 md:gap-1 justify-center flex-wrap">
                                                     <button onclick="csoportCimkezTeljes('${kulcs}', ${csoport.osszesDarab})" 
-                                                        class="px-1 md:px-3 py-1 md:py-1.5 rounded text-xs font-medium ${
+                                                        class="px-2 md:px-3 py-1.5 md:py-1.5 rounded text-sm md:text-xs font-medium ${
                                                         eleg ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-400 text-white cursor-not-allowed'
                                                     }" ${!eleg ? 'disabled' : ''} title="Mind címkéz">
                                                         <span class="md:hidden">✓</span>
                                                         <span class="hidden md:inline">Mind</span>
                                                     </button>
                                                     <button onclick="csoportCimkezReszleges('${kulcs}', ${csoport.osszesDarab}, ${keszletMennyiseg})" 
-                                                        class="px-1 md:px-3 py-1 md:py-1.5 rounded text-xs font-medium bg-purple-600 text-white hover:bg-purple-700" title="Részleges címkézés">
+                                                        class="px-2 md:px-3 py-1.5 md:py-1.5 rounded text-sm md:text-xs font-medium bg-purple-600 text-white hover:bg-purple-700" title="Részleges címkézés">
                                                         <span class="md:hidden">🏷️</span>
                                                         <span class="hidden md:inline">Részl.</span>
                                                     </button>
                                                     <button onclick="csoportSzerkeszt('${kulcs}', '${csoport.illatNev}', '${csoport.termekTipusNev}', '${csoport.meret}', ${csoport.osszesDarab})" 
-                                                        class="px-1 md:px-2 py-1 md:py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs touch-manipulation" title="Szerkesztés">
+                                                        class="px-2 md:px-2 py-1.5 md:py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-base md:text-xs touch-manipulation" title="Szerkesztés">
                                                         ✏️
                                                     </button>
                                                     <button onclick="csoportTorolCimkezetlen('${kulcs}')" 
-                                                        class="px-1 md:px-2 py-1 md:py-1.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs touch-manipulation" title="Törlés">
+                                                        class="px-2 md:px-2 py-1.5 md:py-1.5 bg-red-600 text-white rounded hover:bg-red-700 text-base md:text-xs touch-manipulation" title="Törlés">
                                                         🗑️
                                                     </button>
                                                 </div>
@@ -4608,7 +4608,7 @@
                                     <tr>
                                         <th class="text-left p-1 md:p-2 font-semibold text-emerald-900">Illat</th>
                                         <th class="text-left p-1 md:p-2 font-semibold text-emerald-900">Típus / Méret</th>
-                                        <th class="text-left p-1 md:p-2 font-semibold text-emerald-900 hidden sm:table-cell">SKU</th>
+                                        <th class="text-left p-1 md:p-2 font-semibold text-emerald-900 text-xs">SKU</th>
                                         <th class="text-center p-1 md:p-2 font-semibold text-emerald-900">Darab</th>
                                         <th class="text-center p-1 md:p-2 font-semibold text-emerald-900 hidden md:table-cell">Címkézve</th>
                                         <th class="text-center p-1 md:p-2 font-semibold text-emerald-900"></th>
@@ -4635,7 +4635,7 @@
                                                 <span class="hidden md:inline">${csoport.termekTipusNev} - ${csoport.meret}</span>
                                                 <span class="md:hidden text-xs">${csoport.termekTipusNev.substring(0, 4)}-${csoport.meret.substring(0, 5)}</span>
                                             </td>
-                                            <td class="p-1 md:p-2 text-gray-600 font-mono text-xs hidden sm:table-cell">${sku}</td>
+                                            <td class="p-1 md:p-2 text-gray-600 font-mono text-xs">${sku}</td>
                                             <td class="p-1 md:p-2 text-center font-bold text-emerald-900">${csoport.osszesDarab} db</td>
                                             <td class="p-1 md:p-2 text-center text-xs text-gray-600 hidden md:table-cell">${formatDatum(csoport.utolsoCimkezesIdopont)}</td>
                                             <td class="p-1 md:p-2 text-center">
