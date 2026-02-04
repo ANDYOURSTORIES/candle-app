@@ -1102,6 +1102,9 @@
                 // Duplikációk tisztítása (minden betöltéskor, de csak ha van duplikáció)
                 await cleanDuplicateVariansok();
                 
+                // SKU backfill régi kiszállításokhoz
+                await backfillKiszallitasokSKU();
+                
                 render();
                 renderDraftDoboz();
                 
@@ -1245,6 +1248,49 @@
                 console.log('✅ Duplikációk kitisztítva!');
             } else {
                 console.log('✅ Nincs duplikáció!');
+            }
+        }
+
+        // ===== SKU BACKFILL (régi kiszállításokhoz) =====
+        
+        async function backfillKiszallitasokSKU() {
+            console.log('🔄 Kiszállítások SKU feltöltése...');
+            
+            let frissitett = 0;
+            
+            kiszallitasok.forEach(k => {
+                // Ha már van SKU és illatId, skip
+                if (k.sku && k.illatId) return;
+                
+                // Keressük meg az illatId-t
+                if (!k.illatId) {
+                    const illat = illatok.find(i => i.nev === k.illatNev);
+                    if (illat) {
+                        k.illatId = illat.id;
+                        frissitett++;
+                    }
+                }
+                
+                // Keressük meg az SKU-t
+                if (!k.sku) {
+                    const varianss = termekVariansok.find(v => 
+                        v.illatId === k.illatId && 
+                        v.termekTipusNev === k.termekTipusNev && 
+                        v.meret === k.meret
+                    );
+                    
+                    if (varianss && varianss.sku) {
+                        k.sku = varianss.sku;
+                        frissitett++;
+                    }
+                }
+            });
+            
+            if (frissitett > 0) {
+                console.log(`✅ ${frissitett} kiszállítás frissítve (illatId + SKU)`);
+                await ment();
+            } else {
+                console.log('✅ Minden kiszállításnak van illatId és SKU!');
             }
         }
 
@@ -1582,10 +1628,22 @@
             keszTermekek.forEach(kt => {
                 const kulcs = `${kt.illatNev}|${kt.termekTipusNev}|${kt.meret}`;
                 if (!csoportositott[kulcs]) {
+                    // SKU meghatározása
+                    let sku = null;
+                    if (kt.termekVariansId) {
+                        const varianss = termekVariansok.find(v => v.id === kt.termekVariansId);
+                        if (varianss && varianss.sku) {
+                            sku = varianss.sku;
+                        }
+                    } else if (kt.sku) {
+                        sku = kt.sku;
+                    }
+                    
                     csoportositott[kulcs] = {
                         illatNev: kt.illatNev,
                         termekTipusNev: kt.termekTipusNev,
                         meret: kt.meret,
+                        sku: sku,
                         osszesDarab: 0
                     };
                 }
@@ -1617,6 +1675,7 @@
                                     <tr>
                                         <th class="text-left p-2 font-semibold text-emerald-900">Illat</th>
                                         <th class="text-left p-2 font-semibold text-emerald-900">Típus / Méret</th>
+                                        <th class="text-left p-2 font-semibold text-emerald-900">SKU</th>
                                         <th class="text-center p-2 font-semibold text-emerald-900">Készlet</th>
                                         <th class="text-center p-2 font-semibold text-emerald-900"></th>
                                     </tr>
@@ -1629,6 +1688,7 @@
                                                 <span class="hidden md:inline">${t.termekTipusNev} - ${t.meret}</span>
                                                 <span class="md:hidden text-xs">${t.termekTipusNev.substring(0, 4)}-${t.meret.substring(0, 5)}</span>
                                             </td>
+                                            <td class="p-2 font-mono text-xs text-gray-600">${t.sku || 'N/A'}</td>
                                             <td class="p-2 text-center font-bold text-emerald-900">${t.osszesDarab} db</td>
                                             <td class="p-2 text-center">
                                                 <button onclick="gyorsTermekKivalaszt('${t.illatNev}', '${t.termekTipusNev}', '${t.meret}', ${t.osszesDarab})" 
