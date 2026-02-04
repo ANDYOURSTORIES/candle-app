@@ -4450,17 +4450,24 @@
                                     const keszletMennyiseg = cimkeKeszlet[kulcs] || 0;
                                     const eleg = keszletMennyiseg >= csoport.osszesDarab;
                                     
-                                    // SKU meghatározása: termékVariánsból vagy első tételből
+                                    // SKU meghatározása termék variánsból
                                     let sku = 'N/A';
-                                    const elsoTetel = csoport.tetelek[0];
-                                    if (elsoTetel.termekVariansId) {
-                                        const varianss = termekVariansok.find(v => v.id === elsoTetel.termekVariansId);
-                                        if (varianss && varianss.sku) {
-                                            sku = varianss.sku;
+                                    
+                                    // Először próbáljuk a termékVariánsokból (illatId + termekTipus + meret alapján)
+                                    const varianss = termekVariansok.find(v => 
+                                        v.illatId === csoport.illatId && 
+                                        v.termekTipus === csoport.termekTipus && 
+                                        v.meret === csoport.meret
+                                    );
+                                    
+                                    if (varianss && varianss.sku) {
+                                        sku = varianss.sku;
+                                    } else {
+                                        // Backward compatibility: régi sku mező az első tételből
+                                        const elsoTetel = csoport.tetelek[0];
+                                        if (elsoTetel && elsoTetel.sku) {
+                                            sku = elsoTetel.sku;
                                         }
-                                    } else if (elsoTetel.sku) {
-                                        // Backward compatibility
-                                        sku = elsoTetel.sku;
                                     }
                                     
                                     return `
@@ -4616,15 +4623,21 @@
                                 </thead>
                                 <tbody>
                                     ${csoportositottTomb.map(csoport => {
-                                        // SKU meghatározása
+                                        // SKU meghatározása termék variánsból
                                         let sku = 'N/A';
+                                        
+                                        // Először próbáljuk a termékVariánsokból (illatId + termekTipus + meret alapján)
                                         const elsoTetel = csoport.tetelek[0];
-                                        if (elsoTetel.termekVariansId) {
-                                            const varianss = termekVariansok.find(v => v.id === elsoTetel.termekVariansId);
-                                            if (varianss && varianss.sku) {
-                                                sku = varianss.sku;
-                                            }
+                                        const varianss = termekVariansok.find(v => 
+                                            v.illatId === elsoTetel.illatId && 
+                                            v.termekTipus === elsoTetel.termekTipus && 
+                                            v.meret === elsoTetel.meret
+                                        );
+                                        
+                                        if (varianss && varianss.sku) {
+                                            sku = varianss.sku;
                                         } else if (elsoTetel.sku) {
+                                            // Backward compatibility: régi sku mező
                                             sku = elsoTetel.sku;
                                         }
                                         
