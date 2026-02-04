@@ -395,6 +395,55 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Termék variánsok modal -->
+        <div id="termekVariansokModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-amber-900">
+                            <span id="variansIllatNev"></span> - Variánsok
+                        </h2>
+                        <button onclick="closeTermekVariansokModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                    </div>
+                    
+                    <!-- Új variáns hozzáadása -->
+                    <div class="bg-amber-50 p-4 rounded-lg mb-4">
+                        <h3 class="font-bold text-amber-900 mb-3">➕ Új variáns hozzáadása</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Termék típus</label>
+                                <select id="ujVariansTipus" onchange="updateUjVariansMeret()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="">Válassz...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Méret</label>
+                                <select id="ujVariansMeret" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="">Először típust...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">SKU (opcionális)</label>
+                                <input type="text" id="ujVariansSKU" placeholder="CDL100AJAC" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            </div>
+                        </div>
+                        <button onclick="ujVariansHozzaad()" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold text-sm">
+                            Hozzáad
+                        </button>
+                    </div>
+                    
+                    <!-- Variánsok listája -->
+                    <div id="variansLista" class="space-y-2"></div>
+                    
+                    <div class="mt-4 flex justify-end">
+                        <button onclick="closeTermekVariansokModal()" class="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 font-semibold">
+                            Bezárás
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Kiszállítás modal -->
         <div id="kiszallitasModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -599,18 +648,13 @@
         <!-- GYÁRTÁS TAB -->
         <div id="gyartasTab">
         <div class="grid md:grid-cols-2 gap-6 mb-6">
-            <!-- Illatok kezelése -->
+            <!-- Termékek kezelése (hierarchikus: Illat → Variánsok) -->
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-amber-900">Illatok</h2>
-                    <div class="flex gap-2">
-                        <button onclick="toggleUjIllat()" class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition text-sm">
-                            + Új illat
-                        </button>
-                        <button onclick="toggleIllatSzerkesztes()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm">
-                            ✏️ Szerkeszt
-                        </button>
-                    </div>
+                    <h2 class="text-xl font-bold text-amber-900">Termékek</h2>
+                    <button onclick="toggleUjIllat()" class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition text-sm">
+                        + Új illat
+                    </button>
                 </div>
 
                 <div id="ujIllatForm" class="mb-4 p-4 bg-amber-50 rounded-lg hidden">
@@ -630,33 +674,20 @@
                     </div>
                 </div>
 
-                <div id="illatLista" class="space-y-2 max-h-96 overflow-y-auto"></div>
+                <div id="termekLista" class="space-y-3 max-h-96 overflow-y-auto"></div>
             </div>
 
-            <!-- Új termék rögzítése -->
+            <!-- Új termék kiöntése (simplified) -->
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-xl font-bold text-amber-900 mb-4">Új termék rögzítése</h2>
+                <h2 class="text-xl font-bold text-amber-900 mb-4">Új termék kiöntése</h2>
                 
                 <div id="kiontesForm" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Termék típus</label>
-                        <select id="termekTipus" onchange="updateMeretOptions()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                            <option value="">Válassz termék típust...</option>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Termék választás</label>
+                        <select id="termekValasztas" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                            <option value="">Válassz terméket...</option>
                         </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Méret</label>
-                        <select id="meret" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                            <option value="">Először válassz termék típust</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Illat</label>
-                        <select id="kivalasztottIllat" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
-                            <option value="">Válassz illatot...</option>
-                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Ha nincs a listában, adj hozzá új variánst a bal oldalon!</p>
                     </div>
 
                     <div>
@@ -669,15 +700,6 @@
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                         />
                     </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">SKU (opcionális)</label>
-                        <input
-                            type="text"
-                            id="sku"
-                            placeholder="pl. AC-GY-100"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                        />
                         <p class="text-xs text-gray-500 mt-1">Egyedi termék azonosító</p>
                     </div>
 
@@ -879,6 +901,7 @@
 
     <script>
         let illatok = [];
+        let termekVariansok = []; // ÚJ: Termék variánsok (illat + típus + méret + SKU)
         let kiontesek = [];
         let cimkeKeszlet = {}; // Címke készlet tárolása: { "illatId-termekTipus-meret": darabszam }
         let keszTermekek = []; // Címkézett kész termékek
@@ -889,6 +912,7 @@
         let keszTermekRendezes = 'datum'; // Rendezési mód: datum, abc, mennyiseg
         let aktívTab = 'gyartas'; // Aktív tab követése
         let statisztikaIdoszak = 'heti'; // Statisztika időszak: heti, havi, evi, egyeni
+        let migrationDone = false; // Migráció státusz
         
         // Termék típusok és méretek
         const termekTipusok = [
@@ -1097,6 +1121,23 @@
                     aktivDraft = aktivDraftDoc.data().data || null;
                 }
                 
+                // Termék variánsok betöltése
+                const termekVariansokDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'termekVariansok'));
+                if (termekVariansokDoc.exists()) {
+                    termekVariansok = termekVariansokDoc.data().data || [];
+                }
+                
+                // Migráció ellenőrzés betöltése
+                const migrationDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'migrationStatus'));
+                if (migrationDoc.exists()) {
+                    migrationDone = migrationDoc.data().done || false;
+                }
+                
+                // Automatikus migráció (egyszeri, ha még nem történt meg)
+                if (!migrationDone && kiontesek.length > 0) {
+                    await migrateToVariansok();
+                }
+                
                 render();
                 renderDraftDoboz();
                 
@@ -1107,6 +1148,95 @@
                 document.getElementById('loadingIndicator').classList.add('hidden');
                 alert('Hiba történt az adatok betöltése közben! Ellenőrizd az internet kapcsolatot.');
             }
+        }
+        
+        // ===== MIGRÁCIÓ: Régi adatok → Új struktúra =====
+        
+        async function migrateToVariansok() {
+            console.log('🔄 Migráció kezdése: Régi kiöntések → Termék variánsok');
+            
+            // 1. Egyedi termék kombinációk összegyűjtése
+            const uniqueVariansMap = new Map();
+            
+            kiontesek.forEach(k => {
+                // Ha már van termekVariansId, skip
+                if (k.termekVariansId) return;
+                
+                const kulcs = `${k.illatId}-${k.termekTipus}-${k.meret}`;
+                
+                if (!uniqueVariansMap.has(kulcs)) {
+                    uniqueVariansMap.set(kulcs, {
+                        illatId: k.illatId,
+                        illatNev: k.illatNev,
+                        termekTipus: k.termekTipus,
+                        termekTipusNev: k.termekTipusNev,
+                        meret: k.meret,
+                        sku: k.sku || null
+                    });
+                }
+            });
+            
+            // 2. Termék variánsok létrehozása
+            uniqueVariansMap.forEach((data, kulcs) => {
+                const varianss = {
+                    id: generateId(),
+                    illatId: data.illatId,
+                    illatNev: data.illatNev,
+                    termekTipus: data.termekTipus,
+                    termekTipusNev: data.termekTipusNev,
+                    meret: data.meret,
+                    sku: data.sku,
+                    displayNev: `${data.illatNev} - ${data.termekTipusNev} ${data.meret}`
+                };
+                
+                termekVariansok.push(varianss);
+            });
+            
+            // 3. Kiöntések frissítése (termekVariansId hozzáadása)
+            kiontesek.forEach(k => {
+                if (k.termekVariansId) return;
+                
+                const kulcs = `${k.illatId}-${k.termekTipus}-${k.meret}`;
+                const varianssData = uniqueVariansMap.get(kulcs);
+                
+                // Keressük meg a megfelelő variánst
+                const varianss = termekVariansok.find(v => 
+                    v.illatId === k.illatId && 
+                    v.termekTipus === k.termekTipus && 
+                    v.meret === k.meret
+                );
+                
+                if (varianss) {
+                    k.termekVariansId = varianss.id;
+                }
+            });
+            
+            // 4. Kész termékek frissítése
+            keszTermekek.forEach(kt => {
+                if (kt.termekVariansId) return;
+                
+                const varianss = termekVariansok.find(v => 
+                    v.illatId === kt.illatId && 
+                    v.termekTipus === kt.termekTipus && 
+                    v.meret === kt.meret
+                );
+                
+                if (varianss) {
+                    kt.termekVariansId = varianss.id;
+                }
+            });
+            
+            // 5. Mentés
+            migrationDone = true;
+            await ment();
+            
+            // Migration status mentése
+            await window.firestore.setDoc(
+                window.firestore.doc(window.db, 'appData', 'migrationStatus'),
+                { done: true, date: new Date().toISOString() }
+            );
+            
+            console.log(`✅ Migráció kész! ${termekVariansok.length} termék variáns létrehozva.`);
         }
 
         // ===== KISZÁLLÍTÁS DRAFT ÉS STATISZTIKA FUNKCIÓK =====
@@ -2377,6 +2507,7 @@
                 // Minden adat mentése Firebase-be
                 await Promise.all([
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'illatok'), { data: illatok }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'termekVariansok'), { data: termekVariansok }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiontesek'), { data: kiontesek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'meretek'), { data: meretek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'cimkeKeszlet'), { data: cimkeKeszlet }),
@@ -3709,51 +3840,206 @@
         }
 
         function illatTorol(id) {
+            // Ellenőrzés: Van-e variáns ehhez az illathoz?
+            const illatVariansok = termekVariansok.filter(v => v.illatId === id);
+            if (illatVariansok.length > 0) {
+                alert(`Nem törölhető! Ez az illat még használatban van (${illatVariansok.length} variáns).`);
+                return;
+            }
+            
             if (confirm('Biztosan törlöd ezt az illatot?')) {
                 illatok = illatok.filter(i => i.id !== id);
                 ment();
                 render();
             }
         }
+        
+        // ===== TERMÉK VARIÁNSOK KEZELÉSE =====
+        
+        let aktívIllatId = null; // Melyik illat variánsait kezeljük
+        
+        function openTermekVariansokModal(illatId) {
+            aktívIllatId = illatId;
+            const illat = illatok.find(i => i.id === illatId);
+            
+            document.getElementById('variansIllatNev').textContent = illat.nev;
+            document.getElementById('termekVariansokModal').classList.remove('hidden');
+            
+            // Termék típus select feltöltése
+            const ujVariansTipusSelect = document.getElementById('ujVariansTipus');
+            ujVariansTipusSelect.innerHTML = '<option value="">Válassz...</option>' +
+                termekTipusok.map(t => `<option value="${t.id}">${t.nev}</option>`).join('');
+            
+            renderVariansLista();
+        }
+        
+        function closeTermekVariansokModal() {
+            document.getElementById('termekVariansokModal').classList.add('hidden');
+            aktívIllatId = null;
+        }
+        
+        function updateUjVariansMeret() {
+            const tipus = document.getElementById('ujVariansTipus').value;
+            const meretSelect = document.getElementById('ujVariansMeret');
+            
+            if (tipus && meretek[tipus]) {
+                meretSelect.innerHTML = '<option value="">Válassz méretet...</option>' +
+                    meretek[tipus].map(m => `<option value="${m}">${m}</option>`).join('');
+            } else {
+                meretSelect.innerHTML = '<option value="">Először típust...</option>';
+            }
+        }
+        
+        function ujVariansHozzaad() {
+            if (!aktívIllatId) return;
+            
+            const illat = illatok.find(i => i.id === aktívIllatId);
+            const tipus = document.getElementById('ujVariansTipus').value;
+            const meret = document.getElementById('ujVariansMeret').value;
+            const sku = document.getElementById('ujVariansSKU').value.trim() || null;
+            
+            if (!tipus || !meret) {
+                alert('Add meg a termék típust és méretet!');
+                return;
+            }
+            
+            // Duplikáció ellenőrzés
+            const letezik = termekVariansok.some(v => 
+                v.illatId === aktívIllatId && 
+                v.termekTipus === tipus && 
+                v.meret === meret
+            );
+            
+            if (letezik) {
+                alert('Ez a variáns már létezik!');
+                return;
+            }
+            
+            const termekTipusObj = termekTipusok.find(t => t.id === tipus);
+            
+            const ujVarians = {
+                id: generateId(),
+                illatId: aktívIllatId,
+                illatNev: illat.nev,
+                termekTipus: tipus,
+                termekTipusNev: termekTipusObj.nev,
+                meret: meret,
+                sku: sku,
+                displayNev: `${illat.nev} - ${termekTipusObj.nev} ${meret}`
+            };
+            
+            termekVariansok.push(ujVarians);
+            
+            // Form reset
+            document.getElementById('ujVariansTipus').value = '';
+            document.getElementById('ujVariansMeret').innerHTML = '<option value="">Először típust...</option>';
+            document.getElementById('ujVariansSKU').value = '';
+            
+            ment();
+            renderVariansLista();
+            render(); // Frissítjük a főnézetet is
+        }
+        
+        function renderVariansLista() {
+            if (!aktívIllatId) return;
+            
+            const lista = document.getElementById('variansLista');
+            const illatVariansok = termekVariansok.filter(v => v.illatId === aktívIllatId)
+                .sort((a, b) => a.displayNev.localeCompare(b.displayNev, 'hu'));
+            
+            if (illatVariansok.length === 0) {
+                lista.innerHTML = '<p class="text-gray-500 text-center py-4 text-sm">Még nincs variáns hozzáadva</p>';
+                return;
+            }
+            
+            lista.innerHTML = illatVariansok.map(v => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-900">${v.termekTipusNev} ${v.meret}</div>
+                        <div class="text-sm text-gray-600">SKU: ${v.sku || 'N/A'}</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="szerkesztVarians(${v.id})" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                            ✏️
+                        </button>
+                        <button onclick="torolVarians(${v.id})" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function szerkesztVarians(variansId) {
+            const varianss = termekVariansok.find(v => v.id === variansId);
+            if (!varianss) return;
+            
+            const ujSKU = prompt('SKU szerkesztése:', varianss.sku || '');
+            if (ujSKU !== null) {
+                varianss.sku = ujSKU.trim() || null;
+                ment();
+                renderVariansLista();
+                render();
+            }
+        }
+        
+        function torolVarians(variansId) {
+            // Ellenőrzés: használatban van-e?
+            const hasznaltKiontesben = kiontesek.some(k => k.termekVariansId === variansId);
+            const hasznaltKeszben = keszTermekek.some(k => k.termekVariansId === variansId);
+            
+            if (hasznaltKiontesben || hasznaltKeszben) {
+                alert('Nem törölhető! Ez a termék már használatban van.');
+                return;
+            }
+            
+            const varianss = termekVariansok.find(v => v.id === variansId);
+            if (confirm(`Biztosan törlöd?\n\n${varianss.displayNev}\nSKU: ${varianss.sku || 'N/A'}`)) {
+                termekVariansok = termekVariansok.filter(v => v.id !== variansId);
+                ment();
+                renderVariansLista();
+                render();
+            }
+        }
 
         function kiontesHozzaad() {
-            const termekTipus = document.getElementById('termekTipus').value;
-            const meret = document.getElementById('meret').value;
-            const illatId = parseInt(document.getElementById('kivalasztottIllat').value);
+            const termekVariansId = parseInt(document.getElementById('termekValasztas').value);
             const darab = parseInt(document.getElementById('darabszam').value);
-            const sku = document.getElementById('sku').value.trim();
-            const megj = document.getElementById('megjegyzes').value.trim();
             
-            if (termekTipus && meret && illatId && darab > 0) {
-                const illat = illatok.find(i => i.id === illatId);
-                const termekTipusObj = termekTipusok.find(t => t.id === termekTipus);
-                
-                kiontesek.unshift({
-                    id: generateId(),
-                    termekTipus: termekTipus,
-                    termekTipusNev: termekTipusObj.nev,
-                    meret: meret,
-                    illatId,
-                    illatNev: illat.nev,
-                    darabszam: darab,
-                    sku: sku || null,
-                    datum: new Date().toISOString(),
-                    megjegyzes: megj,
-                    cimkeGyartva: false
-                });
-                
-                document.getElementById('termekTipus').value = '';
-                document.getElementById('meret').innerHTML = '<option value="">Először válassz termék típust</option>';
-                document.getElementById('kivalasztottIllat').value = '';
-                document.getElementById('darabszam').value = '';
-                document.getElementById('sku').value = '';
-                document.getElementById('megjegyzes').value = '';
-                
-                ment();
-                render();
-            } else {
-                alert('Kérlek töltsd ki az összes kötelező mezőt!');
+            if (!termekVariansId || !darab || darab < 1) {
+                alert('Kérlek válassz terméket és add meg a darabszámot!');
+                return;
             }
+            
+            // Termék variáns adatainak lekérése
+            const varianss = termekVariansok.find(v => v.id === termekVariansId);
+            if (!varianss) {
+                alert('Hiba: A kiválasztott termék nem található!');
+                return;
+            }
+            
+            // Kiöntés rögzítése
+            kiontesek.unshift({
+                id: generateId(),
+                termekVariansId: termekVariansId,
+                // Backward compatibility mezők (régi rendszerhez)
+                illatId: varianss.illatId,
+                illatNev: varianss.illatNev,
+                termekTipus: varianss.termekTipus,
+                termekTipusNev: varianss.termekTipusNev,
+                meret: varianss.meret,
+                sku: varianss.sku,
+                darabszam: darab,
+                datum: new Date().toISOString(),
+                cimkeGyartva: false
+            });
+            
+            // Form reset
+            document.getElementById('termekValasztas').value = '';
+            document.getElementById('darabszam').value = '';
+            
+            ment();
+            render();
         }
 
         function cimkeToggle(id) {
@@ -3787,38 +4073,105 @@
         }
 
         function render() {
-            // Illat lista - ABC SORREND
-            const illatLista = document.getElementById('illatLista');
+            // Termék lista - Hierarchikus: Illatok + Variánsok
+            const termekLista = document.getElementById('termekLista');
             if (illatok.length === 0) {
-                illatLista.innerHTML = '<p class="text-gray-500 text-center py-8">Még nincs illat hozzáadva</p>';
+                termekLista.innerHTML = '<p class="text-gray-500 text-center py-8">Még nincs illat hozzáadva</p>';
             } else {
                 const rendezetIllatok = [...illatok].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
-                illatLista.innerHTML = rendezetIllatok.map(illat => `
-                    <div class="flex justify-between items-center p-3 bg-amber-50 rounded-lg hover:bg-amber-100 transition">
-                        <span class="font-medium text-amber-900 cursor-pointer hover:text-amber-700 flex-1" 
-                              onclick="illatStatisztika(${illat.id})" 
-                              title="Kattints a részletes statisztikához">
-                            ${illat.nev} 📊
-                        </span>
-                        <button onclick="illatTorol(${illat.id})" class="text-red-600 hover:text-red-800 text-sm ml-2">
-                            Törlés
-                        </button>
-                    </div>
-                `).join('');
+                
+                termekLista.innerHTML = rendezetIllatok.map(illat => {
+                    const illatVariansok = termekVariansok.filter(v => v.illatId === illat.id)
+                        .sort((a, b) => a.displayNev.localeCompare(b.displayNev, 'hu'));
+                    
+                    return `
+                        <div class="border border-amber-200 rounded-lg overflow-hidden">
+                            <!-- Illat header -->
+                            <div class="bg-amber-50 p-3 flex justify-between items-center">
+                                <div class="flex items-center gap-2 flex-1">
+                                    <span class="font-bold text-amber-900">📦 ${illat.nev}</span>
+                                    <span class="text-xs text-gray-500">(${illatVariansok.length} variáns)</span>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="illatStatisztika(${illat.id})" 
+                                        class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                                        title="Statisztika">
+                                        📊
+                                    </button>
+                                    <button onclick="openTermekVariansokModal(${illat.id})" 
+                                        class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs"
+                                        title="Variánsok kezelése">
+                                        ⚙️
+                                    </button>
+                                    <button onclick="illatTorol(${illat.id})" 
+                                        class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
+                                        title="Törlés">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Variánsok lista -->
+                            ${illatVariansok.length > 0 ? `
+                                <div class="p-2 space-y-1">
+                                    ${illatVariansok.map(v => `
+                                        <div class="flex justify-between items-center px-2 py-1 bg-white rounded text-xs hover:bg-gray-50">
+                                            <span class="text-gray-700">${v.termekTipusNev} ${v.meret}</span>
+                                            <span class="text-gray-500 font-mono">${v.sku || 'N/A'}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div class="p-2 text-xs text-gray-500 text-center">
+                                    Nincs variáns - kattints a ⚙️ gombra hozzáadáshoz
+                                </div>
+                            `}
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Termék választás dropdown (grouped by illat)
+            const termekValasztasSelect = document.getElementById('termekValasztas');
+            if (termekValasztasSelect) {
+                if (termekVariansok.length === 0) {
+                    termekValasztasSelect.innerHTML = '<option value="">Még nincs termék - adj hozzá variánsokat!</option>';
+                } else {
+                    // Csoportosítás illat szerint
+                    let html = '<option value="">Válassz terméket...</option>';
+                    
+                    illatok.forEach(illat => {
+                        const illatVariansok = termekVariansok.filter(v => v.illatId === illat.id)
+                            .sort((a, b) => a.displayNev.localeCompare(b.displayNev, 'hu'));
+                        
+                        if (illatVariansok.length > 0) {
+                            html += `<optgroup label="📦 ${illat.nev}">`;
+                            illatVariansok.forEach(v => {
+                                const skuText = v.sku ? ` (${v.sku})` : ' (N/A)';
+                                html += `<option value="${v.id}">${v.termekTipusNev} ${v.meret}${skuText}</option>`;
+                            });
+                            html += '</optgroup>';
+                        }
+                    });
+                    
+                    termekValasztasSelect.innerHTML = html;
+                }
             }
 
-            // Termék típus select
+            // Termék típus select (csak Beállítások modal-hoz kell már)
             const termekTipusSelect = document.getElementById('termekTipus');
             if (termekTipusSelect) {
                 termekTipusSelect.innerHTML = '<option value="">Válassz termék típust...</option>' +
                     termekTipusok.map(t => `<option value="${t.id}">${t.nev}</option>`).join('');
             }
 
-            // Illat select - ABC SORREND
+            // Illat select (manuális kész termék modal-hoz)
             const select = document.getElementById('kivalasztottIllat');
-            const rendezetIllatok = [...illatok].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
-            select.innerHTML = '<option value="">Válassz illatot...</option>' + 
-                rendezetIllatok.map(illat => `<option value="${illat.id}">${illat.nev}</option>`).join('');
+            if (select) {
+                const rendezetIllatok = [...illatok].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+                select.innerHTML = '<option value="">Válassz illatot...</option>' + 
+                    rendezetIllatok.map(illat => `<option value="${illat.id}">${illat.nev}</option>`).join('');
+            }
 
             // Nyomtatás illat select
             const nyomtatasIllatSelect = document.getElementById('nyomtatasIllat');
