@@ -5152,30 +5152,30 @@
                                         
                                         <!-- Dropdown menu -->
                                         <div class="relative">
-                                            <button onclick="toggleCimkezetlenMenu('${kulcs}')" 
+                                            <button onclick="event.stopPropagation(); toggleCimkezetlenMenu('${kulcs}')" 
                                                 class="menu-trigger px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-bold text-lg">
                                                 •••
                                             </button>
                                             
                                             <!-- Dropdown content -->
                                             <div id="menu-${kulcs}" class="hidden absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                                                <button onclick="csoportCimkezTeljes('${kulcs}', ${csoport.osszesDarab}); toggleCimkezetlenMenu('${kulcs}')" 
+                                                <button onclick="event.stopPropagation(); csoportCimkezTeljes('${kulcs}', ${csoport.osszesDarab}); toggleCimkezetlenMenu('${kulcs}')" 
                                                     class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-2 ${!eleg ? 'opacity-50 cursor-not-allowed' : ''}" 
                                                     ${!eleg ? 'disabled' : ''}>
                                                     <span class="text-green-600">✓</span>
                                                     <span>Mind címkéz</span>
                                                 </button>
-                                                <button onclick="csoportCimkezReszleges('${kulcs}', ${csoport.osszesDarab}, ${keszletMennyiseg}); toggleCimkezetlenMenu('${kulcs}')" 
+                                                <button onclick="event.stopPropagation(); csoportCimkezReszleges('${kulcs}', ${csoport.osszesDarab}, ${keszletMennyiseg}); toggleCimkezetlenMenu('${kulcs}')" 
                                                     class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-2 border-t">
                                                     <span class="text-purple-600">🏷️</span>
                                                     <span>Részleges címkézés</span>
                                                 </button>
-                                                <button onclick="csoportSzerkeszt('${kulcs}', '${csoport.illatNev}', '${csoport.termekTipusNev}', '${csoport.meret}', ${csoport.osszesDarab}); toggleCimkezetlenMenu('${kulcs}')" 
+                                                <button onclick="event.stopPropagation(); csoportSzerkeszt('${kulcs}', '${csoport.illatNev}', '${csoport.termekTipusNev}', '${csoport.meret}', ${csoport.osszesDarab}); toggleCimkezetlenMenu('${kulcs}')" 
                                                     class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-2 border-t">
                                                     <span class="text-blue-600">✏️</span>
                                                     <span>Szerkesztés</span>
                                                 </button>
-                                                <button onclick="csoportTorolCimkezetlen('${kulcs}'); toggleCimkezetlenMenu('${kulcs}')" 
+                                                <button onclick="event.stopPropagation(); csoportTorolCimkezetlen('${kulcs}'); toggleCimkezetlenMenu('${kulcs}')" 
                                                     class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-2 border-t text-red-600">
                                                     <span>🗑️</span>
                                                     <span>Törlés</span>
