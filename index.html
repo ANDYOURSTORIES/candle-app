@@ -3110,7 +3110,8 @@
         
         // Close menu when clicking outside
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('button')) {
+            // Ha a kattintás NEM egy menü gombon vagy menün belül történt
+            if (!e.target.closest('[id^="menu-"]') && !e.target.closest('.menu-trigger')) {
                 document.querySelectorAll('[id^="menu-"]').forEach(m => m.classList.add('hidden'));
             }
         });
@@ -3749,7 +3750,7 @@
             // Modal létrehozása
             const modal = document.createElement('div');
             modal.id = 'manualKeszTermekValasztasModal';
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4';
             modal.innerHTML = `
                 <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
                     <div class="p-4 border-b border-gray-200">
@@ -5136,7 +5137,7 @@
                                         <!-- Dropdown menu -->
                                         <div class="relative">
                                             <button onclick="toggleCimkezetlenMenu('${kulcs}')" 
-                                                class="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-bold text-lg">
+                                                class="menu-trigger px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-bold text-lg">
                                                 •••
                                             </button>
                                             
