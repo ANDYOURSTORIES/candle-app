@@ -3120,6 +3120,8 @@
         });
         
         function csoportTorolCimkezetlen(kulcs) {
+            console.log('🗑️ csoportTorolCimkezetlen meghívva:', kulcs);
+            
             const [illatId, termekTipus, meret] = kulcs.split('-');
             const csoportTetelek = kiontesek.filter(k => 
                 k.illatId === parseInt(illatId) && 
@@ -3127,11 +3129,18 @@
                 k.meret === meret
             );
             
-            if (csoportTetelek.length === 0) return;
+            console.log('📦 Csoport tételek:', csoportTetelek.length);
+            
+            if (csoportTetelek.length === 0) {
+                console.log('⚠️ Nincs tétel!');
+                return;
+            }
             
             const osszesDarab = csoportTetelek.reduce((sum, k) => sum + k.darabszam, 0);
             
+            console.log('💬 Confirm dialog megnyitása...');
             if (confirm(`Biztosan törlöd az összes tételt ebből?\n\n${csoportTetelek[0].illatNev} - ${csoportTetelek[0].termekTipusNev} - ${csoportTetelek[0].meret}\n\nÖsszesen: ${osszesDarab} db (${csoportTetelek.length} tétel)`)) {
+                console.log('✅ Törlés megerősítve');
                 // Törlés
                 kiontesek = kiontesek.filter(k => 
                     !(k.illatId === parseInt(illatId) && 
@@ -3140,6 +3149,9 @@
                 );
                 ment();
                 render();
+                console.log('✅ Törlés kész');
+            } else {
+                console.log('❌ Törlés megszakítva');
             }
         }
         
