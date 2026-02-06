@@ -2060,6 +2060,104 @@
             if (modal) modal.remove();
         }
         
+        // ===== UNIVERZÁLIS MODAL FÜGGVÉNYEK (MOBIL COMPATIBILIS) =====
+        
+        function showConfirm(config) {
+            // config = { title, message, confirmText, cancelText, onConfirm, onCancel, danger }
+            const {
+                title = 'Megerősítés szükséges',
+                message,
+                confirmText = 'Rendben',
+                cancelText = 'Mégsem',
+                onConfirm = () => {},
+                onCancel = () => {},
+                danger = false
+            } = config;
+            
+            const confirmBg = danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700';
+            
+            const modalHTML = `
+                <div id="universalConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-3">${title}</h3>
+                        <div class="text-gray-700 mb-4 whitespace-pre-line">${message}</div>
+                        <div class="flex gap-2">
+                            <button onclick="universalConfirmAction(true)" class="flex-1 ${confirmBg} text-white px-4 py-3 rounded-lg font-semibold touch-manipulation">
+                                ${confirmText}
+                            </button>
+                            <button onclick="universalConfirmAction(false)" class="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-400 font-semibold touch-manipulation">
+                                ${cancelText}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Store callbacks globally
+            window._universalConfirmCallbacks = { onConfirm, onCancel };
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+        
+        function universalConfirmAction(confirmed) {
+            const callbacks = window._universalConfirmCallbacks || {};
+            
+            if (confirmed && callbacks.onConfirm) {
+                callbacks.onConfirm();
+            } else if (!confirmed && callbacks.onCancel) {
+                callbacks.onCancel();
+            }
+            
+            closeUniversalConfirmModal();
+        }
+        
+        function closeUniversalConfirmModal() {
+            const modal = document.getElementById('universalConfirmModal');
+            if (modal) modal.remove();
+            delete window._universalConfirmCallbacks;
+        }
+        
+        function showAlert(message, type = 'info') {
+            // type: success, error, info, warning
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️',
+                warning: '⚠️'
+            };
+            
+            const colors = {
+                success: 'bg-green-50 border-green-200',
+                error: 'bg-red-50 border-red-200',
+                info: 'bg-blue-50 border-blue-200',
+                warning: 'bg-yellow-50 border-yellow-200'
+            };
+            
+            const modalHTML = `
+                <div id="universalAlertModal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+                        <div class="${colors[type]} border-2 rounded-lg p-4 mb-4">
+                            <div class="text-2xl mb-2">${icons[type]}</div>
+                            <div class="text-gray-900 whitespace-pre-line">${message}</div>
+                        </div>
+                        <button onclick="closeUniversalAlertModal()" class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold touch-manipulation">
+                            Rendben
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+        
+        function closeUniversalAlertModal() {
+            const modal = document.getElementById('universalAlertModal');
+            if (modal) modal.remove();
+        }
+        
+        // ===== VÉGÉ UNIVERZÁLIS MODAL FÜGGVÉNYEK =====
+
+        
         function draftTermekSzerkeszt(index) {
             const termek = aktivDraft.termekek[index];
             
@@ -2126,74 +2224,78 @@
         
         async function draftVeglegesit() {
             if (!aktivDraft || aktivDraft.termekek.length === 0) {
-                alert('Nincs termék a kiszállításban!');
+                showAlert('Nincs termék a kiszállításban!', 'warning');
                 return;
             }
             
             const osszDb = aktivDraft.termekek.reduce((sum, t) => sum + t.mennyiseg, 0);
             
-            const megerosites = confirm(
-                `Véglegesíted a kiszállítást?\n\n` +
+            const message = `Véglegesíted a kiszállítást?\n\n` +
                 `${aktivDraft.partnerNev}\n` +
                 `${aktivDraft.tipus === 'eladas' ? '🛒 Eladás' : '📦 Fulfilment'}\n\n` +
                 aktivDraft.termekek.map(t => `• ${t.illatNev} - ${t.termekTipusNev} ${t.meret}: ${t.mennyiseg} db`).join('\n') +
-                `\n\nÖSSZESEN: ${osszDb} db`
-            );
+                `\n\nÖSSZESEN: ${osszDb} db`;
             
-            if (!megerosites) return;
-            
-            // Kiszállítások létrehozása (minden termékből külön rekord)
-            aktivDraft.termekek.forEach(termek => {
-                // illatId megkeresése
-                const illat = illatok.find(i => i.nev === termek.illatNev);
-                const illatId = illat ? illat.id : null;
-                
-                kiszallitasok.unshift({
-                    id: generateId(),
-                    datum: aktivDraft.datum,
-                    illatId: illatId || null,
-                    illatNev: termek.illatNev || '',
-                    termekTipusNev: termek.termekTipusNev || '',
-                    meret: termek.meret || '',
-                    sku: termek.sku || null,
-                    mennyiseg: termek.mennyiseg || 0,
-                    tipus: aktivDraft.tipus || '',
-                    partnerId: aktivDraft.partnerId || null,
-                    partnerNev: aktivDraft.partnerNev || '',
-                    megjegyzes: aktivDraft.megjegyzes || null
-                });
-                
-                // Készlet csökkentése
-                const tetelek = keszTermekek.filter(kt => 
-                    kt.illatNev === termek.illatNev && 
-                    kt.termekTipusNev === termek.termekTipusNev && 
-                    kt.meret === termek.meret
-                );
-                
-                let maradekCsokkentes = termek.mennyiseg;
-                tetelek.forEach(tetel => {
-                    if (maradekCsokkentes <= 0) return;
+            showConfirm({
+                title: 'Kiszállítás véglegesítése',
+                message: message,
+                confirmText: '✅ Véglegesít',
+                cancelText: 'Mégsem',
+                onConfirm: async () => {
+                    // Kiszállítások létrehozása (minden termékből külön rekord)
+                    aktivDraft.termekek.forEach(termek => {
+                        // illatId megkeresése
+                        const illat = illatok.find(i => i.nev === termek.illatNev);
+                        const illatId = illat ? illat.id : null;
+                        
+                        kiszallitasok.unshift({
+                            id: generateId(),
+                            datum: aktivDraft.datum,
+                            illatId: illatId || null,
+                            illatNev: termek.illatNev || '',
+                            termekTipusNev: termek.termekTipusNev || '',
+                            meret: termek.meret || '',
+                            sku: termek.sku || null,
+                            mennyiseg: termek.mennyiseg || 0,
+                            tipus: aktivDraft.tipus || '',
+                            partnerId: aktivDraft.partnerId || null,
+                            partnerNev: aktivDraft.partnerNev || '',
+                            megjegyzes: aktivDraft.megjegyzes || null
+                        });
+                        
+                        // Készlet csökkentése
+                        const tetelek = keszTermekek.filter(kt => 
+                            kt.illatNev === termek.illatNev && 
+                            kt.termekTipusNev === termek.termekTipusNev && 
+                            kt.meret === termek.meret
+                        );
+                        
+                        let maradekCsokkentes = termek.mennyiseg;
+                        tetelek.forEach(tetel => {
+                            if (maradekCsokkentes <= 0) return;
+                            
+                            const csokkentes = Math.min(tetel.darabszam, maradekCsokkentes);
+                            tetel.darabszam -= csokkentes;
+                            maradekCsokkentes -= csokkentes;
+                        });
+                    });
                     
-                    const csokkentes = Math.min(tetel.darabszam, maradekCsokkentes);
-                    tetel.darabszam -= csokkentes;
-                    maradekCsokkentes -= csokkentes;
-                });
+                    // 0-ra csökkent tételek törlése
+                    keszTermekek = keszTermekek.filter(t => t.darabszam > 0);
+                    
+                    // Draft törlése
+                    aktivDraft = null;
+                    
+                    await ment();
+                    render();
+                    renderDraftDoboz();
+                    
+                    // Váltás Kiszállítás tab-ra
+                    switchTab('kiszallitas');
+                    
+                    showAlert(`✅ Kiszállítás véglegesítve!\n${osszDb} db termék kiszállítva.`, 'success');
+                }
             });
-            
-            // 0-ra csökkent tételek törlése
-            keszTermekek = keszTermekek.filter(t => t.darabszam > 0);
-            
-            // Draft törlése
-            aktivDraft = null;
-            
-            await ment();
-            render();
-            renderDraftDoboz();
-            
-            // Váltás Kiszállítás tab-ra
-            switchTab('kiszallitas');
-            
-            alert(`✅ Kiszállítás véglegesítve!\n${osszDb} db termék kiszállítva.`);
         }
         
         async function draftElvet() {
@@ -2726,13 +2828,18 @@
         }
 
         async function kiszallitasTorol(id) {
-            if (!confirm('Biztosan törlöd ezt a kiszállítást?\n\nFigyelem: Ez NEM állítja vissza a készletet!')) {
-                return;
-            }
-            
-            kiszallitasok = kiszallitasok.filter(k => k.id !== id);
-            await ment();
-            renderKiszallitasok();
+            showConfirm({
+                title: 'Kiszállítás törlése',
+                message: 'Biztosan törlöd ezt a kiszállítást?\n\n⚠️ Figyelem: Ez NEM állítja vissza a készletet!',
+                confirmText: 'Törlés',
+                cancelText: 'Mégsem',
+                danger: true,
+                onConfirm: async () => {
+                    kiszallitasok = kiszallitasok.filter(k => k.id !== id);
+                    await ment();
+                    renderKiszallitasok();
+                }
+            });
         }
 
         function scrollToProductForm() {
@@ -3931,23 +4038,45 @@
             alert(`${mennyiseg} db kész termék hozzáadva: ${varianss.displayNev}\n(Címke készlet nem változott)`);
         }
 
-        function keszTermekTorol(id) {
-            if (confirm('Biztosan törlöd ezt a kész terméket?')) {
-                keszTermekek = keszTermekek.filter(k => k.id !== id);
-                ment();
-                render();
-            }
+        async function keszTermekTorol(id) {
+            const termek = keszTermekek.find(k => k.id === id);
+            if (!termek) return;
+            
+            showConfirm({
+                title: 'Kész termék törlése',
+                message: `Biztosan törlöd?\n\n${termek.illatNev} - ${termek.termekTipusNev} ${termek.meret}\n${termek.darabszam} db`,
+                confirmText: 'Törlés',
+                cancelText: 'Mégsem',
+                danger: true,
+                onConfirm: async () => {
+                    keszTermekek = keszTermekek.filter(k => k.id !== id);
+                    await ment();
+                    render();
+                }
+            });
         }
 
-        function csoportTorol(illatNev, termekTipusNev, meret) {
-            if (confirm(`Biztosan törlöd az összes kész terméket ebből: ${illatNev} - ${termekTipusNev} - ${meret}?`)) {
-                // Törlés a csoportból - minden tétel ami megegyezik
-                keszTermekek = keszTermekek.filter(k => 
-                    !(k.illatNev === illatNev && k.termekTipusNev === termekTipusNev && k.meret === meret)
-                );
-                ment();
-                render();
-            }
+        async function csoportTorol(illatNev, termekTipusNev, meret) {
+            const tetelek = keszTermekek.filter(k => 
+                k.illatNev === illatNev && k.termekTipusNev === termekTipusNev && k.meret === meret
+            );
+            const osszDb = tetelek.reduce((sum, t) => sum + t.darabszam, 0);
+            
+            showConfirm({
+                title: 'Csoport törlése',
+                message: `Biztosan törlöd az összes kész terméket?\n\n${illatNev} - ${termekTipusNev} ${meret}\n\n${osszDb} db (${tetelek.length} tétel)`,
+                confirmText: 'Törlés',
+                cancelText: 'Mégsem',
+                danger: true,
+                onConfirm: async () => {
+                    // Törlés a csoportból - minden tétel ami megegyezik
+                    keszTermekek = keszTermekek.filter(k => 
+                        !(k.illatNev === illatNev && k.termekTipusNev === termekTipusNev && k.meret === meret)
+                    );
+                    await ment();
+                    render();
+                }
+            });
         }
 
         function updateMeretOptions() {
@@ -4655,12 +4784,22 @@
             }
         }
 
-        function kiontesTorol(id) {
-            if (confirm('Biztosan törlöd ezt a kiöntést?')) {
-                kiontesek = kiontesek.filter(k => k.id !== id);
-                ment();
-                render();
-            }
+        async function kiontesTorol(id) {
+            const kiontes = kiontesek.find(k => k.id === id);
+            if (!kiontes) return;
+            
+            showConfirm({
+                title: 'Kiöntés törlése',
+                message: `Biztosan törlöd?\n\n${kiontes.illatNev} - ${kiontes.termekTipusNev} ${kiontes.meret}\n${kiontes.darabszam} db`,
+                confirmText: 'Törlés',
+                cancelText: 'Mégsem',
+                danger: true,
+                onConfirm: async () => {
+                    kiontesek = kiontesek.filter(k => k.id !== id);
+                    await ment();
+                    render();
+                }
+            });
         }
 
         function formatDatum(isoString) {
