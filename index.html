@@ -5293,17 +5293,21 @@
                         <!-- Összesítő -->
                         <div class="bg-white/30 backdrop-blur rounded-lg p-4 mb-4">
                             <div class="text-xl font-bold">
-                                📊 Összesen: ${hianyzosCimkek.reduce((sum, item) => {
-                                    const cimkeKulcs = getCimkeKulcs(item.illatId, item.termekTipus, item.meret);
-                                    const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
-                                    const hianyzo = Math.max(0, item.cimkeNelkul - keszlet);
-                                    return sum + hianyzo;
-                                }, 0)} db címke hiány
+                                📊 Összesen: ${(() => {
+                                    const osszHiany = hianyzosCimkek.reduce((sum, item) => {
+                                        const cimkeKulcs = getCimkeKulcs(item.illatId, item.termekTipus, item.meret);
+                                        const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
+                                        const hianyzo = Math.max(0, item.cimkeNelkul - keszlet);
+                                        return sum + hianyzo;
+                                    }, 0);
+                                    const lapok = Math.ceil(osszHiany / 12); // 12 címke/ív
+                                    return `${osszHiany} db címke hiány / ${lapok} ív`;
+                                })()}
                             </div>
                         </div>
                         
-                        <!-- Kompakt táblázat rendezéssel -->
-                        <div class="overflow-x-auto">
+                        <!-- Desktop: 5 oszlop táblázat -->
+                        <div class="hidden md:block overflow-x-auto">
                             <table class="w-full text-sm bg-white/20 backdrop-blur rounded-lg overflow-hidden">
                                 <thead class="bg-white/30">
                                     <tr>
@@ -5330,6 +5334,40 @@
                                             <td class="p-2 text-center">
                                                 <span class="bg-yellow-400 text-yellow-900 font-bold px-3 py-1 rounded">
                                                     ⚠️ ${item.hianyzo} db
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `;}).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Mobile: 2 oszlop kompakt -->
+                        <div class="md:hidden overflow-x-auto">
+                            <table class="w-full text-sm bg-white/20 backdrop-blur rounded-lg overflow-hidden">
+                                <thead class="bg-white/30">
+                                    <tr>
+                                        ${getSortableHeaderCustom('cimkeGyartas', 'illat', 'Termék', 'text-white')}
+                                        ${getSortableHeaderCustom('cimkeGyartas', 'hiany', 'Hiány', 'text-white')}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${sortArray(hianyzosCimkek.map(item => {
+                                        const cimkeKulcs = getCimkeKulcs(item.illatId, item.termekTipus, item.meret);
+                                        const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
+                                        const hianyzo = Math.max(0, item.cimkeNelkul - keszlet);
+                                        return { ...item, keszlet, hianyzo };
+                                    }), 'cimkeGyartas').map(item => {
+                                        return `
+                                        <tr class="border-t border-white/20">
+                                            <td class="p-2">
+                                                <div class="font-medium text-sm">${item.illatNev}</div>
+                                                <div class="text-xs opacity-90 mt-0.5">${item.termekTipusNev} - ${item.meret}</div>
+                                                <div class="text-xs opacity-75 mt-1">${item.keszlet}/${item.cimkeNelkul} db</div>
+                                            </td>
+                                            <td class="p-2 text-center align-middle">
+                                                <span class="bg-yellow-400 text-yellow-900 font-bold px-2 py-1 rounded text-sm whitespace-nowrap">
+                                                    ⚠️ ${item.hianyzo}
                                                 </span>
                                             </td>
                                         </tr>
