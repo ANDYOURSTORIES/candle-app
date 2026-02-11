@@ -903,7 +903,8 @@
             cimkezetlen: { column: 'illat', direction: 'asc' },
             keszTermekek: { column: 'illat', direction: 'asc' },
             draft: { column: 'illat', direction: 'asc' },
-            kiszallitasok: { column: 'datum', direction: 'desc' }
+            kiszallitasok: { column: 'datum', direction: 'desc' },
+            cimkeGyartas: { column: 'hiany', direction: 'desc' } // Alapból hiány szerint csökkenő
         };
         
         // Univerzális rendezés függvény
@@ -961,6 +962,21 @@
                         bVal = (b.partnerNev || '').toLowerCase();
                         return mult * aVal.localeCompare(bVal, 'hu');
                     
+                    case 'hiany':
+                        aVal = a.hianyzo || 0;
+                        bVal = b.hianyzo || 0;
+                        return mult * (aVal - bVal);
+                    
+                    case 'keszlet':
+                        aVal = a.keszlet || 0;
+                        bVal = b.keszlet || 0;
+                        return mult * (aVal - bVal);
+                    
+                    case 'termek':
+                        aVal = a.cimkeNelkul || 0;
+                        bVal = b.cimkeNelkul || 0;
+                        return mult * (aVal - bVal);
+                    
                     default:
                         return 0;
                 }
@@ -985,6 +1001,16 @@
             const cursorClass = 'cursor-pointer select-none';
             
             return `<th onclick="toggleSort('${listName}', '${column}')" class="text-left p-1 md:p-2 font-semibold ${color.text} ${color.hover} ${cursorClass}">${label}${arrow}</th>`;
+        }
+        
+        // Helper: custom sortable header tetszőleges színekkel
+        function getSortableHeaderCustom(listName, column, label, textColor = 'text-white', hoverColor = 'hover:bg-white/20') {
+            const state = sortStates[listName];
+            const isActive = state.column === column;
+            const arrow = isActive ? (state.direction === 'asc' ? ' ↑' : ' ↓') : '';
+            const cursorClass = 'cursor-pointer select-none';
+            
+            return `<th onclick="toggleSort('${listName}', '${column}')" class="text-left p-2 font-semibold ${textColor} ${hoverColor} ${cursorClass}">${label}${arrow}</th>`;
         }
         let idCounter = 0; // Egyedi ID számláló
 
@@ -5263,23 +5289,53 @@
                 cimkeDiv.innerHTML = `
                     <div class="bg-gradient-to-r from-orange-600 to-red-600 rounded-xl shadow-lg p-6 text-white">
                         <h2 class="text-2xl font-bold mb-4">⚠️ Címkék gyártása</h2>
-                        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            ${hianyzosCimkek.map(item => {
-                                const cimkeKulcs = getCimkeKulcs(item.illatId, item.termekTipus, item.meret);
-                                const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
-                                const hianyzo = Math.max(0, item.cimkeNelkul - keszlet);
-                                
-                                return `
-                                <div class="bg-white/20 backdrop-blur rounded-lg p-4">
-                                    <div class="font-bold text-lg mb-1">${item.illatNev}</div>
-                                    <div class="text-sm opacity-90">${item.termekTipusNev} - ${item.meret}</div>
-                                    <div class="text-sm opacity-90 mt-1">Termék: ${item.cimkeNelkul} db</div>
-                                    <div class="text-sm opacity-90">Címke készlet: ${keszlet} db</div>
-                                    <div class="text-xl font-bold mt-2 bg-yellow-400 text-yellow-900 rounded px-2 py-1 inline-block">
-                                        ⚠️ ${hianyzo} db címke kell
-                                    </div>
-                                </div>
-                            `;}).join('')}
+                        
+                        <!-- Összesítő -->
+                        <div class="bg-white/30 backdrop-blur rounded-lg p-4 mb-4">
+                            <div class="text-xl font-bold">
+                                📊 Összesen: ${hianyzosCimkek.reduce((sum, item) => {
+                                    const cimkeKulcs = getCimkeKulcs(item.illatId, item.termekTipus, item.meret);
+                                    const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
+                                    const hianyzo = Math.max(0, item.cimkeNelkul - keszlet);
+                                    return sum + hianyzo;
+                                }, 0)} db címke hiány
+                            </div>
+                        </div>
+                        
+                        <!-- Kompakt táblázat rendezéssel -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm bg-white/20 backdrop-blur rounded-lg overflow-hidden">
+                                <thead class="bg-white/30">
+                                    <tr>
+                                        ${getSortableHeaderCustom('cimkeGyartas', 'illat', 'Illat', 'text-white')}
+                                        ${getSortableHeaderCustom('cimkeGyartas', 'tipus', 'Típus / Méret', 'text-white')}
+                                        ${getSortableHeaderCustom('cimkeGyartas', 'termek', 'Termék', 'text-white')}
+                                        ${getSortableHeaderCustom('cimkeGyartas', 'keszlet', 'Címke készlet', 'text-white')}
+                                        ${getSortableHeaderCustom('cimkeGyartas', 'hiany', 'Hiány', 'text-white')}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${sortArray(hianyzosCimkek.map(item => {
+                                        const cimkeKulcs = getCimkeKulcs(item.illatId, item.termekTipus, item.meret);
+                                        const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
+                                        const hianyzo = Math.max(0, item.cimkeNelkul - keszlet);
+                                        return { ...item, keszlet, hianyzo };
+                                    }), 'cimkeGyartas').map(item => {
+                                        return `
+                                        <tr class="border-t border-white/20 hover:bg-white/10">
+                                            <td class="p-2 font-medium">${item.illatNev}</td>
+                                            <td class="p-2 text-sm">${item.termekTipusNev} - ${item.meret}</td>
+                                            <td class="p-2 text-center">${item.cimkeNelkul} db</td>
+                                            <td class="p-2 text-center">${item.keszlet} db</td>
+                                            <td class="p-2 text-center">
+                                                <span class="bg-yellow-400 text-yellow-900 font-bold px-3 py-1 rounded">
+                                                    ⚠️ ${item.hianyzo} db
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `;}).join('')}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 `;
