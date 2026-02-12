@@ -5427,7 +5427,10 @@
                                     <div class="text-xs text-gray-600">${info.termekTipusNev} - ${info.meret} <span class="font-mono">${sku !== 'N/A' ? '(' + sku + ')' : ''}</span></div>
                                     <div class="font-bold mt-1 ${mennyiseg < 12 && mennyiseg > 0 ? 'text-red-700' : mennyiseg === 0 ? 'text-gray-500' : 'text-green-700'}">${mennyiseg} db</div>
                                 </div>
-                                <button onclick="cimkeKeszletSzerkeszt('${info.kulcs}', '${info.illatNev}', '${info.termekTipusNev}', '${info.meret}')" class="text-blue-600 hover:text-blue-800 text-xs">
+                                <button 
+                                    onclick="cimkeKeszletSzerkeszt('${info.kulcs}', '${info.illatNev}', '${info.termekTipusNev}', '${info.meret}'); return false;" 
+                                    ontouchstart="this.onclick(); event.preventDefault();"
+                                    class="text-blue-600 hover:text-blue-800 text-xs cursor-pointer touch-manipulation">
                                     ✏️ Szerkeszt
                                 </button>
                             </div>
