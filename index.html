@@ -2471,24 +2471,27 @@
             return new Promise((resolve) => {
                 const { title, message, defaultValue = '', inputType = 'number', placeholder = '' } = config;
                 
+                // Unique ID to avoid conflicts if multiple modals
+                const modalId = 'promptModal_' + Date.now();
+                const inputId = 'promptInput_' + Date.now();
+                
                 const modalHTML = `
-                    <div id="universalPromptModal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center p-4">
+                    <div id="${modalId}" class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center p-4">
                         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
                             <h3 class="text-lg font-bold text-gray-900 mb-3">${title}</h3>
                             ${message ? `<p class="text-gray-700 mb-4 whitespace-pre-line">${message}</p>` : ''}
                             
                             <div class="mb-4">
-                                <input type="${inputType}" id="promptInput" value="${defaultValue}" 
+                                <input type="${inputType}" id="${inputId}" value="${defaultValue}" 
                                     placeholder="${placeholder}"
-                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center font-bold text-xl"
-                                    autofocus>
+                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center font-bold text-xl">
                             </div>
                             
                             <div class="flex gap-3">
-                                <button id="promptCancel" class="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-400 font-semibold touch-manipulation">
+                                <button onclick="window.promptResolve_${modalId}(null)" class="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-400 font-semibold touch-manipulation">
                                     Mégse
                                 </button>
-                                <button id="promptConfirm" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold touch-manipulation">
+                                <button onclick="window.promptResolve_${modalId}(document.getElementById('${inputId}').value)" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold touch-manipulation">
                                     Rendben
                                 </button>
                             </div>
@@ -2498,30 +2501,28 @@
                 
                 document.body.insertAdjacentHTML('beforeend', modalHTML);
                 
-                const modal = document.getElementById('universalPromptModal');
-                const input = document.getElementById('promptInput');
-                const confirmBtn = document.getElementById('promptConfirm');
-                const cancelBtn = document.getElementById('promptCancel');
+                const modal = document.getElementById(modalId);
+                const input = document.getElementById(inputId);
+                
+                // Store resolve function globally for onclick access
+                window[`promptResolve_${modalId}`] = (value) => {
+                    modal.remove();
+                    delete window[`promptResolve_${modalId}`]; // Cleanup
+                    resolve(value);
+                };
                 
                 // Focus input
-                setTimeout(() => input.focus(), 100);
+                setTimeout(() => {
+                    input.focus();
+                    input.select(); // Select all text for easy editing
+                }, 100);
                 
                 // Enter key submits
                 input.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
-                        confirmBtn.click();
+                        e.preventDefault();
+                        window[`promptResolve_${modalId}`](input.value);
                     }
-                });
-                
-                confirmBtn.addEventListener('click', () => {
-                    const value = input.value;
-                    modal.remove();
-                    resolve(value);
-                });
-                
-                cancelBtn.addEventListener('click', () => {
-                    modal.remove();
-                    resolve(null);
                 });
             });
         }
