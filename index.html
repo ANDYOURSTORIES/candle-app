@@ -5517,37 +5517,34 @@
             }
             
             // Event delegation for címke készlet edit buttons (Brave mobile fix)
-            document.addEventListener('DOMContentLoaded', () => {
-                const lista = document.getElementById('cimkeKeszletLista');
-                if (lista) {
-                    lista.addEventListener('click', (e) => {
-                        const button = e.target.closest('[data-action="edit-cimke"]');
-                        if (button) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const kulcs = button.dataset.kulcs;
-                            const illat = button.dataset.illat;
-                            const tipus = button.dataset.tipus;
-                            const meret = button.dataset.meret;
-                            cimkeKeszletSzerkeszt(kulcs, illat, tipus, meret);
-                        }
-                    });
-                    
-                    // Touch event support for mobile
-                    lista.addEventListener('touchend', (e) => {
-                        const button = e.target.closest('[data-action="edit-cimke"]');
-                        if (button) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const kulcs = button.dataset.kulcs;
-                            const illat = button.dataset.illat;
-                            const tipus = button.dataset.tipus;
-                            const meret = button.dataset.meret;
-                            cimkeKeszletSzerkeszt(kulcs, illat, tipus, meret);
-                        }
-                    });
+            // DOCUMENT szinten, hogy működjön dinamikusan generált tartalommal is
+            document.addEventListener('click', (e) => {
+                const button = e.target.closest('[data-action="edit-cimke"]');
+                if (button) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const kulcs = button.dataset.kulcs;
+                    const illat = button.dataset.illat;
+                    const tipus = button.dataset.tipus;
+                    const meret = button.dataset.meret;
+                    cimkeKeszletSzerkeszt(kulcs, illat, tipus, meret);
                 }
             });
+            
+            // Touch event support for mobile
+            document.addEventListener('touchend', (e) => {
+                const button = e.target.closest('[data-action="edit-cimke"]');
+                if (button) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const kulcs = button.dataset.kulcs;
+                    const illat = button.dataset.illat;
+                    const tipus = button.dataset.tipus;
+                    const meret = button.dataset.meret;
+                    cimkeKeszletSzerkeszt(kulcs, illat, tipus, meret);
+                }
+            });
+
 
             // Összesítés termék típusonként, méretenként és illatonként
             const osszesitesMap = new Map();
