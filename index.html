@@ -1117,12 +1117,12 @@
                 // Címke hiány lista összegyűjtése
                 const osszesites = {};
                 
-                // 1. Kiöntések összegyűjtése
+                // 1. Kiöntések összegyűjtése (ILLAT NÉV szerint!)
                 kiontesek.forEach(kiontes => {
-                    const kulcs = `${kiontes.illatId}-${kiontes.termekTipus}-${kiontes.meret}`;
+                    const kulcs = `${kiontes.illatNev}-${kiontes.termekTipus}-${kiontes.meret}`;
                     if (!osszesites[kulcs]) {
                         osszesites[kulcs] = {
-                            illatId: kiontes.illatId,
+                            illatId: kiontes.illatId, // Megtartjuk az első ID-t
                             illatNev: kiontes.illatNev,
                             termekTipus: kiontes.termekTipus,
                             termekTipusNev: kiontes.termekTipusNev,
@@ -1134,9 +1134,9 @@
                     osszesites[kulcs].osszesKiontott += kiontes.darabszam;
                 });
                 
-                // 2. Kész termékek összegyűjtése
+                // 2. Kész termékek összegyűjtése (ILLAT NÉV szerint!)
                 keszTermekek.forEach(kt => {
-                    const kulcs = `${kt.illatId}-${kt.termekTipus}-${kt.meret}`;
+                    const kulcs = `${kt.illatNev}-${kt.termekTipus}-${kt.meret}`;
                     if (!osszesites[kulcs]) {
                         osszesites[kulcs] = {
                             illatId: kt.illatId,
