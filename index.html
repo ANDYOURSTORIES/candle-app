@@ -661,41 +661,43 @@
 
         <!-- GYÁRTÁS TAB -->
 
-        <!-- Új dobozcímke modal -->
+        <!-- Új dobozcímke modal - TERMÉK LISTA -->
         <div id="ujDobozcimkeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="p-6 border-b">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-green-900">📦 Dobozcímke hozzáadása - Válassz terméket</h2>
+                        <button onclick="ujDobozcimkeModalBezar()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                    </div>
+                    <!-- Kereső -->
+                    <div class="mt-4">
+                        <input type="text" id="dobozcimkeTermekKeresoInput" placeholder="🔍 Keresés illat név vagy SKU szerint..." 
+                            oninput="renderDobozcimkeTermekLista()"
+                            class="w-full px-4 py-2 border-2 border-green-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    </div>
+                </div>
+                <div class="p-6 overflow-y-auto flex-1">
+                    <div id="dobozcimkeTermekLista" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dobozcímke mennyiség modal -->
+        <div id="dobozcimkeMennyisegModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
                 <div class="p-6">
-                    <h2 class="text-xl font-bold text-green-900 mb-4">📦 Dobozcímke hozzáadása</h2>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Illat</label>
-                            <select id="ujDobozcimkeIllat" onchange="ujDobozcimkeIllatValtozas()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
-                                <option value="">Válassz illatot...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Termék típus</label>
-                            <select id="ujDobozcimkeTipus" onchange="ujDobozcimkeTipusValtozas()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
-                                <option value="">Válassz típust...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Méret</label>
-                            <select id="ujDobozcimkeMeret" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
-                                <option value="">Válassz méretet...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Mennyiség (db)</label>
-                            <input type="number" id="ujDobozcimkeMennyiseg" min="1" value="12" 
-                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 text-center font-bold text-lg">
-                        </div>
+                    <h2 class="text-xl font-bold text-green-900 mb-4">📦 Mennyiség megadása</h2>
+                    <div id="dobozcimkeMennyisegInfo" class="bg-green-50 p-4 rounded-lg mb-4"></div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mennyiség (db)</label>
+                        <input type="number" id="dobozcimkeMennyisegInput" min="1" value="12" 
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 text-center font-bold text-lg">
                     </div>
                     <div class="flex gap-2 mt-6">
-                        <button onclick="ujDobozcimkeHozzaad()" class="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold">
+                        <button onclick="dobozcimkeMennyisegMegerosit()" class="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold">
                             Hozzáad
                         </button>
-                        <button onclick="ujDobozcimkeModalBezar()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                        <button onclick="dobozcimkeMennyisegModalBezar()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
                             Mégsem
                         </button>
                     </div>
@@ -892,6 +894,26 @@
                 <div id="kiszallitasOsszesito" class="grid md:grid-cols-3 gap-4"></div>
             </div>
 
+            <!-- Dobozcímke készlet -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-green-900">📦 Dobozcímke készlet</h2>
+                    <button onclick="ujDobozcimkeModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold text-sm">
+                        ➕ Hozzáad
+                    </button>
+                </div>
+                
+                <!-- Kereső -->
+                <div class="mb-4">
+                    <input type="text" id="dobozcimkeKeresoInput" placeholder="🔍 Keresés illat név vagy SKU szerint..." 
+                        oninput="renderDobozcimkeKeszlet()"
+                        class="w-full px-4 py-2 border-2 border-green-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                </div>
+                
+                <!-- Dobozcímke lista -->
+                <div id="dobozcimkeKeszletLista" class="space-y-2"></div>
+            </div>
+
             <!-- Kiszállítások története -->
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <h2 class="text-xl font-bold text-blue-900 mb-4">📦 Kiszállítások története</h2>
@@ -941,25 +963,6 @@
                 <div id="kiszallitasokLista" class="space-y-3 max-h-[600px] overflow-y-auto"></div>
             </div>
             
-            <!-- Dobozcímke készlet -->
-            <div class="bg-white rounded-xl shadow-lg p-6 mt-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-bold text-green-900">📦 Dobozcímke készlet</h2>
-                    <button onclick="ujDobozcimkeModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold text-sm">
-                        ➕ Hozzáad
-                    </button>
-                </div>
-                
-                <!-- Kereső -->
-                <div class="mb-4">
-                    <input type="text" id="dobozcimkeKeresoInput" placeholder="🔍 Keresés illat név vagy SKU szerint..." 
-                        oninput="renderDobozcimkeKeszlet()"
-                        class="w-full px-4 py-2 border-2 border-green-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                </div>
-                
-                <!-- Dobozcímke lista -->
-                <div id="dobozcimkeKeszletLista" class="space-y-2"></div>
-            </div>
         </div>
         <!-- KISZÁLLÍTÁS TAB VÉGE -->
     </div>
@@ -2005,96 +2008,113 @@
         
         // ===== DOBOZCÍMKE KÉSZLET FUNKCIÓK =====
         
+        let selectedDobozcimkeVarians = null;
+        
         function ujDobozcimkeModal() {
             const modal = document.getElementById('ujDobozcimkeModal');
-            const illatSelect = document.getElementById('ujDobozcimkeIllat');
-            
-            // Illatok populálása
-            const rendezetIllatok = [...illatok].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
-            illatSelect.innerHTML = '<option value="">Válassz illatot...</option>' +
-                rendezetIllatok.map(i => `<option value="${i.id}">${i.nev}</option>`).join('');
-            
-            // Reset
-            document.getElementById('ujDobozcimkeTipus').innerHTML = '<option value="">Válassz típust...</option>';
-            document.getElementById('ujDobozcimkeMeret').innerHTML = '<option value="">Válassz méretet...</option>';
-            document.getElementById('ujDobozcimkeMennyiseg').value = 12;
-            
+            renderDobozcimkeTermekLista();
             modal.classList.remove('hidden');
         }
         
         function ujDobozcimkeModalBezar() {
             document.getElementById('ujDobozcimkeModal').classList.add('hidden');
+            document.getElementById('dobozcimkeTermekKeresoInput').value = '';
         }
         
-        function ujDobozcimkeIllatValtozas() {
-            const illatId = parseInt(document.getElementById('ujDobozcimkeIllat').value);
-            const tipusSelect = document.getElementById('ujDobozcimkeTipus');
-            const meretSelect = document.getElementById('ujDobozcimkeMeret');
+        function renderDobozcimkeTermekLista() {
+            const lista = document.getElementById('dobozcimkeTermekLista');
+            const keresoInput = document.getElementById('dobozcimkeTermekKeresoInput');
+            const keresoSzoveg = keresoInput ? keresoInput.value.toLowerCase() : '';
             
-            if (!illatId) {
-                tipusSelect.innerHTML = '<option value="">Válassz típust...</option>';
-                meretSelect.innerHTML = '<option value="">Válassz méretet...</option>';
+            // Termék variánsok rendezése
+            let szurtVariansok = termekVariansok;
+            
+            if (keresoSzoveg) {
+                szurtVariansok = termekVariansok.filter(v => {
+                    const illat = illatok.find(i => i.id === v.illatId);
+                    const illatNev = illat ? illat.nev.toLowerCase() : '';
+                    const sku = (v.sku || '').toLowerCase();
+                    return illatNev.includes(keresoSzoveg) || sku.includes(keresoSzoveg);
+                });
+            }
+            
+            const rendezetVariansok = [...szurtVariansok].sort((a, b) => a.displayNev.localeCompare(b.displayNev, 'hu'));
+            
+            if (rendezetVariansok.length === 0) {
+                lista.innerHTML = '<p class="text-gray-500 text-center py-8">Nincs találat</p>';
                 return;
             }
             
-            // Variánsok lekérése ehhez az illathoz
-            const illatVariansok = termekVariansok.filter(v => v.illatId === illatId);
-            
-            // Egyedi típusok
-            const egyediTipusok = [...new Set(illatVariansok.map(v => v.termekTipusNev))].sort();
-            tipusSelect.innerHTML = '<option value="">Válassz típust...</option>' +
-                egyediTipusok.map(t => `<option value="${t}">${t}</option>`).join('');
-            
-            meretSelect.innerHTML = '<option value="">Válassz méretet...</option>';
+            lista.innerHTML = rendezetVariansok.map(v => {
+                const illat = illatok.find(i => i.id === v.illatId);
+                const illatNev = illat ? illat.nev : 'Ismeretlen';
+                
+                return `
+                    <div class="p-3 border border-green-200 rounded-lg hover:bg-green-50 cursor-pointer transition"
+                         onclick='dobozcimkeTermekKivalaszt(${JSON.stringify(v)})'>
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-medium text-sm">${illatNev}</div>
+                                <div class="text-xs text-gray-600">${v.termekTipusNev} - ${v.meret}</div>
+                                <div class="text-xs font-mono text-gray-500 mt-1">${v.sku || 'SKU: N/A'}</div>
+                            </div>
+                            <div class="text-green-600 font-bold text-xl">→</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
         
-        function ujDobozcimkeTipusValtozas() {
-            const illatId = parseInt(document.getElementById('ujDobozcimkeIllat').value);
-            const tipusNev = document.getElementById('ujDobozcimkeTipus').value;
-            const meretSelect = document.getElementById('ujDobozcimkeMeret');
+        function dobozcimkeTermekKivalaszt(varians) {
+            selectedDobozcimkeVarians = varians;
             
-            if (!illatId || !tipusNev) {
-                meretSelect.innerHTML = '<option value="">Válassz méretet...</option>';
-                return;
-            }
+            const illat = illatok.find(i => i.id === varians.illatId);
+            const illatNev = illat ? illat.nev : 'Ismeretlen';
             
-            // Variánsok lekérése ehhez az illathoz és típushoz
-            const illatVariansok = termekVariansok.filter(v => 
-                v.illatId === illatId && v.termekTipusNev === tipusNev
-            );
+            // Bezárjuk a termék lista modal-t
+            document.getElementById('ujDobozcimkeModal').classList.add('hidden');
             
-            // Egyedi méretek
-            const egyediMeretek = [...new Set(illatVariansok.map(v => v.meret))].sort();
-            meretSelect.innerHTML = '<option value="">Válassz méretet...</option>' +
-                egyediMeretek.map(m => `<option value="${m}">${m}</option>`).join('');
+            // Megnyitjuk a mennyiség modal-t
+            const mennyisegModal = document.getElementById('dobozcimkeMennyisegModal');
+            const info = document.getElementById('dobozcimkeMennyisegInfo');
+            
+            info.innerHTML = `
+                <div class="font-medium mb-1">${illatNev}</div>
+                <div class="text-sm text-gray-600">${varians.termekTipusNev} - ${varians.meret}</div>
+                <div class="text-xs font-mono text-gray-500 mt-1">${varians.sku || 'SKU: N/A'}</div>
+            `;
+            
+            document.getElementById('dobozcimkeMennyisegInput').value = 12;
+            mennyisegModal.classList.remove('hidden');
         }
         
-        async function ujDobozcimkeHozzaad() {
-            const illatId = parseInt(document.getElementById('ujDobozcimkeIllat').value);
-            const tipusNev = document.getElementById('ujDobozcimkeTipus').value;
-            const meret = document.getElementById('ujDobozcimkeMeret').value;
-            const mennyiseg = parseInt(document.getElementById('ujDobozcimkeMennyiseg').value);
+        function dobozcimkeMennyisegModalBezar() {
+            document.getElementById('dobozcimkeMennyisegModal').classList.add('hidden');
+            selectedDobozcimkeVarians = null;
+        }
+        
+        async function dobozcimkeMennyisegMegerosit() {
+            if (!selectedDobozcimkeVarians) return;
             
-            if (!illatId || !tipusNev || !meret) {
-                showAlert('Kérlek válassz illatot, típust és méretet!', 'error');
-                return;
-            }
+            const mennyiseg = parseInt(document.getElementById('dobozcimkeMennyisegInput').value);
             
             if (!mennyiseg || mennyiseg < 1) {
                 showAlert('Kérlek adj meg érvényes mennyiséget!', 'error');
                 return;
             }
             
-            const kulcs = getCimkeKulcs(illatId, tipusNev, meret);
+            const kulcs = getCimkeKulcs(selectedDobozcimkeVarians.illatId, selectedDobozcimkeVarians.termekTipusNev, selectedDobozcimkeVarians.meret);
             const jelenlegi = dobozcimkeKeszlet[kulcs] || 0;
             dobozcimkeKeszlet[kulcs] = jelenlegi + mennyiseg;
             
             await ment();
             renderDobozcimkeKeszlet();
-            ujDobozcimkeModalBezar();
+            dobozcimkeMennyisegModalBezar();
             
-            const illat = illatok.find(i => i.id === illatId);
-            showAlert(`✅ ${mennyiseg} db dobozcímke hozzáadva!\n${illat.nev} - ${tipusNev} ${meret}`, 'success');
+            const illat = illatok.find(i => i.id === selectedDobozcimkeVarians.illatId);
+            showAlert(`✅ ${mennyiseg} db dobozcímke hozzáadva!\n${illat.nev} - ${selectedDobozcimkeVarians.termekTipusNev} ${selectedDobozcimkeVarians.meret}`, 'success');
+            
+            selectedDobozcimkeVarians = null;
         }
         
         function renderDobozcimkeKeszlet() {
