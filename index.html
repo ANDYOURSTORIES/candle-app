@@ -3518,6 +3518,8 @@
         async function cimkeKeszletSzerkeszt(kulcs, illatNev, termekTipusNev, meret) {
             const jelenlegiMennyiseg = cimkeKeszlet[kulcs] || 0;
             
+            console.log('🔍 Szerkesztés megnyitva:', illatNev, 'Jelenlegi:', jelenlegiMennyiseg);
+            
             const ujMennyiseg = await showPrompt({
                 title: 'Címke készlet szerkesztése',
                 message: `${illatNev} - ${termekTipusNev} - ${meret}\n\nJelenlegi mennyiség: ${jelenlegiMennyiseg} db`,
@@ -3526,15 +3528,23 @@
                 placeholder: 'Új mennyiség'
             });
             
-            if (ujMennyiseg !== null) {
+            console.log('✏️ Visszakapott érték:', ujMennyiseg, 'Típus:', typeof ujMennyiseg);
+            
+            if (ujMennyiseg !== null && ujMennyiseg !== '') {
                 const szam = parseInt(ujMennyiseg);
+                console.log('🔢 Parsed szám:', szam);
+                
                 if (!isNaN(szam) && szam >= 0) {
                     cimkeKeszlet[kulcs] = szam;
-                    ment();
+                    console.log('💾 Mentés előtt cimkeKeszlet[kulcs]:', cimkeKeszlet[kulcs]);
+                    await ment();
+                    console.log('✅ Mentés után render()');
                     render();
                 } else {
                     showAlert('Kérlek adj meg egy érvényes számot!', 'error');
                 }
+            } else {
+                console.log('❌ Mégse gomb vagy üres érték');
             }
         }
 
@@ -5519,9 +5529,16 @@
             
             // Event delegation for címke készlet edit buttons (Brave mobile fix)
             // DOCUMENT szinten, hogy működjön dinamikusan generált tartalommal is
+            let lastTouchTime = 0;
+            
             document.addEventListener('click', (e) => {
                 const button = e.target.closest('[data-action="edit-cimke"]');
                 if (button) {
+                    // Skip if this was already handled by touchend recently
+                    if (Date.now() - lastTouchTime < 500) {
+                        e.preventDefault();
+                        return;
+                    }
                     e.preventDefault();
                     e.stopPropagation();
                     const kulcs = button.dataset.kulcs;
@@ -5538,6 +5555,7 @@
                 if (button) {
                     e.preventDefault();
                     e.stopPropagation();
+                    lastTouchTime = Date.now(); // Mark that touch was handled
                     const kulcs = button.dataset.kulcs;
                     const illat = button.dataset.illat;
                     const tipus = button.dataset.tipus;
