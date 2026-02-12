@@ -1111,6 +1111,8 @@
                 
                 // Címke hiány lista összegyűjtése
                 const osszesites = {};
+                
+                // 1. Kiöntések összegyűjtése
                 kiontesek.forEach(kiontes => {
                     const kulcs = `${kiontes.illatId}-${kiontes.termekTipus}-${kiontes.meret}`;
                     if (!osszesites[kulcs]) {
@@ -1120,22 +1122,37 @@
                             termekTipus: kiontes.termekTipus,
                             termekTipusNev: kiontes.termekTipusNev,
                             meret: kiontes.meret,
-                            cimkeNelkul: 0
+                            osszesKiontott: 0,
+                            osszesKesz: 0
                         };
                     }
-                    osszesites[kulcs].cimkeNelkul += kiontes.darabszam;
+                    osszesites[kulcs].osszesKiontott += kiontes.darabszam;
                 });
                 
-                // Kész termékek levonása
+                // 2. Kész termékek összegyűjtése
                 keszTermekek.forEach(kt => {
                     const kulcs = `${kt.illatId}-${kt.termekTipus}-${kt.meret}`;
-                    if (osszesites[kulcs]) {
-                        osszesites[kulcs].cimkeNelkul -= kt.darabszam;
+                    if (!osszesites[kulcs]) {
+                        osszesites[kulcs] = {
+                            illatId: kt.illatId,
+                            illatNev: kt.illatNev,
+                            termekTipus: kt.termekTipus,
+                            termekTipusNev: kt.termekTipusNev,
+                            meret: kt.meret,
+                            osszesKiontott: 0,
+                            osszesKesz: 0
+                        };
                     }
+                    osszesites[kulcs].osszesKesz += kt.darabszam;
                 });
                 
-                // Csak hiányos címkék
-                const hianyzosCimkek = Object.values(osszesites).filter(item => item.cimkeNelkul > 0);
+                // 3. Hiány számítása
+                const hianyzosCimkek = Object.values(osszesites)
+                    .map(item => ({
+                        ...item,
+                        cimkeNelkul: item.osszesKiontott - item.osszesKesz
+                    }))
+                    .filter(item => item.cimkeNelkul > 0);
                 
                 if (hianyzosCimkek.length === 0) {
                     showAlert('Nincs címke hiány! Minden termékhez van elég címke.', 'success');
@@ -5472,14 +5489,21 @@
                         <div class="bg-white/30 backdrop-blur rounded-lg p-4 mb-4">
                             <div class="text-xl font-bold">
                                 📊 Összesen: ${(() => {
-                                    const osszHiany = hianyzosCimkek.reduce((sum, item) => {
+                                    let osszHiany = 0;
+                                    let osszLapok = 0;
+                                    
+                                    hianyzosCimkek.forEach(item => {
                                         const cimkeKulcs = getCimkeKulcs(item.illatId, item.termekTipus, item.meret);
                                         const keszlet = cimkeKeszlet[cimkeKulcs] || 0;
                                         const hianyzo = Math.max(0, item.cimkeNelkul - keszlet);
-                                        return sum + hianyzo;
-                                    }, 0);
-                                    const lapok = Math.ceil(osszHiany / 12); // 12 címke/ív
-                                    return `${osszHiany} db címke hiány / ${lapok} ív`;
+                                        
+                                        if (hianyzo > 0) {
+                                            osszHiany += hianyzo;
+                                            osszLapok += Math.ceil(hianyzo / 12); // Termékenkénti kerekítés!
+                                        }
+                                    });
+                                    
+                                    return `${osszHiany} db címke hiány / ${osszLapok} ív`;
                                 })()}
                             </div>
                         </div>
