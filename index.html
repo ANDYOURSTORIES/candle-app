@@ -3515,36 +3515,53 @@
             });
         }
         
+        let cimkeKeszletSzerkesztProcessing = false;
+        
         async function cimkeKeszletSzerkeszt(kulcs, illatNev, termekTipusNev, meret) {
-            const jelenlegiMennyiseg = cimkeKeszlet[kulcs] || 0;
+            // Prevent double execution
+            if (cimkeKeszletSzerkesztProcessing) {
+                console.log('⏭️ Már folyamatban, skip!');
+                return;
+            }
             
-            console.log('🔍 Szerkesztés megnyitva:', illatNev, 'Jelenlegi:', jelenlegiMennyiseg);
+            cimkeKeszletSzerkesztProcessing = true;
             
-            const ujMennyiseg = await showPrompt({
-                title: 'Címke készlet szerkesztése',
-                message: `${illatNev} - ${termekTipusNev} - ${meret}\n\nJelenlegi mennyiség: ${jelenlegiMennyiseg} db`,
-                defaultValue: jelenlegiMennyiseg,
-                inputType: 'number',
-                placeholder: 'Új mennyiség'
-            });
-            
-            console.log('✏️ Visszakapott érték:', ujMennyiseg, 'Típus:', typeof ujMennyiseg);
-            
-            if (ujMennyiseg !== null && ujMennyiseg !== '') {
-                const szam = parseInt(ujMennyiseg);
-                console.log('🔢 Parsed szám:', szam);
+            try {
+                const jelenlegiMennyiseg = cimkeKeszlet[kulcs] || 0;
                 
-                if (!isNaN(szam) && szam >= 0) {
-                    cimkeKeszlet[kulcs] = szam;
-                    console.log('💾 Mentés előtt cimkeKeszlet[kulcs]:', cimkeKeszlet[kulcs]);
-                    await ment();
-                    console.log('✅ Mentés után render()');
-                    render();
+                console.log('🔍 Szerkesztés megnyitva:', illatNev, 'Jelenlegi:', jelenlegiMennyiseg);
+                
+                const ujMennyiseg = await showPrompt({
+                    title: 'Címke készlet szerkesztése',
+                    message: `${illatNev} - ${termekTipusNev} - ${meret}\n\nJelenlegi mennyiség: ${jelenlegiMennyiseg} db`,
+                    defaultValue: jelenlegiMennyiseg,
+                    inputType: 'number',
+                    placeholder: 'Új mennyiség'
+                });
+                
+                console.log('✏️ Visszakapott érték:', ujMennyiseg, 'Típus:', typeof ujMennyiseg);
+                
+                if (ujMennyiseg !== null && ujMennyiseg !== '') {
+                    const szam = parseInt(ujMennyiseg);
+                    console.log('🔢 Parsed szám:', szam);
+                    
+                    if (!isNaN(szam) && szam >= 0) {
+                        cimkeKeszlet[kulcs] = szam;
+                        console.log('💾 Mentés előtt cimkeKeszlet[kulcs]:', cimkeKeszlet[kulcs]);
+                        await ment();
+                        console.log('✅ Mentés után render()');
+                        render();
+                    } else {
+                        showAlert('Kérlek adj meg egy érvényes számot!', 'error');
+                    }
                 } else {
-                    showAlert('Kérlek adj meg egy érvényes számot!', 'error');
+                    console.log('❌ Mégse gomb vagy üres érték');
                 }
-            } else {
-                console.log('❌ Mégse gomb vagy üres érték');
+            } finally {
+                // Always release the lock
+                setTimeout(() => {
+                    cimkeKeszletSzerkesztProcessing = false;
+                }, 500);
             }
         }
 
