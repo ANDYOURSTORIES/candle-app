@@ -1088,13 +1088,18 @@
             const fileName = getPdfTemplateFileName(illatNev, termekTipusNev, meret);
             const path = `templates/${fileName}`;
             
+            console.log(`🔍 Keresem: "${illatNev}" → "${fileName}"`);
+            
             try {
                 const { ref, getDownloadURL } = window.storageFunctions;
                 const storageRef = ref(window.storage, path);
                 const url = await getDownloadURL(storageRef);
+                console.log(`✅ Megtalálva: ${fileName}`);
                 return url;
             } catch (error) {
-                console.error(`PDF template nem található: ${path}`, error);
+                console.error(`❌ PDF template nem található: ${path}`, error);
+                console.log(`   Illat név volt: "${illatNev}"`);
+                console.log(`   Generált fájlnév: "${fileName}"`);
                 return null;
             }
         }
