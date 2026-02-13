@@ -722,10 +722,18 @@
                         </label>
                     </div>
                     
-                    <!-- Termék hozzáadás gomb -->
-                    <button onclick="tervezoTermekHozzaadModal()" class="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-semibold text-sm">
-                        ➕ Termék hozzáadása
-                    </button>
+                    <!-- Gombok -->
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <button onclick="tervezoTermekHozzaadModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-semibold text-sm">
+                            ➕ Termék hozzáadása
+                        </button>
+                        <button onclick="tervezesMentModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold text-sm">
+                            💾 Tervezés mentése
+                        </button>
+                        <button onclick="tervezesBetoltModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold text-sm">
+                            📂 Tervezés betöltése
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="p-6 overflow-y-auto flex-1">
@@ -734,6 +742,43 @@
                     
                     <!-- Ellenőrzés eredmény -->
                     <div id="tervezoEllenorzes" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tervezés mentése modal -->
+        <div id="tervezesMentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-green-900 mb-4">💾 Tervezés mentése</h2>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tervezés neve</label>
+                        <input type="text" id="tervezesMentNev" placeholder="pl. Notino kiszállítás 2026-02" 
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div class="flex gap-2 mt-6">
+                        <button onclick="tervezesMent()" class="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-semibold">
+                            Mentés
+                        </button>
+                        <button onclick="tervezesMentModalBezar()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Mégsem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tervezés betöltése modal -->
+        <div id="tervezesBetoltModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="p-6 border-b">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-blue-900">📂 Mentett tervezések</h2>
+                        <button onclick="tervezesBetoltModalBezar()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                    </div>
+                </div>
+                <div class="p-6 overflow-y-auto flex-1">
+                    <div id="mentettTervezesekLista" class="space-y-2"></div>
                 </div>
             </div>
         </div>
@@ -1052,6 +1097,7 @@
         let kiontesek = [];
         let cimkeKeszlet = {}; // Címke készlet tárolása: { "illatId-termekTipus-meret": darabszam }
         let dobozcimkeKeszlet = {}; // Dobozcímke készlet tárolása: { "illatId-termekTipus-meret": darabszam }
+        let mentettTervezesek = []; // Mentett kiszállítás tervezések: [{ id, nev, datum, dobozolva, termekek: [...] }]
         let keszTermekek = []; // Címkézett kész termékek
         let kiszallitasok = []; // Kiszállítások
         let partnerek = []; // Partnerek listája
@@ -1552,6 +1598,12 @@
                 const dobozcimkeKeszletDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'dobozcimkeKeszlet'));
                 if (dobozcimkeKeszletDoc.exists()) {
                     dobozcimkeKeszlet = dobozcimkeKeszletDoc.data().data || {};
+                }
+                
+                // Mentett tervezések betöltése
+                const mentettTervezesekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'mentettTervezesek'));
+                if (mentettTervezesekDoc.exists()) {
+                    mentettTervezesek = mentettTervezesekDoc.data().data || [];
                 }
                 
                 // Kész termékek betöltése
@@ -2590,17 +2642,25 @@
             tervezoTermekek.forEach(t => {
                 const kulcs = getCimkeKulcs(t.illatId, t.termekTipusNev, t.meret);
                 
-                // Kész termék
+                // 1. KÉSZ TERMÉK (polcon) - címkézett termékek
                 const keszDb = keszTermekek
                     .filter(kt => kt.illatNev === t.illatNev && kt.termekTipusNev === t.termekTipusNev && kt.meret === t.meret)
                     .reduce((sum, kt) => sum + kt.darabszam, 0);
                 const keszOk = keszDb >= t.mennyiseg;
                 
-                // Termék címke
-                const cimkeDb = cimkeKeszlet[kulcs] || 0;
-                const cimkeOk = cimkeDb >= t.mennyiseg;
+                // 2. CÍMKÉZETLEN TERMÉKEK (gyártásban) - címkézni kell őket
+                const cimkezetlenDb = kiontesek
+                    .filter(k => k.illatId === t.illatId && k.termekTipusNev === t.termekTipusNev && k.meret === t.meret)
+                    .reduce((sum, k) => sum + k.darabszam, 0);
                 
-                // Dobozcímke (csak ha dobozolva)
+                // 3. TERMÉK CÍMKE KÉSZLET
+                const cimkeKeszletDb = cimkeKeszlet[kulcs] || 0;
+                
+                // ÖSSZESEN címkézhető: címkézetlen termékek + címke készlet
+                const osszCimkezheto = cimkezetlenDb + cimkeKeszletDb;
+                const cimkeOk = osszCimkezheto >= t.mennyiseg;
+                
+                // 4. DOBOZCÍMKE (csak ha dobozolva)
                 let dobozcimkeDb = 0;
                 let dobozcimkeOk = true;
                 if (dobozolva) {
@@ -2612,7 +2672,9 @@
                     termek: t,
                     keszDb,
                     keszOk,
-                    cimkeDb,
+                    cimkezetlenDb,
+                    cimkeKeszletDb,
+                    osszCimkezheto,
                     cimkeOk,
                     dobozcimkeDb,
                     dobozcimkeOk,
@@ -2624,7 +2686,8 @@
                     hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Kész termék hiány (${keszDb}/${t.mennyiseg} db)`);
                 }
                 if (!cimkeOk) {
-                    hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Termék címke hiány (${cimkeDb}/${t.mennyiseg} db)`);
+                    const cimkeHiany = t.mennyiseg - osszCimkezheto;
+                    hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Termék címke hiány - ${cimkeHiany} db címke kell (van: ${cimkezetlenDb} címkézetlen + ${cimkeKeszletDb} címke = ${osszCimkezheto} db)`);
                 }
                 if (dobozolva && !dobozcimkeOk) {
                     hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Dobozcímke hiány (${dobozcimkeDb}/${t.mennyiseg} db)`);
@@ -2644,10 +2707,10 @@
                         <div class="font-medium text-sm mb-2">${e.termek.illatNev} - ${e.termek.termekTipusNev} ${e.termek.meret} (${e.termek.mennyiseg} db)</div>
                         <div class="space-y-1 text-sm">
                             <div class="${e.keszOk ? 'text-green-700' : 'text-red-700'}">
-                                ${e.keszOk ? '✅' : '❌'} Kész termék: ${e.keszDb} db ${!e.keszOk ? `(hiány: ${e.termek.mennyiseg - e.keszDb} db)` : ''}
+                                ${e.keszOk ? '✅' : '❌'} Kész termék (polcon): ${e.keszDb} db ${!e.keszOk ? `(hiány: ${e.termek.mennyiseg - e.keszDb} db)` : ''}
                             </div>
                             <div class="${e.cimkeOk ? 'text-green-700' : 'text-red-700'}">
-                                ${e.cimkeOk ? '✅' : '❌'} Termék címke: ${e.cimkeDb} db ${!e.cimkeOk ? `(hiány: ${e.termek.mennyiseg - e.cimkeDb} db)` : ''}
+                                ${e.cimkeOk ? '✅' : '❌'} Címkézhető: ${e.osszCimkezheto} db (${e.cimkezetlenDb} címkézetlen + ${e.cimkeKeszletDb} címke) ${!e.cimkeOk ? `<strong>(hiány: ${e.termek.mennyiseg - e.osszCimkezheto} db címke!)</strong>` : ''}
                             </div>
                             ${e.dobozolva ? `
                                 <div class="${e.dobozcimkeOk ? 'text-green-700' : 'text-red-700'}">
@@ -2678,6 +2741,118 @@
             }
             
             div.innerHTML = html;
+        }
+        
+        
+        // TERVEZÉS MENTÉSE/BETÖLTÉSE
+        
+        function tervezesMentModal() {
+            if (tervezoTermekek.length === 0) {
+                showAlert('Nincs termék a tervezésben!', 'error');
+                return;
+            }
+            document.getElementById('tervezesMentModal').classList.remove('hidden');
+            document.getElementById('tervezesMentNev').value = '';
+        }
+        
+        function tervezesMentModalBezar() {
+            document.getElementById('tervezesMentModal').classList.add('hidden');
+        }
+        
+        async function tervezesMent() {
+            const nev = document.getElementById('tervezesMentNev').value.trim();
+            
+            if (!nev) {
+                showAlert('Add meg a tervezés nevét!', 'error');
+                return;
+            }
+            
+            const ujTervezes = {
+                id: generateId(),
+                nev: nev,
+                datum: new Date().toISOString(),
+                dobozolva: document.getElementById('tervezoDobozolva').checked,
+                termekek: JSON.parse(JSON.stringify(tervezoTermekek)) // deep copy
+            };
+            
+            mentettTervezesek.unshift(ujTervezes);
+            
+            await ment();
+            tervezesMentModalBezar();
+            showAlert(`✅ Tervezés mentve: ${nev}`, 'success');
+        }
+        
+        function tervezesBetoltModal() {
+            renderMentettTervezesek();
+            document.getElementById('tervezesBetoltModal').classList.remove('hidden');
+        }
+        
+        function tervezesBetoltModalBezar() {
+            document.getElementById('tervezesBetoltModal').classList.add('hidden');
+        }
+        
+        function renderMentettTervezesek() {
+            const lista = document.getElementById('mentettTervezesekLista');
+            
+            if (mentettTervezesek.length === 0) {
+                lista.innerHTML = '<p class="text-gray-500 text-center py-8">Nincs mentett tervezés</p>';
+                return;
+            }
+            
+            lista.innerHTML = mentettTervezesek.map(t => {
+                const datum = new Date(t.datum);
+                const datumStr = datum.toLocaleDateString('hu-HU');
+                const idoStr = datum.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+                
+                return `
+                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-medium text-sm">${t.nev}</div>
+                                <div class="text-xs text-gray-600 mt-1">
+                                    ${datumStr} ${idoStr} • ${t.termekek.length} termék • ${t.dobozolva ? '📦 Dobozolva' : 'Nem dobozolva'}
+                                </div>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="tervezesBetolt(${t.id})" 
+                                    class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm" title="Betöltés">
+                                    📂 Betölt
+                                </button>
+                                <button onclick="tervezesTorol(${t.id})" 
+                                    class="text-red-600 hover:text-red-800 text-lg px-2" title="Törlés">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function tervezesBetolt(tervezesId) {
+            const tervezes = mentettTervezesek.find(t => t.id === tervezesId);
+            if (!tervezes) return;
+            
+            tervezoTermekek = JSON.parse(JSON.stringify(tervezes.termekek)); // deep copy
+            document.getElementById('tervezoDobozolva').checked = tervezes.dobozolva;
+            
+            renderTervezoTermekek();
+            renderTervezoEllenorzes();
+            tervezesBetoltModalBezar();
+            
+            showAlert(`✅ Tervezés betöltve: ${tervezes.nev}`, 'success');
+        }
+        
+        async function tervezesTorol(tervezesId) {
+            const tervezes = mentettTervezesek.find(t => t.id === tervezesId);
+            if (!tervezes) return;
+            
+            if (!confirm(`Biztosan törlöd ezt a tervezést?\n\n${tervezes.nev}`)) return;
+            
+            mentettTervezesek = mentettTervezesek.filter(t => t.id !== tervezesId);
+            await ment();
+            renderMentettTervezesek();
+            showAlert('✅ Tervezés törölve', 'success');
         }
         
         // ===== VÉGÉ KISZÁLLÍTÁS TERVEZŐ FUNKCIÓK =====
@@ -3999,6 +4174,7 @@
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'meretek'), { data: meretek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'cimkeKeszlet'), { data: cimkeKeszlet }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'dobozcimkeKeszlet'), { data: dobozcimkeKeszlet }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'mentettTervezesek'), { data: mentettTervezesek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'keszTermekek'), { data: keszTermekek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiszallitasok'), { data: kiszallitasok }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'partnerek'), { data: partnerek }),
