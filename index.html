@@ -730,9 +730,6 @@
                         <button onclick="tervezesMentModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold text-sm">
                             💾 Tervezés mentése
                         </button>
-                        <button onclick="tervezesBetoltModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-semibold text-sm">
-                            📂 Tervezés betöltése
-                        </button>
                     </div>
                 </div>
                 
@@ -768,20 +765,6 @@
             </div>
         </div>
         
-        <!-- Tervezés betöltése modal -->
-        <div id="tervezesBetoltModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                <div class="p-6 border-b">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-xl font-bold text-blue-900">📂 Mentett tervezések</h2>
-                        <button onclick="tervezesBetoltModalBezar()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
-                    </div>
-                </div>
-                <div class="p-6 overflow-y-auto flex-1">
-                    <div id="mentettTervezesekLista" class="space-y-2"></div>
-                </div>
-            </div>
-        </div>
         
         <!-- Tervező termék hozzáadás modal -->
         <div id="tervezoTermekModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -1036,6 +1019,12 @@
                 
                 <!-- Dobozcímke lista -->
                 <div id="dobozcimkeKeszletLista" class="space-y-2"></div>
+            </div>
+
+            <!-- Mentett tervezések -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-purple-900 mb-4">📋 Mentett kiszállítás tervezések</h2>
+                <div id="mentettTervezesekLista" class="space-y-2"></div>
             </div>
 
             <!-- Kiszállítások története -->
@@ -2642,84 +2631,126 @@
             tervezoTermekek.forEach(t => {
                 const kulcs = getCimkeKulcs(t.illatId, t.termekTipusNev, t.meret);
                 
-                // 1. KÉSZ TERMÉK (polcon) - címkézett termékek
-                const keszDb = keszTermekek
+                // KÉSZ TERMÉK (polcon)
+                const polconDb = keszTermekek
                     .filter(kt => kt.illatNev === t.illatNev && kt.termekTipusNev === t.termekTipusNev && kt.meret === t.meret)
                     .reduce((sum, kt) => sum + kt.darabszam, 0);
-                const keszOk = keszDb >= t.mennyiseg;
+                const polconOk = polconDb >= t.mennyiseg;
                 
-                // 2. CÍMKÉZETLEN TERMÉKEK (gyártásban) - címkézni kell őket
+                // CÍMKÉZETLEN TERMÉKEK
                 const cimkezetlenDb = kiontesek
                     .filter(k => k.illatId === t.illatId && k.termekTipusNev === t.termekTipusNev && k.meret === t.meret)
                     .reduce((sum, k) => sum + k.darabszam, 0);
                 
-                // 3. TERMÉK CÍMKE KÉSZLET
-                const cimkeKeszletDb = cimkeKeszlet[kulcs] || 0;
+                // TERMÉK CÍMKE KÉSZLET
+                const termekCimkeDb = cimkeKeszlet[kulcs] || 0;
                 
-                // ÖSSZESEN címkézhető: címkézetlen termékek + címke készlet
-                const osszCimkezheto = cimkezetlenDb + cimkeKeszletDb;
-                const cimkeOk = osszCimkezheto >= t.mennyiseg;
+                // DOBOZCÍMKE
+                const dobozcimkeDb = dobozcimkeKeszlet[kulcs] || 0;
                 
-                // 4. DOBOZCÍMKE (csak ha dobozolva)
-                let dobozcimkeDb = 0;
-                let dobozcimkeOk = true;
-                if (dobozolva) {
-                    dobozcimkeDb = dobozcimkeKeszlet[kulcs] || 0;
-                    dobozcimkeOk = dobozcimkeDb >= t.mennyiseg;
+                // PRIORITÁS ALAPÚ LOGIKA
+                let statusz;
+                
+                if (polconOk) {
+                    // A) POLCON VAN ELÉG → ZÖLD (címkézetlen irreleváns)
+                    const dobozcimkeOk = !dobozolva || (dobozcimkeDb >= t.mennyiseg);
+                    statusz = {
+                        ok: dobozcimkeOk,
+                        polconDb,
+                        polconOk: true,
+                        dobozcimkeDb,
+                        dobozcimkeOk,
+                        // Címkézetlen nem érdekes
+                        cimkezetlenDb: null,
+                        termekCimkeDb: null,
+                        termekCimkeOk: null
+                    };
+                    
+                    if (!dobozcimkeOk && dobozolva) {
+                        hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Dobozcímke hiány ${dobozcimkeDb}/${t.mennyiseg} db (hiány: ${t.mennyiseg - dobozcimkeDb} db)`);
+                    }
+                    
+                } else {
+                    // B) POLCON NINCS ELÉG → PIROS, ellenőrizni a címkézetlen+címke+dobozcímke
+                    const termekCimkeOk = termekCimkeDb >= t.mennyiseg;
+                    const dobozcimkeOk = !dobozolva || (dobozcimkeDb >= t.mennyiseg);
+                    
+                    statusz = {
+                        ok: false, // Polcon hiány = mindig piros
+                        polconDb,
+                        polconOk: false,
+                        cimkezetlenDb,
+                        termekCimkeDb,
+                        termekCimkeOk,
+                        dobozcimkeDb,
+                        dobozcimkeOk
+                    };
+                    
+                    // Hiányok
+                    hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Polcon hiány ${polconDb}/${t.mennyiseg} db (hiány: ${t.mennyiseg - polconDb} db)`);
+                    
+                    if (!termekCimkeOk) {
+                        hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Termék címke hiány ${termekCimkeDb}/${t.mennyiseg} db (hiány: ${t.mennyiseg - termekCimkeDb} db)`);
+                    }
+                    
+                    if (!dobozcimkeOk && dobozolva) {
+                        hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Dobozcímke hiány ${dobozcimkeDb}/${t.mennyiseg} db (hiány: ${t.mennyiseg - dobozcimkeDb} db)`);
+                    }
                 }
                 
                 ellenorzesek.push({
                     termek: t,
-                    keszDb,
-                    keszOk,
-                    cimkezetlenDb,
-                    cimkeKeszletDb,
-                    osszCimkezheto,
-                    cimkeOk,
-                    dobozcimkeDb,
-                    dobozcimkeOk,
+                    statusz,
                     dobozolva
                 });
-                
-                // Hiányok gyűjtése
-                if (!keszOk) {
-                    hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Kész termék hiány (${keszDb}/${t.mennyiseg} db)`);
-                }
-                if (!cimkeOk) {
-                    const cimkeHiany = t.mennyiseg - osszCimkezheto;
-                    hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Termék címke hiány - ${cimkeHiany} db címke kell (van: ${cimkezetlenDb} címkézetlen + ${cimkeKeszletDb} címke = ${osszCimkezheto} db)`);
-                }
-                if (dobozolva && !dobozcimkeOk) {
-                    hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Dobozcímke hiány (${dobozcimkeDb}/${t.mennyiseg} db)`);
-                }
             });
             
             // HTML generálás
             let html = '<h3 class="font-bold text-purple-900 mb-3">✅ Készlet ellenőrzés:</h3>';
             
             ellenorzesek.forEach(e => {
-                const mindenOk = e.keszOk && e.cimkeOk && (!e.dobozolva || e.dobozcimkeOk);
-                const borderColor = mindenOk ? 'border-green-300' : 'border-red-300';
-                const bgColor = mindenOk ? 'bg-green-50' : 'bg-red-50';
+                const s = e.statusz;
+                const borderColor = s.ok ? 'border-green-300' : 'border-red-300';
+                const bgColor = s.ok ? 'bg-green-50' : 'bg-red-50';
                 
-                html += `
-                    <div class="p-4 ${bgColor} border ${borderColor} rounded-lg mb-3">
-                        <div class="font-medium text-sm mb-2">${e.termek.illatNev} - ${e.termek.termekTipusNev} ${e.termek.meret} (${e.termek.mennyiseg} db)</div>
-                        <div class="space-y-1 text-sm">
-                            <div class="${e.keszOk ? 'text-green-700' : 'text-red-700'}">
-                                ${e.keszOk ? '✅' : '❌'} Kész termék (polcon): ${e.keszDb} db ${!e.keszOk ? `(hiány: ${e.termek.mennyiseg - e.keszDb} db)` : ''}
-                            </div>
-                            <div class="${e.cimkeOk ? 'text-green-700' : 'text-red-700'}">
-                                ${e.cimkeOk ? '✅' : '❌'} Címkézhető: ${e.osszCimkezheto} db (${e.cimkezetlenDb} címkézetlen + ${e.cimkeKeszletDb} címke) ${!e.cimkeOk ? `<strong>(hiány: ${e.termek.mennyiseg - e.osszCimkezheto} db címke!)</strong>` : ''}
-                            </div>
-                            ${e.dobozolva ? `
-                                <div class="${e.dobozcimkeOk ? 'text-green-700' : 'text-red-700'}">
-                                    ${e.dobozcimkeOk ? '✅' : '❌'} Dobozcímke: ${e.dobozcimkeDb} db ${!e.dobozcimkeOk ? `(hiány: ${e.termek.mennyiseg - e.dobozcimkeDb} db)` : ''}
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
+                html += `<div class="p-4 ${bgColor} border ${borderColor} rounded-lg mb-3">`;
+                html += `<div class="font-medium text-sm mb-2">${e.termek.illatNev} - ${e.termek.termekTipusNev} ${e.termek.meret} (${e.termek.mennyiseg} db)</div>`;
+                html += `<div class="space-y-1 text-sm">`;
+                
+                // POLCON
+                if (s.polconOk) {
+                    // ZÖLD eset
+                    html += `<div class="text-green-700">✅ Polcon: ${s.polconDb} db</div>`;
+                    
+                    if (e.dobozolva) {
+                        if (s.dobozcimkeOk) {
+                            html += `<div class="text-green-700">✅ Dobozcímke: ${s.dobozcimkeDb} db</div>`;
+                        } else {
+                            html += `<div class="text-red-700">❌ Dobozcímke: ${s.dobozcimkeDb} db <strong>(hiány: ${e.termek.mennyiseg - s.dobozcimkeDb} db)</strong></div>`;
+                        }
+                    }
+                    
+                } else {
+                    // PIROS eset
+                    html += `<div class="text-red-700">❌ Polcon: ${s.polconDb} db <strong>(hiány: ${e.termek.mennyiseg - s.polconDb} db)</strong></div>`;
+                    html += `<div class="text-gray-700">→ Címkézetlen: ${s.cimkezetlenDb} db</div>`;
+                    
+                    if (s.termekCimkeOk) {
+                        html += `<div class="text-green-700">✅ Termék címke: ${s.termekCimkeDb} db</div>`;
+                    } else {
+                        html += `<div class="text-red-700">❌ Termék címke: ${s.termekCimkeDb} db <strong>(hiány: ${e.termek.mennyiseg - s.termekCimkeDb} db)</strong></div>`;
+                    }
+                    
+                    if (e.dobozolva) {
+                        if (s.dobozcimkeOk) {
+                            html += `<div class="text-green-700">✅ Dobozcímke: ${s.dobozcimkeDb} db</div>`;
+                        } else {
+                            html += `<div class="text-red-700">❌ Dobozcímke: ${s.dobozcimkeDb} db <strong>(hiány: ${e.termek.mennyiseg - s.dobozcimkeDb} db)</strong></div>`;
+                        }
+                    }
+                }
+                
+                html += `</div></div>`;
             });
             
             // Hiányok összesítő
@@ -2738,6 +2769,9 @@
                         <h4 class="font-bold text-green-900">🎉 MINDEN RENDBEN! Nincs hiány.</h4>
                     </div>
                 `;
+            }
+            
+            div.innerHTML = html;
             }
             
             div.innerHTML = html;
@@ -2779,23 +2813,15 @@
             
             await ment();
             tervezesMentModalBezar();
-            showAlert(`✅ Tervezés mentve: ${nev}`, 'success');
-        }
-        
-        function tervezesBetoltModal() {
             renderMentettTervezesek();
-            document.getElementById('tervezesBetoltModal').classList.remove('hidden');
-        }
-        
-        function tervezesBetoltModalBezar() {
-            document.getElementById('tervezesBetoltModal').classList.add('hidden');
+            showAlert(`✅ Tervezés mentve: ${nev}`, 'success');
         }
         
         function renderMentettTervezesek() {
             const lista = document.getElementById('mentettTervezesekLista');
             
             if (mentettTervezesek.length === 0) {
-                lista.innerHTML = '<p class="text-gray-500 text-center py-8">Nincs mentett tervezés</p>';
+                lista.innerHTML = '<p class="text-gray-500 text-sm">Nincs mentett tervezés</p>';
                 return;
             }
             
@@ -2805,45 +2831,42 @@
                 const idoStr = datum.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
                 
                 return `
-                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                         <div class="flex justify-between items-start">
-                            <div class="flex-1">
+                            <div class="flex-1 cursor-pointer" onclick="tervezesMegtekint(${t.id})">
                                 <div class="font-medium text-sm">${t.nev}</div>
                                 <div class="text-xs text-gray-600 mt-1">
                                     ${datumStr} ${idoStr} • ${t.termekek.length} termék • ${t.dobozolva ? '📦 Dobozolva' : 'Nem dobozolva'}
                                 </div>
                             </div>
-                            <div class="flex gap-1">
-                                <button onclick="tervezesBetolt(${t.id})" 
-                                    class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm" title="Betöltés">
-                                    📂 Betölt
-                                </button>
-                                <button onclick="tervezesTorol(${t.id})" 
-                                    class="text-red-600 hover:text-red-800 text-lg px-2" title="Törlés">
-                                    🗑️
-                                </button>
-                            </div>
+                            <button onclick="tervezesTorol(${t.id}, event)" 
+                                class="text-red-600 hover:text-red-800 text-lg px-2" title="Törlés">
+                                🗑️
+                            </button>
                         </div>
                     </div>
                 `;
             }).join('');
         }
         
-        function tervezesBetolt(tervezesId) {
+        function tervezesMegtekint(tervezesId) {
             const tervezes = mentettTervezesek.find(t => t.id === tervezesId);
             if (!tervezes) return;
             
+            // Tervező modal megnyitása a mentett adatokkal
             tervezoTermekek = JSON.parse(JSON.stringify(tervezes.termekek)); // deep copy
             document.getElementById('tervezoDobozolva').checked = tervezes.dobozolva;
             
+            kiszallitasTervezoModal();
             renderTervezoTermekek();
             renderTervezoEllenorzes();
-            tervezesBetoltModalBezar();
-            
-            showAlert(`✅ Tervezés betöltve: ${tervezes.nev}`, 'success');
         }
         
-        async function tervezesTorol(tervezesId) {
+        async function tervezesTorol(tervezesId, event) {
+            if (event) {
+                event.stopPropagation(); // Ne nyissa meg a megtekintést
+            }
+            
             const tervezes = mentettTervezesek.find(t => t.id === tervezesId);
             if (!tervezes) return;
             
@@ -3755,6 +3778,7 @@
                 renderStatisztika();
                 renderKiszallitasok();
                 renderDobozcimkeKeszlet();
+                renderMentettTervezesek();
             }
         }
 
