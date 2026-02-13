@@ -704,6 +704,82 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Kiszállítás tervező modal -->
+        <div id="kiszallitasTervezoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="p-6 border-b">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-purple-900">📋 Kiszállítás tervező</h2>
+                        <button onclick="kiszallitasTervezoModalBezar()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                    </div>
+                    
+                    <!-- Dobozolva checkbox -->
+                    <div class="mt-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="tervezoDobozolva" onchange="renderTervezoEllenorzes()" class="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
+                            <span class="text-sm font-medium text-gray-700">📦 Dobozolva (dobozcímke ellenőrzés)</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Termék hozzáadás gomb -->
+                    <button onclick="tervezoTermekHozzaadModal()" class="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 font-semibold text-sm">
+                        ➕ Termék hozzáadása
+                    </button>
+                </div>
+                
+                <div class="p-6 overflow-y-auto flex-1">
+                    <!-- Tervezett termékek lista -->
+                    <div id="tervezoTermekekLista" class="mb-6"></div>
+                    
+                    <!-- Ellenőrzés eredmény -->
+                    <div id="tervezoEllenorzes" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tervező termék hozzáadás modal -->
+        <div id="tervezoTermekModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="p-6 border-b">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-purple-900">📋 Válassz terméket</h2>
+                        <button onclick="tervezoTermekModalBezar()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                    </div>
+                    <div class="mt-4">
+                        <input type="text" id="tervezoTermekKeresoInput" placeholder="🔍 Keresés illat név vagy SKU szerint..." 
+                            oninput="renderTervezoTermekLista()"
+                            class="w-full px-4 py-2 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+                </div>
+                <div class="p-6 overflow-y-auto flex-1">
+                    <div id="tervezoTermekListaDiv" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tervező mennyiség modal -->
+        <div id="tervezoMennyisegModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-purple-900 mb-4">📋 Mennyiség megadása</h2>
+                    <div id="tervezoMennyisegInfo" class="bg-purple-50 p-4 rounded-lg mb-4"></div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mennyiség (db)</label>
+                        <input type="number" id="tervezoMennyisegInput" min="1" value="1" 
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-center font-bold text-lg">
+                    </div>
+                    <div class="flex gap-2 mt-6">
+                        <button onclick="tervezoMennyisegMegerosit()" class="flex-1 bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 font-semibold">
+                            Hozzáad
+                        </button>
+                        <button onclick="tervezoMennyisegModalBezar()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                            Mégsem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div id="gyartasTab">
         <div class="grid md:grid-cols-2 gap-6 mb-6">
@@ -882,9 +958,12 @@
             </div>
             
             <!-- Új kiszállítás gomb -->
-            <div class="mb-6">
-                <button onclick="ujKiszallitasModal()" class="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold text-lg shadow-lg">
+            <div class="mb-6 flex flex-col md:flex-row gap-3">
+                <button onclick="ujKiszallitasModal()" class="flex-1 md:flex-none bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold text-lg shadow-lg">
                     📦 Új kiszállítás indítása
+                </button>
+                <button onclick="kiszallitasTervezoModal()" class="flex-1 md:flex-none bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold text-lg shadow-lg">
+                    📋 Kiszállítás tervező
                 </button>
             </div>
 
@@ -2117,6 +2196,9 @@
             selectedDobozcimkeVarians = null;
         }
         
+        let dobozcimkeListaExpanded = false;
+        const DOBOZCIMKE_MAX_ROWS = 15;
+        
         function renderDobozcimkeKeszlet() {
             const lista = document.getElementById('dobozcimkeKeszletLista');
             const keresoInput = document.getElementById('dobozcimkeKeresoInput');
@@ -2174,7 +2256,13 @@
                 return;
             }
             
-            lista.innerHTML = szurtLista.map(item => {
+            // Collapse logika - ha több mint MAX_ROWS
+            const needsCollapse = szurtLista.length > DOBOZCIMKE_MAX_ROWS && !keresoSzoveg;
+            const displayLista = (needsCollapse && !dobozcimkeListaExpanded) 
+                ? szurtLista.slice(0, DOBOZCIMKE_MAX_ROWS) 
+                : szurtLista;
+            
+            const itemsHTML = displayLista.map(item => {
                 const cssClass = item.mennyiseg < 12 && item.mennyiseg > 0 
                     ? 'bg-red-50 border-red-200' 
                     : item.mennyiseg === 0 
@@ -2203,6 +2291,26 @@
                     </div>
                 `;
             }).join('');
+            
+            // Toggle gomb ha kell
+            const toggleButtonHTML = needsCollapse ? `
+                <button onclick="toggleDobozcimkeList()" 
+                    class="w-full mt-3 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium text-sm">
+                    ${dobozcimkeListaExpanded 
+                        ? '▲ Mutass kevesebbet' 
+                        : `▼ Mutass többet (+${szurtLista.length - DOBOZCIMKE_MAX_ROWS} termék)`}
+                </button>
+            ` : '';
+            
+            lista.innerHTML = `
+                <div class="space-y-2">${itemsHTML}</div>
+                ${toggleButtonHTML}
+            `;
+        }
+        
+        function toggleDobozcimkeList() {
+            dobozcimkeListaExpanded = !dobozcimkeListaExpanded;
+            renderDobozcimkeKeszlet();
         }
         
         // Event delegation for dobozcimke edit buttons
@@ -2268,6 +2376,311 @@
         }
         
         // ===== VÉGÉ DOBOZCÍMKE FUNKCIÓK =====
+        
+        // ===== KISZÁLLÍTÁS TERVEZŐ FUNKCIÓK =====
+        
+        let tervezoTermekek = []; // { illatId, illatNev, termekTipusNev, meret, sku, mennyiseg }
+        let selectedTervezoVarians = null;
+        
+        function kiszallitasTervezoModal() {
+            tervezoTermekek = [];
+            document.getElementById('tervezoDobozolva').checked = false;
+            document.getElementById('kiszallitasTervezoModal').classList.remove('hidden');
+            renderTervezoTermekek();
+            renderTervezoEllenorzes();
+        }
+        
+        function kiszallitasTervezoModalBezar() {
+            document.getElementById('kiszallitasTervezoModal').classList.add('hidden');
+            tervezoTermekek = [];
+        }
+        
+        function tervezoTermekHozzaadModal() {
+            renderTervezoTermekLista();
+            document.getElementById('tervezoTermekModal').classList.remove('hidden');
+        }
+        
+        function tervezoTermekModalBezar() {
+            document.getElementById('tervezoTermekModal').classList.add('hidden');
+            document.getElementById('tervezoTermekKeresoInput').value = '';
+        }
+        
+        function renderTervezoTermekLista() {
+            const lista = document.getElementById('tervezoTermekListaDiv');
+            const keresoInput = document.getElementById('tervezoTermekKeresoInput');
+            const keresoSzoveg = keresoInput ? keresoInput.value.toLowerCase() : '';
+            
+            let szurtVariansok = termekVariansok;
+            
+            if (keresoSzoveg) {
+                szurtVariansok = termekVariansok.filter(v => {
+                    const illat = illatok.find(i => i.id === v.illatId);
+                    const illatNev = illat ? illat.nev.toLowerCase() : '';
+                    const sku = (v.sku || '').toLowerCase();
+                    return illatNev.includes(keresoSzoveg) || sku.includes(keresoSzoveg);
+                });
+            }
+            
+            const rendezetVariansok = [...szurtVariansok].sort((a, b) => a.displayNev.localeCompare(b.displayNev, 'hu'));
+            
+            if (rendezetVariansok.length === 0) {
+                lista.innerHTML = '<p class="text-gray-500 text-center py-8">Nincs találat</p>';
+                return;
+            }
+            
+            lista.innerHTML = rendezetVariansok.map(v => {
+                const illat = illatok.find(i => i.id === v.illatId);
+                const illatNev = illat ? illat.nev : 'Ismeretlen';
+                
+                return `
+                    <div class="p-3 border border-purple-200 rounded-lg hover:bg-purple-50 cursor-pointer transition"
+                         onclick='tervezoTermekKivalaszt(${JSON.stringify(v)})'>
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-medium text-sm">${illatNev}</div>
+                                <div class="text-xs text-gray-600">${v.termekTipusNev} - ${v.meret}</div>
+                                <div class="text-xs font-mono text-gray-500 mt-1">${v.sku || 'SKU: N/A'}</div>
+                            </div>
+                            <div class="text-purple-600 font-bold text-xl">→</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function tervezoTermekKivalaszt(varians) {
+            selectedTervezoVarians = varians;
+            
+            const illat = illatok.find(i => i.id === varians.illatId);
+            const illatNev = illat ? illat.nev : 'Ismeretlen';
+            
+            document.getElementById('tervezoTermekModal').classList.add('hidden');
+            
+            const mennyisegModal = document.getElementById('tervezoMennyisegModal');
+            const info = document.getElementById('tervezoMennyisegInfo');
+            
+            info.innerHTML = `
+                <div class="font-medium mb-1">${illatNev}</div>
+                <div class="text-sm text-gray-600">${varians.termekTipusNev} - ${varians.meret}</div>
+                <div class="text-xs font-mono text-gray-500 mt-1">${varians.sku || 'SKU: N/A'}</div>
+            `;
+            
+            document.getElementById('tervezoMennyisegInput').value = 1;
+            mennyisegModal.classList.remove('hidden');
+        }
+        
+        function tervezoMennyisegModalBezar() {
+            document.getElementById('tervezoMennyisegModal').classList.add('hidden');
+            selectedTervezoVarians = null;
+        }
+        
+        function tervezoMennyisegMegerosit() {
+            if (!selectedTervezoVarians) return;
+            
+            const mennyiseg = parseInt(document.getElementById('tervezoMennyisegInput').value);
+            
+            if (!mennyiseg || mennyiseg < 1) {
+                showAlert('Kérlek adj meg érvényes mennyiséget!', 'error');
+                return;
+            }
+            
+            const illat = illatok.find(i => i.id === selectedTervezoVarians.illatId);
+            
+            // Hozzáadás vagy mennyiség növelés
+            const meglevo = tervezoTermekek.find(t => 
+                t.illatId === selectedTervezoVarians.illatId &&
+                t.termekTipusNev === selectedTervezoVarians.termekTipusNev &&
+                t.meret === selectedTervezoVarians.meret
+            );
+            
+            if (meglevo) {
+                meglevo.mennyiseg += mennyiseg;
+            } else {
+                tervezoTermekek.push({
+                    illatId: selectedTervezoVarians.illatId,
+                    illatNev: illat.nev,
+                    termekTipusNev: selectedTervezoVarians.termekTipusNev,
+                    meret: selectedTervezoVarians.meret,
+                    sku: selectedTervezoVarians.sku,
+                    mennyiseg: mennyiseg
+                });
+            }
+            
+            renderTervezoTermekek();
+            renderTervezoEllenorzes();
+            tervezoMennyisegModalBezar();
+            selectedTervezoVarians = null;
+        }
+        
+        function renderTervezoTermekek() {
+            const lista = document.getElementById('tervezoTermekekLista');
+            
+            if (tervezoTermekek.length === 0) {
+                lista.innerHTML = '<p class="text-gray-500 text-sm italic">Még nincs termék hozzáadva</p>';
+                return;
+            }
+            
+            lista.innerHTML = `
+                <h3 class="font-bold text-purple-900 mb-3">Tervezett termékek:</h3>
+                <div class="space-y-2">
+                    ${tervezoTermekek.map((t, idx) => `
+                        <div class="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="font-medium text-sm">${t.illatNev}</div>
+                                    <div class="text-xs text-gray-600">${t.termekTipusNev} - ${t.meret}</div>
+                                    <div class="font-bold text-purple-700 mt-1">${t.mennyiseg} db</div>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="tervezoTermekSzerkeszt(${idx})" 
+                                        class="text-blue-600 hover:text-blue-800 text-lg px-2" title="Szerkeszt">
+                                        ✏️
+                                    </button>
+                                    <button onclick="tervezoTermekTorol(${idx})" 
+                                        class="text-red-600 hover:text-red-800 text-lg px-2" title="Töröl">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        async function tervezoTermekSzerkeszt(index) {
+            const termek = tervezoTermekek[index];
+            
+            const ujMennyiseg = await showPrompt({
+                title: 'Mennyiség szerkesztése',
+                message: `${termek.illatNev} - ${termek.termekTipusNev} - ${termek.meret}\n\nJelenlegi: ${termek.mennyiseg} db`,
+                defaultValue: termek.mennyiseg,
+                inputType: 'number',
+                placeholder: 'Új mennyiség'
+            });
+            
+            if (ujMennyiseg !== null && ujMennyiseg !== '') {
+                const szam = parseInt(ujMennyiseg);
+                if (!isNaN(szam) && szam > 0) {
+                    termek.mennyiseg = szam;
+                    renderTervezoTermekek();
+                    renderTervezoEllenorzes();
+                }
+            }
+        }
+        
+        function tervezoTermekTorol(index) {
+            tervezoTermekek.splice(index, 1);
+            renderTervezoTermekek();
+            renderTervezoEllenorzes();
+        }
+        
+        function renderTervezoEllenorzes() {
+            const div = document.getElementById('tervezoEllenorzes');
+            const dobozolva = document.getElementById('tervezoDobozolva').checked;
+            
+            if (tervezoTermekek.length === 0) {
+                div.innerHTML = '';
+                return;
+            }
+            
+            const ellenorzesek = [];
+            const hianyok = [];
+            
+            tervezoTermekek.forEach(t => {
+                const kulcs = getCimkeKulcs(t.illatId, t.termekTipusNev, t.meret);
+                
+                // Kész termék
+                const keszDb = keszTermekek
+                    .filter(kt => kt.illatNev === t.illatNev && kt.termekTipusNev === t.termekTipusNev && kt.meret === t.meret)
+                    .reduce((sum, kt) => sum + kt.darabszam, 0);
+                const keszOk = keszDb >= t.mennyiseg;
+                
+                // Termék címke
+                const cimkeDb = cimkeKeszlet[kulcs] || 0;
+                const cimkeOk = cimkeDb >= t.mennyiseg;
+                
+                // Dobozcímke (csak ha dobozolva)
+                let dobozcimkeDb = 0;
+                let dobozcimkeOk = true;
+                if (dobozolva) {
+                    dobozcimkeDb = dobozcimkeKeszlet[kulcs] || 0;
+                    dobozcimkeOk = dobozcimkeDb >= t.mennyiseg;
+                }
+                
+                ellenorzesek.push({
+                    termek: t,
+                    keszDb,
+                    keszOk,
+                    cimkeDb,
+                    cimkeOk,
+                    dobozcimkeDb,
+                    dobozcimkeOk,
+                    dobozolva
+                });
+                
+                // Hiányok gyűjtése
+                if (!keszOk) {
+                    hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Kész termék hiány (${keszDb}/${t.mennyiseg} db)`);
+                }
+                if (!cimkeOk) {
+                    hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Termék címke hiány (${cimkeDb}/${t.mennyiseg} db)`);
+                }
+                if (dobozolva && !dobozcimkeOk) {
+                    hianyok.push(`${t.illatNev} ${t.termekTipusNev} ${t.meret}: Dobozcímke hiány (${dobozcimkeDb}/${t.mennyiseg} db)`);
+                }
+            });
+            
+            // HTML generálás
+            let html = '<h3 class="font-bold text-purple-900 mb-3">✅ Készlet ellenőrzés:</h3>';
+            
+            ellenorzesek.forEach(e => {
+                const mindenOk = e.keszOk && e.cimkeOk && (!e.dobozolva || e.dobozcimkeOk);
+                const borderColor = mindenOk ? 'border-green-300' : 'border-red-300';
+                const bgColor = mindenOk ? 'bg-green-50' : 'bg-red-50';
+                
+                html += `
+                    <div class="p-4 ${bgColor} border ${borderColor} rounded-lg mb-3">
+                        <div class="font-medium text-sm mb-2">${e.termek.illatNev} - ${e.termek.termekTipusNev} ${e.termek.meret} (${e.termek.mennyiseg} db)</div>
+                        <div class="space-y-1 text-sm">
+                            <div class="${e.keszOk ? 'text-green-700' : 'text-red-700'}">
+                                ${e.keszOk ? '✅' : '❌'} Kész termék: ${e.keszDb} db ${!e.keszOk ? `(hiány: ${e.termek.mennyiseg - e.keszDb} db)` : ''}
+                            </div>
+                            <div class="${e.cimkeOk ? 'text-green-700' : 'text-red-700'}">
+                                ${e.cimkeOk ? '✅' : '❌'} Termék címke: ${e.cimkeDb} db ${!e.cimkeOk ? `(hiány: ${e.termek.mennyiseg - e.cimkeDb} db)` : ''}
+                            </div>
+                            ${e.dobozolva ? `
+                                <div class="${e.dobozcimkeOk ? 'text-green-700' : 'text-red-700'}">
+                                    ${e.dobozcimkeOk ? '✅' : '❌'} Dobozcímke: ${e.dobozcimkeDb} db ${!e.dobozcimkeOk ? `(hiány: ${e.termek.mennyiseg - e.dobozcimkeDb} db)` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Hiányok összesítő
+            if (hianyok.length > 0) {
+                html += `
+                    <div class="p-4 bg-red-100 border-2 border-red-400 rounded-lg">
+                        <h4 class="font-bold text-red-900 mb-2">⚠️ HIÁNYOK ÖSSZESÍTVE:</h4>
+                        <ul class="list-disc list-inside space-y-1 text-sm text-red-800">
+                            ${hianyok.map(h => `<li>${h}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="p-4 bg-green-100 border-2 border-green-400 rounded-lg">
+                        <h4 class="font-bold text-green-900">🎉 MINDEN RENDBEN! Nincs hiány.</h4>
+                    </div>
+                `;
+            }
+            
+            div.innerHTML = html;
+        }
+        
+        // ===== VÉGÉ KISZÁLLÍTÁS TERVEZŐ FUNKCIÓK =====
         
         function renderDraftDoboz() {
             const doboz = document.getElementById('draftDoboz');
