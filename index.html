@@ -2423,9 +2423,11 @@
         let tervezoTermekek = []; // { illatId, illatNev, termekTipusNev, meret, sku, mennyiseg }
         let selectedTervezoVarians = null;
         
-        function kiszallitasTervezoModal() {
-            tervezoTermekek = [];
-            document.getElementById('tervezoDobozolva').checked = false;
+        function kiszallitasTervezoModal(skipReset = false) {
+            if (!skipReset) {
+                tervezoTermekek = [];
+                document.getElementById('tervezoDobozolva').checked = false;
+            }
             document.getElementById('kiszallitasTervezoModal').classList.remove('hidden');
             renderTervezoTermekek();
             renderTervezoEllenorzes();
@@ -2854,7 +2856,7 @@
             tervezoTermekek = JSON.parse(JSON.stringify(tervezes.termekek)); // deep copy
             document.getElementById('tervezoDobozolva').checked = tervezes.dobozolva;
             
-            kiszallitasTervezoModal();
+            kiszallitasTervezoModal(true); // skipReset = true
             renderTervezoTermekek();
             renderTervezoEllenorzes();
         }
