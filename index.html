@@ -2639,13 +2639,6 @@
             tervezoTermekek.forEach(t => {
                 const kulcs = getCimkeKulcs(t.illatId, t.termekTipusNev, t.meret);
                 
-                // DEBUG - Nézd meg mi van a cimkeKeszlet-ben
-                console.log('🔍 DEBUG Tervező:');
-                console.log('  Termék:', t.illatNev, t.termekTipusNev, t.meret);
-                console.log('  Kulcs:', kulcs);
-                console.log('  CimkeKeszlet[kulcs]:', cimkeKeszlet[kulcs]);
-                console.log('  Összes cimkeKeszlet kulcs:', Object.keys(cimkeKeszlet));
-                
                 // KÉSZ TERMÉK (polcon)
                 const polconDb = keszTermekek
                     .filter(kt => kt.illatNev === t.illatNev && kt.termekTipusNev === t.termekTipusNev && kt.meret === t.meret)
@@ -4472,8 +4465,10 @@
         }
 
         function getCimkeKulcs(illatId, termekTipus, meret) {
-            return `${illatId}-${termekTipus}-${meret}`;
+            // Normalizáljuk a termekTipus-t kisbetűsre hogy konzisztens legyen
+            return `${illatId}-${termekTipus.toLowerCase()}-${meret}`;
         }
+
 
         function gyorsNyomtatas(illatId, termekTipus, meret) {
             const inputId = `lapok-${illatId}-${termekTipus}-${meret}`;
