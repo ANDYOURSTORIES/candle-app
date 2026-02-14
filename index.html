@@ -1648,6 +1648,9 @@
                 // TermekVariansId backfill régi kész termékekhez
                 await backfillKeszTermekekVariansId();
                 
+                // Címke kulcsok normalizálása (case fix)
+                await migrateCimkeKeys();
+                
                 render();
                 renderDraftDoboz();
                 
@@ -1872,6 +1875,71 @@
                 await ment();
             } else {
                 console.log('✅ Minden kész terméknek van termekVariansId!');
+            }
+        }
+        
+        // ===== CÍMKE KULCS MIGRÁCIÓ (case normalizálás) =====
+        
+        async function migrateCimkeKeys() {
+            console.log('🔄 Címke és dobozcímke kulcsok normalizálása...');
+            
+            let cimkeModositva = 0;
+            let dobozcimkeModositva = 0;
+            
+            // Címke készlet migráció
+            const ujCimkeKeszlet = {};
+            Object.entries(cimkeKeszlet).forEach(([kulcs, mennyiseg]) => {
+                // Kulcs szétbontása
+                const parts = kulcs.split('-');
+                if (parts.length >= 3) {
+                    const illatId = parts[0];
+                    const meret = parts[parts.length - 1];
+                    const termekTipus = parts.slice(1, -1).join('-');
+                    
+                    // Új kulcs generálása (lowercase)
+                    const ujKulcs = `${illatId}-${termekTipus.toLowerCase()}-${meret}`;
+                    
+                    if (ujKulcs !== kulcs) {
+                        cimkeModositva++;
+                        console.log(`  📝 Címke: ${kulcs} → ${ujKulcs}`);
+                    }
+                    
+                    // Ha már van ilyen kulcs, összegezzük
+                    ujCimkeKeszlet[ujKulcs] = (ujCimkeKeszlet[ujKulcs] || 0) + mennyiseg;
+                } else {
+                    ujCimkeKeszlet[kulcs] = mennyiseg;
+                }
+            });
+            cimkeKeszlet = ujCimkeKeszlet;
+            
+            // Dobozcímke készlet migráció
+            const ujDobozcimkeKeszlet = {};
+            Object.entries(dobozcimkeKeszlet).forEach(([kulcs, mennyiseg]) => {
+                const parts = kulcs.split('-');
+                if (parts.length >= 3) {
+                    const illatId = parts[0];
+                    const meret = parts[parts.length - 1];
+                    const termekTipus = parts.slice(1, -1).join('-');
+                    
+                    const ujKulcs = `${illatId}-${termekTipus.toLowerCase()}-${meret}`;
+                    
+                    if (ujKulcs !== kulcs) {
+                        dobozcimkeModositva++;
+                        console.log(`  📦 Dobozcímke: ${kulcs} → ${ujKulcs}`);
+                    }
+                    
+                    ujDobozcimkeKeszlet[ujKulcs] = (ujDobozcimkeKeszlet[ujKulcs] || 0) + mennyiseg;
+                } else {
+                    ujDobozcimkeKeszlet[kulcs] = mennyiseg;
+                }
+            });
+            dobozcimkeKeszlet = ujDobozcimkeKeszlet;
+            
+            if (cimkeModositva > 0 || dobozcimkeModositva > 0) {
+                console.log(`✅ Címke migráció: ${cimkeModositva} kulcs, Dobozcímke migráció: ${dobozcimkeModositva} kulcs`);
+                await ment();
+            } else {
+                console.log('✅ Címke kulcsok már normalizálva vannak!');
             }
         }
 
