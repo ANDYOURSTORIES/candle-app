@@ -213,7 +213,7 @@
         <div id="reszlegesCimkezesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
                 <div class="p-6">
-                    <h2 class="text-xl font-bold text-purple-900 mb-4">🏷️ Részleges címkézés</h2>
+                    <h2 class="text-xl font-bold text-purple-900 mb-4">🏷️ Címkézés</h2>
                     <div id="reszlegesCimkezesInfo" class="bg-purple-50 p-4 rounded-lg mb-4"></div>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Hány darabot címkézel?</label>
@@ -341,19 +341,28 @@
         <div id="szerkesztKeszTermekModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
                 <div class="p-6">
-                    <h2 class="text-xl font-bold text-blue-900 mb-4">✏️ Mennyiség szerkesztése</h2>
-                    <div id="szerkesztKeszTermekInfo" class="bg-blue-50 p-4 rounded-lg mb-4"></div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Új mennyiség (db)</label>
-                        <div class="flex gap-2 items-center">
-                            <button onclick="keszTermekMennyisegValtoztat(-1)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold">
-                                -
-                            </button>
-                            <input type="number" id="szerkesztKeszTermekMennyiseg" min="0" 
-                                class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg text-center font-bold">
-                            <button onclick="keszTermekMennyisegValtoztat(1)" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold">
-                                +
-                            </button>
+                    <h2 class="text-xl font-bold text-blue-900 mb-4">✏️ Mennyiségek szerkesztése</h2>
+                    <div id="szerkesztKeszTermekInfo" class="bg-blue-50 p-3 rounded-lg mb-4 text-sm"></div>
+                    <div class="space-y-3 mb-4">
+                        <div class="flex items-center gap-3">
+                            <label class="w-28 text-sm font-medium text-gray-700">🏺 Kiöntve</label>
+                            <input type="number" id="szerkesztKiontve" min="0"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 text-center font-bold">
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <label class="w-28 text-sm font-medium text-gray-700">✅ Polcon</label>
+                            <input type="number" id="szerkesztPolcon" min="0"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 text-center font-bold">
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <label class="w-28 text-sm font-medium text-gray-700">🏷️ T.Címke</label>
+                            <input type="number" id="szerkesztTCimke" min="0"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-center font-bold">
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <label class="w-28 text-sm font-medium text-gray-700">📦 D.Címke</label>
+                            <input type="number" id="szerkesztDCimke" min="0"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-center font-bold">
                         </div>
                     </div>
                     <div class="flex gap-2">
@@ -907,16 +916,6 @@
             </div>
         </div>
 
-        <!-- Termékek listája -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-amber-900">📋 Címkézetlen termékek</h2>
-                <button onclick="scrollToProductForm()" class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 text-sm font-semibold">
-                    ➕ Új termék
-                </button>
-            </div>
-            <div id="kiontesLista" class="space-y-3 max-h-96 overflow-y-auto"></div>
-        </div>
 
         <!-- Kész termékek -->
         <div class="bg-white rounded-xl shadow-lg p-4 md:p-6">
@@ -1119,9 +1118,10 @@
         let sortStates = {
             cimkezetlen: { column: 'illat', direction: 'asc' },
             keszTermekek: { column: 'illat', direction: 'asc' },
+            keszKeszlet: { column: 'illat', direction: 'asc' },
             draft: { column: 'illat', direction: 'asc' },
             kiszallitasok: { column: 'datum', direction: 'desc' },
-            cimkeGyartas: { column: 'hiany', direction: 'desc' } // Alapból hiány szerint csökkenő
+            cimkeGyartas: { column: 'hiany', direction: 'desc' }
         };
         
         // Univerzális rendezés függvény
@@ -5343,69 +5343,97 @@
         let szerkesztKeszTermekData = null; // Szerkesztés állapot tárolása
 
         function keszTermekSzerkeszt(illatNev, termekTipusNev, meret, osszesDarab) {
-            szerkesztKeszTermekData = { illatNev, termekTipusNev, meret, osszesDarab };
-            
-            const modal = document.getElementById('szerkesztKeszTermekModal');
-            const info = document.getElementById('szerkesztKeszTermekInfo');
-            const mennyisegInput = document.getElementById('szerkesztKeszTermekMennyiseg');
-            
-            info.innerHTML = `
-                <div class="font-medium mb-1">${illatNev}</div>
-                <div class="text-sm text-gray-600">${termekTipusNev} - ${meret}</div>
-                <div class="text-sm text-gray-600 mt-2">Jelenlegi mennyiség: <span class="font-bold">${osszesDarab} db</span></div>
+            const illat = illatok.find(i => i.nev === illatNev);
+            const illatId = illat ? illat.id : null;
+            const varians = termekVariansok.find(v => 
+                v.illatId == illatId && v.termekTipusNev === termekTipusNev && v.meret === meret
+            );
+            const termekTipus = varians ? varians.termekTipus : null;
+
+            szerkesztKeszTermekData = { illatNev, termekTipusNev, meret, osszesDarab, illatId, termekTipus };
+
+            // Aktuális értékek
+            const kiontveDb = kiontesek
+                .filter(k => String(k.illatId) === String(illatId) && k.termekTipus === termekTipus && k.meret === meret)
+                .reduce((sum, k) => sum + k.darabszam, 0);
+
+            const termekCimkeKulcs = getCimkeKulcs(illatId, termekTipus, meret);
+            const termekCimkeDb = cimkeKeszlet[termekCimkeKulcs] || 0;
+
+            const dobozcimkeKulcs = getCimkeKulcs(illatId, termekTipusNev, meret);
+            const dobozcimkeDb = dobozcimkeKeszlet[dobozcimkeKulcs] || 0;
+
+            document.getElementById('szerkesztKeszTermekInfo').innerHTML = `
+                <div class="font-medium">${illatNev}</div>
+                <div class="text-gray-600">${termekTipusNev} - ${meret}</div>
             `;
-            
-            mennyisegInput.value = osszesDarab;
-            modal.classList.remove('hidden');
+            document.getElementById('szerkesztKiontve').value = kiontveDb;
+            document.getElementById('szerkesztPolcon').value = osszesDarab;
+            document.getElementById('szerkesztTCimke').value = termekCimkeDb;
+            document.getElementById('szerkesztDCimke').value = dobozcimkeDb;
+
+            document.getElementById('szerkesztKeszTermekModal').classList.remove('hidden');
         }
 
         function keszTermekMennyisegValtoztat(valtozas) {
-            const input = document.getElementById('szerkesztKeszTermekMennyiseg');
-            const jelenlegiErtek = parseInt(input.value) || 0;
-            const ujErtek = Math.max(0, jelenlegiErtek + valtozas);
-            input.value = ujErtek;
+            // Régi függvény - már nem használjuk de megtartjuk kompatibilitáshoz
         }
 
         async function keszTermekSzerkesztMent() {
             if (!szerkesztKeszTermekData) return;
-            
-            const ujMennyiseg = parseInt(document.getElementById('szerkesztKeszTermekMennyiseg').value);
-            
-            if (isNaN(ujMennyiseg) || ujMennyiseg < 0) {
-                alert('Érvénytelen mennyiség!');
-                return;
-            }
-            
-            const { illatNev, termekTipusNev, meret, osszesDarab } = szerkesztKeszTermekData;
-            
-            if (ujMennyiseg === 0) {
-                if (!confirm('A mennyiség 0 lesz. Ez törölni fogja ezt a terméket. Biztosan folytatod?')) {
-                    return;
-                }
-            }
-            
-            // Megkeressük az összes tételt
-            const tetelek = keszTermekek.filter(t => 
-                t.illatNev === illatNev && 
-                t.termekTipusNev === termekTipusNev && 
-                t.meret === meret
+
+            const { illatNev, termekTipusNev, meret, illatId, termekTipus } = szerkesztKeszTermekData;
+
+            const ujKiontve = parseInt(document.getElementById('szerkesztKiontve').value) || 0;
+            const ujPolcon = parseInt(document.getElementById('szerkesztPolcon').value) || 0;
+            const ujTCimke = parseInt(document.getElementById('szerkesztTCimke').value) || 0;
+            const ujDCimke = parseInt(document.getElementById('szerkesztDCimke').value) || 0;
+
+            // === KIÖNTVE frissítése ===
+            // Töröljük az összes meglévő kiöntést ehhez a termékhez
+            kiontesek = kiontesek.filter(k => 
+                !(String(k.illatId) === String(illatId) && k.termekTipus === termekTipus && k.meret === meret)
             );
-            
-            if (ujMennyiseg === 0) {
-                // Törlés
-                keszTermekek = keszTermekek.filter(t => 
-                    !(t.illatNev === illatNev && 
-                      t.termekTipusNev === termekTipusNev && 
-                      t.meret === meret)
-                );
-            } else {
-                // Arányos módosítás
-                const arany = ujMennyiseg / osszesDarab;
-                tetelek.forEach(tetel => {
-                    tetel.darabszam = Math.round(tetel.darabszam * arany);
+            // Ha van kiöntve, hozzáadunk egy új tételt
+            if (ujKiontve > 0) {
+                kiontesek.unshift({
+                    id: generateId(),
+                    illatId: parseInt(illatId),
+                    illatNev,
+                    termekTipus,
+                    termekTipusNev,
+                    meret,
+                    darabszam: ujKiontve,
+                    datum: new Date().toISOString().split('T')[0]
                 });
             }
-            
+
+            // === POLCON frissítése ===
+            keszTermekek = keszTermekek.filter(t => 
+                !(t.illatNev === illatNev && t.termekTipusNev === termekTipusNev && t.meret === meret)
+            );
+            if (ujPolcon > 0) {
+                keszTermekek.unshift({
+                    id: generateId(),
+                    illatId: parseInt(illatId),
+                    illatNev,
+                    termekTipus,
+                    termekTipusNev,
+                    meret,
+                    darabszam: ujPolcon,
+                    datum: new Date().toISOString().split('T')[0],
+                    cimkezveIdopont: new Date().toISOString().split('T')[0]
+                });
+            }
+
+            // === T.CÍMKE frissítése ===
+            const termekCimkeKulcs = getCimkeKulcs(illatId, termekTipus, meret);
+            cimkeKeszlet[termekCimkeKulcs] = ujTCimke;
+
+            // === D.CÍMKE frissítése ===
+            const dobozcimkeKulcs = getCimkeKulcs(illatId, termekTipusNev, meret);
+            dobozcimkeKeszlet[dobozcimkeKulcs] = ujDCimke;
+
             await ment();
             render();
             keszTermekSzerkesztBezar();
@@ -7077,6 +7105,7 @@
 
         // Aktív szűrő állapot
         let keszTermekSzuroAllapot = 'mind';
+        let keszTermekSortState = { col: 'szin', dir: 'asc' };
 
         function keszTermekSzuro(allapot) {
             keszTermekSzuroAllapot = allapot;
@@ -7101,6 +7130,22 @@
             if (t.includes('diff')) return 'DIFI';
             if (t.includes('car') || t.includes('autó')) return 'CAR';
             return termekTipusNev.substring(0, 4).toUpperCase();
+        }
+
+        function keszTermekSortBy(col) {
+            if (keszTermekSortState.col === col) {
+                keszTermekSortState.dir = keszTermekSortState.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+                keszTermekSortState = { col, dir: 'asc' };
+            }
+            renderKeszTermekek();
+        }
+
+        function getKeszTermekSortIcon(col) {
+            if (keszTermekSortState.col !== col) return '<span class="text-gray-300 ml-1">⇅</span>';
+            return keszTermekSortState.dir === 'asc' 
+                ? '<span class="text-amber-600 ml-1">↑</span>' 
+                : '<span class="text-amber-600 ml-1">↓</span>';
         }
 
         function renderKeszTermekek() {
@@ -7179,13 +7224,26 @@
                 return true;
             });
 
-            // Rendezés: piros → sárga → barna → fehér, azon belül illat név
+            // Rendezés: alapból piros → sárga → barna → fehér, azon belül illat név
             const szinSorrend = { piros: 0, sarga: 1, barna: 2, feher: 3 };
             szurtSorok.sort((a, b) => {
-                const sa = szinSorrend[getSorSzin(a)];
-                const sb = szinSorrend[getSorSzin(b)];
-                if (sa !== sb) return sa - sb;
-                return a.illatNev.localeCompare(b.illatNev, 'hu');
+                const { col, dir } = keszTermekSortState;
+                let valA, valB;
+                if (col === 'szin') { valA = szinSorrend[getSorSzin(a)]; valB = szinSorrend[getSorSzin(b)]; }
+                else if (col === 'illat') { valA = a.illatNev; valB = b.illatNev; }
+                else if (col === 'tipus') { valA = a.v.termekTipusNev + a.v.meret; valB = b.v.termekTipusNev + b.v.meret; }
+                else if (col === 'sku') { valA = a.sku; valB = b.sku; }
+                else if (col === 'kiontve') { valA = a.kiontveDb; valB = b.kiontveDb; }
+                else if (col === 'polcon') { valA = a.polconDb; valB = b.polconDb; }
+                else if (col === 'tcimke') { valA = a.termekCimkeDb; valB = b.termekCimkeDb; }
+                else if (col === 'dcimke') { valA = a.dobozcimkeDb; valB = b.dobozcimkeDb; }
+                else { valA = szinSorrend[getSorSzin(a)]; valB = szinSorrend[getSorSzin(b)]; }
+
+                if (typeof valA === 'string') {
+                    const cmp = valA.localeCompare(valB, 'hu');
+                    return dir === 'asc' ? cmp : -cmp;
+                }
+                return dir === 'asc' ? valA - valB : valB - valA;
             });
 
             // === ÖSSZESÍTŐK ===
@@ -7235,13 +7293,13 @@
                 <table class="w-full text-xs md:text-sm border-collapse">
                     <thead>
                         <tr class="bg-gray-100 border-b-2 border-gray-300 text-left">
-                            <th class="p-1.5 md:p-2 font-semibold text-gray-700">Illat</th>
-                            <th class="p-1.5 md:p-2 font-semibold text-gray-700">Típus</th>
-                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 font-mono">SKU</th>
-                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center">Kiöntve</th>
-                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center">Polcon</th>
-                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center">T.Címke</th>
-                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center">D.Címke</th>
+                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('illat')">Illat${getKeszTermekSortIcon('illat')}</th>
+                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('tipus')">Típus${getKeszTermekSortIcon('tipus')}</th>
+                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 font-mono cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('sku')">SKU${getKeszTermekSortIcon('sku')}</th>
+                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('kiontve')">Kiöntve${getKeszTermekSortIcon('kiontve')}</th>
+                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('polcon')">Polcon${getKeszTermekSortIcon('polcon')}</th>
+                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('tcimke')">T.Címke${getKeszTermekSortIcon('tcimke')}</th>
+                            <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('dcimke')">D.Címke${getKeszTermekSortIcon('dcimke')}</th>
                             <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center"></th>
                         </tr>
                     </thead>
