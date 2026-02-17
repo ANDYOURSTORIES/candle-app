@@ -6909,7 +6909,9 @@
 
             // Kiöntések lista - CSOPORTOSÍTVA
             const kiontesLista = document.getElementById('kiontesLista');
-            if (kiontesek.length === 0) {
+            if (!kiontesLista) {
+                // A kiöntések listája el lett távolítva - az új termék készlet táblában jelenik meg
+            } else if (kiontesek.length === 0) {
                 kiontesLista.innerHTML = '<p class="text-gray-500 text-center py-8">Még nincs termék rögzítve</p>';
             } else {
                 // Csoportosítás illat+típus+méret szerint
