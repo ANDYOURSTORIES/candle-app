@@ -2616,6 +2616,7 @@
                 tervezoTermekek.push({
                     illatId: selectedTervezoVarians.illatId,
                     illatNev: illat.nev,
+                    termekTipus: selectedTervezoVarians.termekTipus,
                     termekTipusNev: selectedTervezoVarians.termekTipusNev,
                     meret: selectedTervezoVarians.meret,
                     sku: selectedTervezoVarians.sku,
@@ -2705,7 +2706,7 @@
             const hianyok = [];
             
             tervezoTermekek.forEach(t => {
-                const kulcs = getCimkeKulcs(t.illatId, t.termekTipusNev, t.meret);
+                const kulcs = getCimkeKulcs(t.illatId, t.termekTipus || t.termekTipusNev, t.meret);
                 
                 // KÉSZ TERMÉK (polcon)
                 const polconDb = keszTermekek
