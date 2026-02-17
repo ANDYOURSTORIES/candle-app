@@ -6,9 +6,6 @@
     <title>AYS Production</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Firebase konfiguráció - NEM kerül githubra (.gitignore) -->
-    <script src="config.js"></script>
-    
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -16,9 +13,15 @@
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getStorage, ref, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
         
-        // Firebase konfiguráció - külső config.js fájlból töltve (NEM kerül githubra!)
-        // Lásd: config.js (gitignore-ban van)
-        const firebaseConfig = window.firebaseConfig;
+        // Firebase konfiguráció
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKEAA01f16INT22nX2fSV8YGOfB3fDuMw",
+            authDomain: "ays-production-5ab41.firebaseapp.com",
+            projectId: "ays-production-5ab41",
+            storageBucket: "ays-production-5ab41.firebasestorage.app",
+            messagingSenderId: "642343737324",
+            appId: "1:642343737324:web:2a2f1bd9455cb83a2752c9"
+        };
         
         // Firebase inicializálás
         const app = initializeApp(firebaseConfig);
