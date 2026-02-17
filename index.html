@@ -7303,15 +7303,16 @@
         }
 
         function termekCimkezModal(illatId, termekTipus, meret) {
-            // Megkeressük a kiöntést
+            // illatId lehet string vagy int, mindkettőt kezeljük
             const kiontes = kiontesek.find(k => 
-                k.illatId === illatId && k.termekTipus === termekTipus && k.meret === meret
+                String(k.illatId) === String(illatId) && 
+                k.termekTipus === termekTipus && 
+                k.meret === meret
             );
             if (!kiontes) {
                 showAlert('Nem található kiöntés ehhez a termékhez!', 'error');
                 return;
             }
-            // A meglévő részleges/teljes modált hívjuk meg
             termekCimkezReszleges(kiontes.id);
         }
 
