@@ -934,13 +934,13 @@
                     class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">
                     ✅ Kész (polcon)
                 </button>
-                <button id="szuroTermekCimkeBtn" onclick="toggleTermekCimkeKeszlet()" 
-                    class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700">
-                    🏷️ Termék címke
+                <button id="szuroTermekCimkeBtn" onclick="keszTermekSzuro('termekCimke')" 
+                    class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">
+                    🏷️ + Termék címke
                 </button>
-                <button id="szuroDobozcimkeBtn" onclick="toggleDobozcimkeKeszlet()" 
-                    class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700">
-                    📦 Dobozcímke
+                <button id="szuroDobozcimkeBtn" onclick="keszTermekSzuro('dobozcimke')" 
+                    class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">
+                    📦 + Dobozcímke
                 </button>
                 <input type="text" id="keszTermekKereses" placeholder="🔍 Keresés..." 
                     oninput="renderKeszTermekek()"
@@ -949,34 +949,6 @@
 
             <!-- Táblázat -->
             <div id="keszTermekekLista" class="overflow-x-auto"></div>
-
-            <!-- Termék címke készlet (collapse) -->
-            <div id="termekCimkeKeszletDiv" class="hidden mt-4 bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="font-bold text-blue-900">🏷️ Termék címke készlet</h3>
-                    <button onclick="toggleManualCimkeModal()" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-sm font-semibold">
-                        ➕ Hozzáad
-                    </button>
-                </div>
-                <input type="text" id="cimkeKeszletKereses" placeholder="🔍 Keresés illat név, SKU alapján..." 
-                    class="w-full px-4 py-2 border border-blue-300 rounded-lg mb-3 text-sm focus:ring-2 focus:ring-blue-500"
-                    oninput="cimkeKeszletSzures()">
-                <div id="cimkeKeszletLista" class="space-y-2 max-h-96 overflow-y-auto"></div>
-            </div>
-
-            <!-- Dobozcímke készlet (collapse) -->
-            <div id="dobozcimkeKeszletDiv" class="hidden mt-4 bg-green-50 rounded-lg p-4 border-2 border-green-200">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-green-900">📦 Dobozcímke készlet</h3>
-                    <button onclick="ujDobozcimkeModal()" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 font-semibold text-sm">
-                        ➕ Hozzáad
-                    </button>
-                </div>
-                <input type="text" id="dobozcimkeKeresoInput" placeholder="🔍 Keresés illat név vagy SKU szerint..." 
-                    oninput="renderDobozcimkeKeszlet()"
-                    class="w-full px-4 py-2 border-2 border-green-200 rounded-lg mb-3 focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                <div id="dobozcimkeKeszletLista" class="space-y-2"></div>
-            </div>
         </div>
         </div>
         <!-- GYÁRTÁS TAB VÉGE -->
@@ -7118,7 +7090,7 @@
         function keszTermekSzuro(allapot) {
             keszTermekSzuroAllapot = allapot;
             // Gomb stílusok frissítése
-            ['mind', 'cimkeletlen', 'kesz'].forEach(a => {
+            ['mind', 'cimkeletlen', 'kesz', 'termekCimke', 'dobozcimke'].forEach(a => {
                 const btn = document.getElementById(`szuro${a.charAt(0).toUpperCase() + a.slice(1)}Btn`);
                 if (btn) {
                     if (a === allapot) {
@@ -7129,28 +7101,6 @@
                 }
             });
             renderKeszTermekek();
-        }
-
-        function toggleTermekCimkeKeszlet() {
-            const div = document.getElementById('termekCimkeKeszletDiv');
-            const isHidden = div.classList.contains('hidden');
-            div.classList.toggle('hidden');
-            
-            // Ha megnyitjuk, zárjuk be a dobozcímkét
-            if (isHidden) {
-                document.getElementById('dobozcimkeKeszletDiv').classList.add('hidden');
-            }
-        }
-
-        function toggleDobozcimkeKeszlet() {
-            const div = document.getElementById('dobozcimkeKeszletDiv');
-            const isHidden = div.classList.contains('hidden');
-            div.classList.toggle('hidden');
-            
-            // Ha megnyitjuk, zárjuk be a termék címkét
-            if (isHidden) {
-                document.getElementById('termekCimkeKeszletDiv').classList.add('hidden');
-            }
         }
 
         function getTermekTipusRovid(termekTipusNev) {
@@ -7236,13 +7186,25 @@
 
             // === SZŰRÉS ===
             let szurtSorok = sorok.filter(sor => {
-                const { polconDb, kiontveDb } = sor;
-                // Kék sorok nem jelennek meg (semmi sincs)
-                if (polconDb === 0 && kiontveDb === 0) return false;
-
-                // Szűrő gombok
-                if (keszTermekSzuroAllapot === 'cimkeletlen' && kiontveDb === 0) return false;
-                if (keszTermekSzuroAllapot === 'kesz' && polconDb === 0) return false;
+                const { polconDb, kiontveDb, termekCimkeDb, dobozcimkeDb } = sor;
+                
+                // Alapszűrés a szűrő gombok alapján
+                if (keszTermekSzuroAllapot === 'mind') {
+                    // Mind: csak ahol van termék (kiöntve VAGY polcon)
+                    if (polconDb === 0 && kiontveDb === 0) return false;
+                } else if (keszTermekSzuroAllapot === 'cimkeletlen') {
+                    // Címkézetlen: csak ahol van kiöntve
+                    if (kiontveDb === 0) return false;
+                } else if (keszTermekSzuroAllapot === 'kesz') {
+                    // Kész (polcon): csak ahol van polcon
+                    if (polconDb === 0) return false;
+                } else if (keszTermekSzuroAllapot === 'termekCimke') {
+                    // Termék címke: ahol van termék VAGY van termék címke
+                    if (polconDb === 0 && kiontveDb === 0 && termekCimkeDb === 0) return false;
+                } else if (keszTermekSzuroAllapot === 'dobozcimke') {
+                    // Dobozcímke: ahol van termék VAGY van dobozcímke
+                    if (polconDb === 0 && kiontveDb === 0 && dobozcimkeDb === 0) return false;
+                }
 
                 // Kereső
                 if (kereses) {
