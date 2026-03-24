@@ -5071,8 +5071,70 @@
         function reszlegesCimkezesVegrehajt() {
             if (!reszlegesCimkezesData) return;
             
-            const { kiontesId, kiontes, maxCimkezheto } = reszlegesCimkezesData;
             const szam = parseInt(document.getElementById('reszlegesMennyiseg').value);
+            
+            // Új összesített eset kezelése
+            if (reszlegesCimkezesData.ossz) {
+                const { illatId, illatNev, termekTipus, termekTipusNev, meret, osszesDb, maxCimkezheto } = reszlegesCimkezesData;
+                
+                if (!szam || szam < 1 || szam > maxCimkezheto) {
+                    alert(`Érvénytelen mennyiség! Add meg 1 és ${maxCimkezheto} között!`);
+                    return;
+                }
+                
+                const kulcs = getCimkeKulcs(illatId, termekTipus, meret);
+                
+                // Levonás a címke készletből
+                cimkeKeszlet[kulcs] -= szam;
+                
+                // Megkeressük az összes kiöntött tételt
+                const csoportTetelek = kiontesek.filter(k => 
+                    String(k.illatId) === String(illatId) && 
+                    k.termekTipus === termekTipus && 
+                    k.meret === meret
+                );
+                
+                let maradekCimkezendo = szam;
+                
+                // Címkézés sorrendben, amíg van címke
+                for (const tetel of csoportTetelek) {
+                    if (maradekCimkezendo <= 0) break;
+                    
+                    const cimkezettMennyiseg = Math.min(tetel.darabszam, maradekCimkezendo);
+                    
+                    // Kész termék létrehozása
+                    keszTermekek.unshift({
+                        id: generateId(),
+                        illatId: parseInt(illatId),
+                        illatNev,
+                        termekTipus,
+                        termekTipusNev,
+                        meret,
+                        darabszam: cimkezettMennyiseg,
+                        datum: tetel.datum,
+                        cimkezveIdopont: new Date().toISOString().split('T')[0]
+                    });
+                    
+                    tetel.darabszam -= cimkezettMennyiseg;
+                    maradekCimkezendo -= cimkezettMennyiseg;
+                }
+                
+                // Törlés a 0-ra csökkent tételek
+                kiontesek = kiontesek.filter(k => 
+                    !(String(k.illatId) === String(illatId) && 
+                      k.termekTipus === termekTipus && 
+                      k.meret === meret && 
+                      k.darabszam <= 0)
+                );
+                
+                ment();
+                render();
+                reszlegesCimkezesModal(null);
+                return;
+            }
+            
+            // Régi logika egyedi kiöntéshez
+            const { kiontesId, kiontes, maxCimkezheto } = reszlegesCimkezesData;
             
             if (!szam || szam < 1 || szam > maxCimkezheto) {
                 alert(`Érvénytelen mennyiség! Add meg 1 és ${maxCimkezheto} között!`);
@@ -7353,17 +7415,76 @@
         }
 
         function termekCimkezModal(illatId, termekTipus, meret) {
-            // illatId lehet string vagy int, mindkettőt kezeljük
-            const kiontes = kiontesek.find(k => 
+            // Összesítjük az összes kiöntést ehhez a termékhez
+            const osszesKiontes = kiontesek.filter(k => 
                 String(k.illatId) === String(illatId) && 
                 k.termekTipus === termekTipus && 
                 k.meret === meret
             );
-            if (!kiontes) {
-                showAlert('Nem található kiöntés ehhez a termékhez!', 'error');
+            
+            const osszesKiontveDb = osszesKiontes.reduce((sum, k) => sum + k.darabszam, 0);
+            
+            if (osszesKiontveDb === 0) {
+                showAlert('Nincs kiöntött termék!', 'error');
                 return;
             }
-            termekCimkezReszleges(kiontes.id);
+            
+            // Illat név megkeresése
+            const illat = illatok.find(i => String(i.id) === String(illatId));
+            const illatNev = illat ? illat.nev : 'Ismeretlen';
+            
+            // Termék típus név megkeresése
+            const varians = termekVariansok.find(v => 
+                String(v.illatId) === String(illatId) && 
+                v.termekTipus === termekTipus && 
+                v.meret === meret
+            );
+            const termekTipusNev = varians ? varians.termekTipusNev : 'Ismeretlen';
+            
+            // Címke készlet ellenőrzése
+            const kulcs = getCimkeKulcs(illatId, termekTipus, meret);
+            const keszletMennyiseg = cimkeKeszlet[kulcs] || 0;
+            const maxCimkezheto = Math.min(keszletMennyiseg, osszesKiontveDb);
+            
+            if (maxCimkezheto === 0) {
+                alert('Nincs címke a készletben!');
+                return;
+            }
+            
+            // Modal megnyitása az összesített adatokkal
+            reszlegesCimkezesModalOsszesitett(illatId, illatNev, termekTipus, termekTipusNev, meret, osszesKiontveDb, maxCimkezheto, keszletMennyiseg);
+        }
+        
+        function reszlegesCimkezesModalOsszesitett(illatId, illatNev, termekTipus, termekTipusNev, meret, osszesDb, maxCimkezheto, keszletMennyiseg) {
+            const modal = document.getElementById('reszlegesCimkezesModal');
+            
+            // Adatok tárolása
+            reszlegesCimkezesData = { 
+                ossz: true, 
+                illatId, 
+                illatNev, 
+                termekTipus, 
+                termekTipusNev, 
+                meret, 
+                osszesDb, 
+                maxCimkezheto, 
+                keszletMennyiseg 
+            };
+            
+            // Info kitöltése
+            const info = document.getElementById('reszlegesCimkezesInfo');
+            info.innerHTML = `
+                <div class="font-medium mb-1">${illatNev} - ${termekTipusNev} - ${meret}</div>
+                <div class="text-sm text-gray-600">Összes termék: ${osszesDb} db</div>
+                <div class="text-sm text-gray-600">Címke készlet: ${keszletMennyiseg} db</div>
+                <div class="text-sm font-semibold text-purple-700 mt-2">Maximum: ${maxCimkezheto} db</div>
+            `;
+            
+            // Input értékének beállítása
+            document.getElementById('reszlegesMennyiseg').value = maxCimkezheto;
+            document.getElementById('reszlegesMennyiseg').max = maxCimkezheto;
+            
+            modal.classList.remove('hidden');
         }
 
         // Enter billentyű kezelés
