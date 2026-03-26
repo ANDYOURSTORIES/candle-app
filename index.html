@@ -4168,10 +4168,12 @@
             `;
             
             // Lista renderelés - CSOPORTOSÍTOTT FORMÁTUM
-            // Csoportosítás dátum + partner + típus szerint
+            // Csoportosítás dátum + partner + típus + megjegyzés szerint
+            // Ha van megjegyzés → külön kiszállítás (nem vonjuk össze)
             const csoportok = {};
             szurtKiszallitasok.forEach(k => {
-                const kulcs = `${k.datum.split('T')[0]}_${k.tipus}_${k.partnerNev || 'nincs'}`;
+                const megjegyzesKulcs = k.megjegyzes ? `_${k.id}` : ''; // Egyedi kulcs ha van megjegyzés
+                const kulcs = `${k.datum.split('T')[0]}_${k.tipus}_${k.partnerNev || 'nincs'}${megjegyzesKulcs}`;
                 if (!csoportok[kulcs]) {
                     csoportok[kulcs] = {
                         datum: k.datum,
