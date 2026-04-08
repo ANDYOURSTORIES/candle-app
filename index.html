@@ -7265,6 +7265,8 @@
             renderKeszTermekek();
         }
         window.keszTermekTipusToggle = keszTermekTipusToggle;
+
+        function getTermekTipusRovid(termekTipusNev) {
             const t = (termekTipusNev || '').toLowerCase();
             if (t.includes('candle') || t.includes('gyertya')) return 'CDL';
             if (t.includes('fufu') || t.includes('room') || t.includes('linen')) return 'FUFU';
