@@ -999,6 +999,23 @@
                     class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">
                     📦 + Dobozcímke
                 </button>
+                <span class="border-l border-gray-300 mx-1"></span>
+                <button id="tipusFilterCDL" onclick="keszTermekTipusToggle('CDL')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white">
+                    CDL
+                </button>
+                <button id="tipusFilterFUFU" onclick="keszTermekTipusToggle('FUFU')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white">
+                    FUFU
+                </button>
+                <button id="tipusFilterDIFI" onclick="keszTermekTipusToggle('DIFI')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white">
+                    DIFI
+                </button>
+                <button id="tipusFilterCAR" onclick="keszTermekTipusToggle('CAR')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white">
+                    CAR
+                </button>
                 <input type="text" id="keszTermekKereses" placeholder="🔍 Keresés..." 
                     oninput="renderKeszTermekek()"
                     class="px-3 py-1.5 border rounded-lg text-sm flex-1 min-w-[150px]">
@@ -1508,6 +1525,8 @@
                         document.getElementById('loadingIndicator').classList.add('hidden');
                         document.getElementById('app').style.display = 'block';
                         render(); // Most hívjuk meg amikor az adatok megvannak!
+                        // Webshippy készlet automatikus betöltése bejelentkezés után
+                        setTimeout(() => window.webshippyFrissit(), 500);
                     });
                 } else {
                     // Nincs bejelentkezve
@@ -7206,6 +7225,8 @@
         // Aktív szűrő állapot
         let keszTermekSzuroAllapot = 'mind';
         let keszTermekSortState = { col: 'szin', dir: 'asc' };
+        // Típus filter — alapból mind be van kapcsolva
+        let keszTermekTipusFilter = new Set(['CDL', 'FUFU', 'DIFI', 'CAR']);
 
         function keszTermekSzuro(allapot) {
             keszTermekSzuroAllapot = allapot;
@@ -7223,7 +7244,27 @@
             renderKeszTermekek();
         }
 
-        function getTermekTipusRovid(termekTipusNev) {
+        function keszTermekTipusToggle(tipus) {
+            if (keszTermekTipusFilter.has(tipus)) {
+                // Ha csak ez az egy aktív, ne kapcsoljuk ki
+                if (keszTermekTipusFilter.size === 1) return;
+                keszTermekTipusFilter.delete(tipus);
+            } else {
+                keszTermekTipusFilter.add(tipus);
+            }
+            // Gomb stílusok frissítése
+            ['CDL', 'FUFU', 'DIFI', 'CAR'].forEach(t => {
+                const btn = document.getElementById(`tipusFilter${t}`);
+                if (!btn) return;
+                if (keszTermekTipusFilter.has(t)) {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-400 hover:bg-gray-300';
+                }
+            });
+            renderKeszTermekek();
+        }
+        window.keszTermekTipusToggle = keszTermekTipusToggle;
             const t = (termekTipusNev || '').toLowerCase();
             if (t.includes('candle') || t.includes('gyertya')) return 'CDL';
             if (t.includes('fufu') || t.includes('room') || t.includes('linen')) return 'FUFU';
@@ -7333,6 +7374,11 @@
                         sor.v.termekTipusNev.toLowerCase().includes(kereses);
                     if (!match) return false;
                 }
+
+                // Típus filter
+                const rovid = getTermekTipusRovid(sor.v.termekTipusNev);
+                if (!keszTermekTipusFilter.has(rovid)) return false;
+
                 return true;
             });
 
