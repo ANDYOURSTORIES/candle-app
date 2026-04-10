@@ -1520,14 +1520,11 @@
                     document.getElementById('userInfo').textContent = user.email;
                     document.getElementById('loadingIndicator').classList.remove('hidden');
                     
-                    // Adatok betöltése ÉS utána render
-                    betolt().then(() => {
-                        document.getElementById('loadingIndicator').classList.add('hidden');
-                        document.getElementById('app').style.display = 'block';
-                        render(); // Most hívjuk meg amikor az adatok megvannak!
-                        // Webshippy készlet automatikus betöltése bejelentkezés után
-                        setTimeout(() => window.webshippyFrissit(), 500);
-                    });
+                    // Adatok betöltése real-time listenerekkel
+                    betolt();
+                    // Loading és app megjelenítés az indulasUtanMigracio()-ban történik
+                    // Webshippy készlet automatikus betöltése bejelentkezés után
+                    setTimeout(() => window.webshippyFrissit(), 2000);
                 } else {
                     // Nincs bejelentkezve
                     jelenlegiUser = null;
@@ -1629,111 +1626,104 @@
 
         // ===== DATA LOADING =====
 
-        async function betolt() {
+        // Hány dokumentum van — ha mind megérkezett, indítjuk a migrációt és rendert
+        const DOCS_SZAMA = 11;
+        let betoltottDokumentumok = 0;
+        let elsoTeljesBetoltes = false;
+        let activeListeners = [];
+
+        function dokumentumBetoltve(kulcs, adat) {
+            // Adatot frissítjük
+            switch(kulcs) {
+                case 'illatok': illatok = adat || []; break;
+                case 'kiontesek': kiontesek = adat || []; break;
+                case 'meretek':
+                    if (adat) { meretek = adat; }
+                    else { meretek = JSON.parse(JSON.stringify(alapMeretek)); ment(); }
+                    break;
+                case 'cimkeKeszlet': cimkeKeszlet = adat || {}; break;
+                case 'dobozcimkeKeszlet': dobozcimkeKeszlet = adat || {}; break;
+                case 'mentettTervezesek': mentettTervezesek = adat || []; break;
+                case 'keszTermekek': keszTermekek = adat || []; break;
+                case 'kiszallitasok': kiszallitasok = adat || []; break;
+                case 'partnerek': partnerek = adat || []; break;
+                case 'aktivDraft': aktivDraft = adat || null; break;
+                case 'termekVariansok': termekVariansok = adat || []; break;
+                case 'migrationStatus': migrationDone = (adat && adat.done) || false; break;
+            }
+
+            if (!elsoTeljesBetoltes) {
+                betoltottDokumentumok++;
+                if (betoltottDokumentumok >= DOCS_SZAMA) {
+                    elsoTeljesBetoltes = true;
+                    indulasUtanMigracio();
+                }
+            } else {
+                // Real-time frissítés — csak rendert hívunk
+                render();
+                renderDraftDoboz();
+            }
+        }
+
+        async function indulasUtanMigracio() {
             try {
-                // Illatok betöltése
-                const illatokDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'illatok'));
-                if (illatokDoc.exists()) {
-                    illatok = illatokDoc.data().data || [];
-                }
-                
-                // Kiöntések betöltése
-                const kiontesekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'kiontesek'));
-                if (kiontesekDoc.exists()) {
-                    kiontesek = kiontesekDoc.data().data || [];
-                }
-                
-                // Méretek betöltése
-                const meretekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'meretek'));
-                if (meretekDoc.exists()) {
-                    meretek = meretekDoc.data().data || {};
-                } else {
-                    // Ha nincs mentett, használjuk az alapértelmezett méreteket
-                    meretek = JSON.parse(JSON.stringify(alapMeretek));
-                    await ment(); // Mentsük el az alapértelmezetteket
-                }
-                
-                // Címke készlet betöltése
-                const cimkeKeszletDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'cimkeKeszlet'));
-                if (cimkeKeszletDoc.exists()) {
-                    cimkeKeszlet = cimkeKeszletDoc.data().data || {};
-                }
-                
-                // Dobozcímke készlet betöltése
-                const dobozcimkeKeszletDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'dobozcimkeKeszlet'));
-                if (dobozcimkeKeszletDoc.exists()) {
-                    dobozcimkeKeszlet = dobozcimkeKeszletDoc.data().data || {};
-                }
-                
-                // Mentett tervezések betöltése
-                const mentettTervezesekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'mentettTervezesek'));
-                if (mentettTervezesekDoc.exists()) {
-                    mentettTervezesek = mentettTervezesekDoc.data().data || [];
-                }
-                
-                // Kész termékek betöltése
-                const keszTermekekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'keszTermekek'));
-                if (keszTermekekDoc.exists()) {
-                    keszTermekek = keszTermekekDoc.data().data || [];
-                }
-                
-                // Kiszállítások betöltése
-                const kiszallitasokDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'kiszallitasok'));
-                if (kiszallitasokDoc.exists()) {
-                    kiszallitasok = kiszallitasokDoc.data().data || [];
-                }
-                
-                // Partnerek betöltése
-                const partnerekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'partnerek'));
-                if (partnerekDoc.exists()) {
-                    partnerek = partnerekDoc.data().data || [];
-                }
-                
-                // Aktív draft betöltése
-                const aktivDraftDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'aktivDraft'));
-                if (aktivDraftDoc.exists()) {
-                    aktivDraft = aktivDraftDoc.data().data || null;
-                }
-                
-                // Termék variánsok betöltése
-                const termekVariansokDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'termekVariansok'));
-                if (termekVariansokDoc.exists()) {
-                    termekVariansok = termekVariansokDoc.data().data || [];
-                }
-                
-                // Migráció ellenőrzés betöltése
-                const migrationDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'migrationStatus'));
-                if (migrationDoc.exists()) {
-                    migrationDone = migrationDoc.data().done || false;
-                }
-                
-                // Automatikus migráció (egyszeri, ha még nem történt meg)
                 if (!migrationDone && kiontesek.length > 0) {
                     await migrateToVariansok();
                 }
-                
-                // Duplikációk tisztítása (minden betöltéskor, de csak ha van duplikáció)
                 await cleanDuplicateVariansok();
-                
-                // SKU backfill régi kiszállításokhoz
                 await backfillKiszallitasokSKU();
-                
-                // TermekVariansId backfill régi kész termékekhez
                 await backfillKeszTermekekVariansId();
-                
-                // Címke kulcsok normalizálása (case fix)
                 await migrateCimkeKeys();
-                
+                document.getElementById('app').style.display = 'block';
                 render();
                 renderDraftDoboz();
-                
-                // Loading indicator elrejtése
                 document.getElementById('loadingIndicator').classList.add('hidden');
             } catch (error) {
                 console.error('Betöltési hiba:', error);
                 document.getElementById('loadingIndicator').classList.add('hidden');
                 alert('Hiba történt az adatok betöltése közben! Ellenőrizd az internet kapcsolatot.');
             }
+        }
+
+        function betolt() {
+            // Régi listenerek leállítása (pl. újra-bejelentkezésnél)
+            activeListeners.forEach(unsub => unsub());
+            activeListeners = [];
+            betoltottDokumentumok = 0;
+            elsoTeljesBetoltes = false;
+
+            const docs = [
+                'illatok', 'kiontesek', 'meretek', 'cimkeKeszlet',
+                'dobozcimkeKeszlet', 'mentettTervezesek', 'keszTermekek',
+                'kiszallitasok', 'partnerek', 'aktivDraft', 'termekVariansok'
+            ];
+
+            docs.forEach(kulcs => {
+                const unsub = window.firestore.onSnapshot(
+                    window.firestore.doc(window.db, 'appData', kulcs),
+                    (snapshot) => {
+                        const adat = snapshot.exists() ? snapshot.data().data : null;
+                        dokumentumBetoltve(kulcs, adat);
+                    },
+                    (error) => console.error(`onSnapshot hiba (${kulcs}):`, error)
+                );
+                activeListeners.push(unsub);
+            });
+
+            // migrationStatus külön (más struktúra)
+            const unsubMigration = window.firestore.onSnapshot(
+                window.firestore.doc(window.db, 'appData', 'migrationStatus'),
+                (snapshot) => {
+                    const adat = snapshot.exists() ? snapshot.data() : null;
+                    dokumentumBetoltve('migrationStatus', adat);
+                },
+                (error) => console.error('onSnapshot hiba (migrationStatus):', error)
+            );
+            activeListeners.push(unsubMigration);
+
+            // betolt() mostantól nem async, Promise.resolve()-t adunk vissza
+            // hogy a hívó .then() működjön
+            return Promise.resolve();
         }
         
         // ===== MIGRÁCIÓ: Régi adatok → Új struktúra =====
