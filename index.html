@@ -76,6 +76,7 @@
     
     <!-- PDF-lib for PDF merging -->
     <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <style>
         body { background-color: #f9fafb; }
@@ -209,6 +210,12 @@
                 <button id="navKeszlet" onclick="showPage('keszlet')"
                     class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
                     <span>📦</span> Termék készlet
+                </button>
+
+                <!-- Statisztika -->
+                <button id="navStatisztika" onclick="showPage('statisztika')"
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
+                    <span>📈</span> Statisztika
                 </button>
 
             </nav>
@@ -1067,6 +1074,78 @@
             <div id="keszTermekekLista" class="overflow-x-auto"></div>
         </div><!-- /keszTermekek táblázat wrapper -->
         </div><!-- /pageKeszlet -->
+
+        <!-- PAGE: Statisztika -->
+        <div id="pageStatisztika" class="hidden">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Statisztika</h1>
+            <p class="text-gray-500 text-sm mt-1">Gyártás és kiszállítás összesítő</p>
+        </div>
+
+        <!-- Időszak választó -->
+        <div class="flex gap-2 mb-6">
+            <button id="statIdoszak6h" onclick="statIdoszakValaszt(6)"
+                class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-900 text-white">6 hónap</button>
+            <button id="statIdoszak12h" onclick="statIdoszakValaszt(12)"
+                class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">12 hónap</button>
+            <button id="statIdoszakMind" onclick="statIdoszakValaszt(0)"
+                class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">Összes</button>
+        </div>
+
+        <!-- Összesítő kártyák -->
+        <div id="statKartyak" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
+
+        <!-- Kiöntés grafikon -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">🕯️ Kiöntés</h2>
+                    <p class="text-sm text-gray-500">Havi gyártási mennyiség típusonként</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="kiontesBtnDb" onclick="statKiontesNezet('db')"
+                        class="px-3 py-1 rounded-lg text-xs font-semibold bg-gray-900 text-white">db</button>
+                    <button id="kiontesBtnTipus" onclick="statKiontesNezet('tipus')"
+                        class="px-3 py-1 rounded-lg text-xs font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">típusonként</button>
+                </div>
+            </div>
+            <div class="relative" style="height: 300px;">
+                <canvas id="kiontesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Kiszállítás grafikon -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">📤 Kiszállítás</h2>
+                    <p class="text-sm text-gray-500">Havi kiszállítási mennyiség csatornánként</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="kiszallBtnCsatorna" onclick="statKiszallNezet('csatorna')"
+                        class="px-3 py-1 rounded-lg text-xs font-semibold bg-gray-900 text-white">csatorna</button>
+                    <button id="kiszallBtnTipus" onclick="statKiszallNezet('tipus')"
+                        class="px-3 py-1 rounded-lg text-xs font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">típusonként</button>
+                </div>
+            </div>
+            <div class="relative" style="height: 300px;">
+                <canvas id="kiszallitasChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Top illatok -->
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-bold text-gray-900 mb-4">🏆 Top kiöntött illatok</h2>
+                <div id="statTopKiontes" class="space-y-2"></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-bold text-gray-900 mb-4">🏆 Top kiszállított illatok</h2>
+                <div id="statTopKiszall" class="space-y-2"></div>
+            </div>
+        </div>
+
+        </div><!-- /pageStatisztika -->
 
         <!-- PAGE: Kiszállítás -->
         <div id="pageKiszallitas" class="hidden">
@@ -4003,14 +4082,309 @@
             alert('✅ Kiszállítás módosítva!');
         }
 
-        // ===== OLDAL NAVIGÁCIÓ =====
-        const PAGES = ['termekek', 'kiontes', 'cimkekGyartasa', 'cimkeNyomtatas', 'keszlet', 'kiszallitas'];
+        // ===== STATISZTIKA =====
+        let statHonapok = 6;
+        let statKiontesNezet_aktiv = 'db';
+        let statKiszallNezet_aktiv = 'csatorna';
+        let kiontesChartInst = null;
+        let kiszallChartInst = null;
+
+        const TIPUS_COLORS = {
+            'CDL': '#f59e0b',
+            'FUFU': '#3b82f6',
+            'DIFI': '#10b981',
+            'CAR': '#8b5cf6',
+            'Egyéb': '#6b7280',
+        };
+
+        function statIdoszakValaszt(honapok) {
+            statHonapok = honapok;
+            ['6h','12h','Mind'].forEach(id => {
+                const btn = document.getElementById('statIdoszak' + id);
+                if (!btn) return;
+                const aktiv = (id === '6h' && honapok === 6) || (id === '12h' && honapok === 12) || (id === 'Mind' && honapok === 0);
+                btn.className = aktiv
+                    ? 'px-4 py-2 rounded-lg text-sm font-semibold bg-gray-900 text-white'
+                    : 'px-4 py-2 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300';
+            });
+            renderStatisztikaiOldal();
+        }
+
+        function statKiontesNezet(nezet) {
+            statKiontesNezet_aktiv = nezet;
+            document.getElementById('kiontesBtnDb').className = nezet === 'db'
+                ? 'px-3 py-1 rounded-lg text-xs font-semibold bg-gray-900 text-white'
+                : 'px-3 py-1 rounded-lg text-xs font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300';
+            document.getElementById('kiontesBtnTipus').className = nezet === 'tipus'
+                ? 'px-3 py-1 rounded-lg text-xs font-semibold bg-gray-900 text-white'
+                : 'px-3 py-1 rounded-lg text-xs font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300';
+            renderKiontesChart();
+        }
+
+        function statKiszallNezet(nezet) {
+            statKiszallNezet_aktiv = nezet;
+            document.getElementById('kiszallBtnCsatorna').className = nezet === 'csatorna'
+                ? 'px-3 py-1 rounded-lg text-xs font-semibold bg-gray-900 text-white'
+                : 'px-3 py-1 rounded-lg text-xs font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300';
+            document.getElementById('kiszallBtnTipus').className = nezet === 'tipus'
+                ? 'px-3 py-1 rounded-lg text-xs font-semibold bg-gray-900 text-white'
+                : 'px-3 py-1 rounded-lg text-xs font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300';
+            renderKiszallChart();
+        }
+
+        function getHaviLabels() {
+            const labels = [];
+            const now = new Date();
+            const db = statHonapok === 0 ? 24 : statHonapok;
+            for (let i = db - 1; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                labels.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+            }
+            return labels;
+        }
+
+        function getTermekTipusRovidFromKiontes(k) {
+            const nev = (k.termekTipusNev || '').toLowerCase();
+            if (nev.includes('candle') || nev.includes('gyertya')) return 'CDL';
+            if (nev.includes('fufu') || nev.includes('room') || nev.includes('linen')) return 'FUFU';
+            if (nev.includes('diff')) return 'DIFI';
+            if (nev.includes('car') || nev.includes('autó')) return 'CAR';
+            return 'Egyéb';
+        }
+
+        function szurdDatumra(lista, datumMezo) {
+            if (statHonapok === 0) return lista;
+            const hatar = new Date();
+            hatar.setMonth(hatar.getMonth() - statHonapok);
+            return lista.filter(k => {
+                const d = new Date(k[datumMezo]);
+                return d >= hatar;
+            });
+        }
+
+        function renderKiontesChart() {
+            const labels = getHaviLabels();
+            const szurt = szurdDatumra(kiontesek, 'datum');
+            let datasets = [];
+
+            if (statKiontesNezet_aktiv === 'db') {
+                // Összesített havi
+                const havi = {};
+                labels.forEach(l => havi[l] = 0);
+                szurt.forEach(k => {
+                    const d = new Date(k.datum);
+                    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                    if (havi[key] !== undefined) havi[key] += (k.darabszam || 0);
+                });
+                datasets = [{
+                    label: 'Kiöntött db',
+                    data: labels.map(l => havi[l]),
+                    backgroundColor: '#f59e0b',
+                    borderColor: '#d97706',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                }];
+            } else {
+                // Típusonként
+                const tipusok = ['CDL', 'FUFU', 'DIFI', 'CAR'];
+                datasets = tipusok.map(tipus => {
+                    const havi = {};
+                    labels.forEach(l => havi[l] = 0);
+                    szurt.filter(k => getTermekTipusRovidFromKiontes(k) === tipus).forEach(k => {
+                        const d = new Date(k.datum);
+                        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                        if (havi[key] !== undefined) havi[key] += (k.darabszam || 0);
+                    });
+                    return {
+                        label: tipus,
+                        data: labels.map(l => havi[l]),
+                        backgroundColor: TIPUS_COLORS[tipus],
+                        borderRadius: 4,
+                    };
+                });
+            }
+
+            if (kiontesChartInst) kiontesChartInst.destroy();
+            const ctx = document.getElementById('kiontesChart');
+            if (!ctx) return;
+            kiontesChartInst = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels.map(l => l.slice(0,7)), datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: statKiontesNezet_aktiv === 'tipus' } },
+                    scales: {
+                        x: { stacked: statKiontesNezet_aktiv === 'tipus', grid: { display: false } },
+                        y: { stacked: statKiontesNezet_aktiv === 'tipus', beginAtZero: true, grid: { color: '#f3f4f6' } }
+                    }
+                }
+            });
+        }
+
+        function renderKiszallChart() {
+            const labels = getHaviLabels();
+            const szurt = szurdDatumra(kiszallitasok, 'datum');
+            let datasets = [];
+
+            if (statKiszallNezet_aktiv === 'csatorna') {
+                // Webshippy fulfillment vs egyéb
+                const webshippyHavi = {}, egyebHavi = {};
+                labels.forEach(l => { webshippyHavi[l] = 0; egyebHavi[l] = 0; });
+                szurt.forEach(k => {
+                    const d = new Date(k.datum);
+                    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                    if (key in webshippyHavi) {
+                        const tipus = (k.tipus || '').toLowerCase();
+                        if (tipus.includes('webshippy') || tipus.includes('fulfilm') || tipus.includes('webshop')) {
+                            webshippyHavi[key] += (k.mennyiseg || 0);
+                        } else {
+                            egyebHavi[key] += (k.mennyiseg || 0);
+                        }
+                    }
+                });
+                datasets = [
+                    {
+                        label: 'Webshippy / Webshop',
+                        data: labels.map(l => webshippyHavi[l]),
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'Egyéb (piac, partner...)',
+                        data: labels.map(l => egyebHavi[l]),
+                        backgroundColor: '#d1d5db',
+                        borderRadius: 4,
+                    }
+                ];
+            } else {
+                // Típusonként
+                const tipusok = ['CDL', 'FUFU', 'DIFI', 'CAR'];
+                datasets = tipusok.map(tipus => {
+                    const havi = {};
+                    labels.forEach(l => havi[l] = 0);
+                    szurt.filter(k => {
+                        const v = termekVariansok.find(tv => tv.sku === k.sku);
+                        if (!v) return false;
+                        return getTermekTipusRovid(v.termekTipusNev) === tipus;
+                    }).forEach(k => {
+                        const d = new Date(k.datum);
+                        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                        if (havi[key] !== undefined) havi[key] += (k.mennyiseg || 0);
+                    });
+                    return {
+                        label: tipus,
+                        data: labels.map(l => havi[l]),
+                        backgroundColor: TIPUS_COLORS[tipus],
+                        borderRadius: 4,
+                    };
+                });
+            }
+
+            if (kiszallChartInst) kiszallChartInst.destroy();
+            const ctx = document.getElementById('kiszallitasChart');
+            if (!ctx) return;
+            kiszallChartInst = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: labels.map(l => l.slice(0,7)), datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true } },
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true, grid: { color: '#f3f4f6' } }
+                    }
+                }
+            });
+        }
+
+        function renderStatKartyak() {
+            const szurtKiontes = szurdDatumra(kiontesek, 'datum');
+            const szurtKiszall = szurdDatumra(kiszallitasok, 'datum');
+            const ossKiontes = szurtKiontes.reduce((s, k) => s + (k.darabszam || 0), 0);
+            const ossKiszall = szurtKiszall.reduce((s, k) => s + (k.mennyiseg || 0), 0);
+            const illatokSzama = new Set(szurtKiontes.map(k => k.illatId)).size;
+            const partnerekSzama = new Set(szurtKiszall.map(k => k.partnerNev).filter(Boolean)).size;
+
+            document.getElementById('statKartyak').innerHTML = `
+                <div class="bg-white rounded-xl border border-gray-200 p-5">
+                    <div class="text-3xl font-bold text-amber-600">${ossKiontes}</div>
+                    <div class="text-sm text-gray-500 mt-1">db kiöntve</div>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-200 p-5">
+                    <div class="text-3xl font-bold text-blue-600">${ossKiszall}</div>
+                    <div class="text-sm text-gray-500 mt-1">db kiszállítva</div>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-200 p-5">
+                    <div class="text-3xl font-bold text-emerald-600">${illatokSzama}</div>
+                    <div class="text-sm text-gray-500 mt-1">aktív illat</div>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-200 p-5">
+                    <div class="text-3xl font-bold text-purple-600">${partnerekSzama}</div>
+                    <div class="text-sm text-gray-500 mt-1">partner</div>
+                </div>
+            `;
+        }
+
+        function renderTopIllatok() {
+            // Top kiöntött
+            const szurtKiontes = szurdDatumra(kiontesek, 'datum');
+            const kiontesByIllat = {};
+            szurtKiontes.forEach(k => {
+                const nev = k.illatNev || 'Ismeretlen';
+                kiontesByIllat[nev] = (kiontesByIllat[nev] || 0) + (k.darabszam || 0);
+            });
+            const topKiontes = Object.entries(kiontesByIllat).sort((a,b) => b[1]-a[1]).slice(0, 8);
+            const maxK = topKiontes[0]?.[1] || 1;
+            document.getElementById('statTopKiontes').innerHTML = topKiontes.map(([nev, db]) => `
+                <div class="flex items-center gap-3">
+                    <div class="text-sm text-gray-700 w-36 truncate" title="${nev}">${nev}</div>
+                    <div class="flex-1 bg-gray-100 rounded-full h-2">
+                        <div class="bg-amber-500 h-2 rounded-full" style="width:${Math.round(db/maxK*100)}%"></div>
+                    </div>
+                    <div class="text-sm font-bold text-gray-700 w-10 text-right">${db}</div>
+                </div>
+            `).join('') || '<p class="text-gray-400 text-sm">Nincs adat</p>';
+
+            // Top kiszállított
+            const szurtKiszall = szurdDatumra(kiszallitasok, 'datum');
+            const kiszallByIllat = {};
+            szurtKiszall.forEach(k => {
+                const nev = k.illatNev || 'Ismeretlen';
+                kiszallByIllat[nev] = (kiszallByIllat[nev] || 0) + (k.mennyiseg || 0);
+            });
+            const topKiszall = Object.entries(kiszallByIllat).sort((a,b) => b[1]-a[1]).slice(0, 8);
+            const maxKi = topKiszall[0]?.[1] || 1;
+            document.getElementById('statTopKiszall').innerHTML = topKiszall.map(([nev, db]) => `
+                <div class="flex items-center gap-3">
+                    <div class="text-sm text-gray-700 w-36 truncate" title="${nev}">${nev}</div>
+                    <div class="flex-1 bg-gray-100 rounded-full h-2">
+                        <div class="bg-blue-500 h-2 rounded-full" style="width:${Math.round(db/maxKi*100)}%"></div>
+                    </div>
+                    <div class="text-sm font-bold text-gray-700 w-10 text-right">${db}</div>
+                </div>
+            `).join('') || '<p class="text-gray-400 text-sm">Nincs adat</p>';
+        }
+
+        function renderStatisztikaiOldal() {
+            renderStatKartyak();
+            renderKiontesChart();
+            renderKiszallChart();
+            renderTopIllatok();
+        }
+
+        window.statIdoszakValaszt = statIdoszakValaszt;
+        window.statKiontesNezet = statKiontesNezet;
+        window.statKiszallNezet = statKiszallNezet;
+        const PAGES = ['termekek', 'kiontes', 'cimkekGyartasa', 'cimkeNyomtatas', 'keszlet', 'statisztika', 'kiszallitas'];
         const NAV_IDS = {
             'termekek': 'navTermekek',
             'kiontes': 'navKiontes',
             'cimkekGyartasa': 'navCimkekGyartasa',
             'cimkeNyomtatas': 'navCimkeNyomtatas',
             'keszlet': 'navKeszlet',
+            'statisztika': 'navStatisztika',
             'kiszallitas': 'navKiszallitas',
         };
         let aktívOldal = 'termekek';
@@ -4058,6 +4432,12 @@
                     ? 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all bg-gray-900 text-white'
                     : 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all';
             }
+            const navStatisztikaBtn = document.getElementById('navStatisztika');
+            if (navStatisztikaBtn) {
+                navStatisztikaBtn.className = pageName === 'statisztika'
+                    ? 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all bg-gray-900 text-white'
+                    : 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all';
+            }
 
             // Gyártás főmenü kiemelése ha almenü aktív
             const gyartasPages = ['termekek', 'kiontes', 'cimkekGyartasa', 'cimkeNyomtatas'];
@@ -4075,6 +4455,8 @@
                 renderKiszallitasok();
                 renderDobozcimkeKeszlet();
                 renderMentettTervezesek();
+            } else if (pageName === 'statisztika') {
+                renderStatisztikaiOldal();
             } else if (pageName === 'keszlet') {
                 renderKeszTermekek();
             } else if (pageName === 'cimkekGyartasa') {
