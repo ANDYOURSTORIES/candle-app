@@ -36,6 +36,42 @@
         window.firestore = { collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot };
         window.authFunctions = { signInWithEmailAndPassword, onAuthStateChanged, signOut };
         window.storageFunctions = { ref, getDownloadURL };
+
+        // === WEBSHIPPY KÉSZLET CACHE ===
+        window.webshippyKeszlet = {};
+        window.webshippyBetoltve = false;
+        window.webshippyBetoltes = false;
+
+        window.webshippyFrissit = async function() {
+            if (window.webshippyBetoltes) return;
+            window.webshippyBetoltes = true;
+            const btn = document.getElementById('webshippyFrissitBtn');
+            if (btn) btn.innerHTML = '🔄';
+            try {
+                const FUNCTION_URL = 'https://webshippy-keszlet-642343737324.europe-west1.run.app';
+                const resp = await fetch(FUNCTION_URL, { method: 'GET' });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const raw = await resp.json();
+                // Normalizálás: idézőjeles kulcsok tisztítása
+                const data = {};
+                for (const [key, val] of Object.entries(raw)) {
+                    const cleanKey = key.replace(/^"+|"+$/g, '').trim();
+                    data[cleanKey] = val;
+                }
+                window.webshippyKeszlet = data;
+                window.webshippyBetoltve = true;
+                renderKeszTermekek();
+                if (btn) btn.innerHTML = '✅';
+                setTimeout(() => { if (btn) btn.innerHTML = '☁️ Webshippy'; }, 2000);
+            } catch (err) {
+                console.error('Webshippy fetch hiba:', err);
+                const btn2 = document.getElementById('webshippyFrissitBtn');
+                if (btn2) btn2.innerHTML = '❌ Hiba';
+                setTimeout(() => { if (btn2) btn2.innerHTML = '☁️ Webshippy'; }, 3000);
+            } finally {
+                window.webshippyBetoltes = false;
+            }
+        };
     </script>
     
     <!-- PDF-lib for PDF merging -->
@@ -50,7 +86,6 @@
         @media (min-width: 768px) {
             #sidebar { transform: translateX(0) !important; }
         }
-    </style>
         /* Desktop betűméret csökkentés (20-30% kisebb) */
         @media (min-width: 768px) {
             body {
@@ -934,7 +969,14 @@
         <!-- Kész termékek -->
         <div class="bg-white rounded-xl shadow-lg p-4 md:p-6">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
-                <h2 class="text-xl font-bold text-amber-900">📦 Termék készlet</h2>
+                <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-bold text-amber-900">📦 Termék készlet</h2>
+                    <button id="webshippyFrissitBtn" onclick="webshippyFrissit()"
+                        class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-700 border border-sky-300 px-3 py-1 rounded-full font-medium transition"
+                        title="Webshippy raktárkészlet frissítése">
+                        ☁️ Webshippy
+                    </button>
+                </div>
                 <div class="flex gap-2 items-center flex-wrap">
                     <button onclick="toggleManualKeszTermekModal()" class="bg-emerald-600 text-white px-3 py-2 rounded-lg hover:bg-emerald-700 text-sm font-semibold">
                         ➕ Hozzáadás
@@ -1478,6 +1520,8 @@
                         document.getElementById('loadingIndicator').classList.add('hidden');
                         document.getElementById('app').style.display = 'flex';
                         render(); // Most hívjuk meg amikor az adatok megvannak!
+                        // Webshippy auto-betöltés
+                        setTimeout(() => window.webshippyFrissit(), 1500);
                     });
                 } else {
                     // Nincs bejelentkezve
@@ -7338,6 +7382,7 @@
                 else if (col === 'polcon') { valA = a.polconDb; valB = b.polconDb; }
                 else if (col === 'tcimke') { valA = a.termekCimkeDb; valB = b.termekCimkeDb; }
                 else if (col === 'dcimke') { valA = a.dobozcimkeDb; valB = b.dobozcimkeDb; }
+                else if (col === 'webshippy') { valA = window.webshippyKeszlet[a.sku] || 0; valB = window.webshippyKeszlet[b.sku] || 0; }
                 else { valA = szinSorrend[getSorSzin(a)]; valB = szinSorrend[getSorSzin(b)]; }
 
                 if (typeof valA === 'string') {
@@ -7401,6 +7446,7 @@
                             <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('polcon')">Polcon${getKeszTermekSortIcon('polcon')}</th>
                             <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('tcimke')">T.Címke${getKeszTermekSortIcon('tcimke')}</th>
                             <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('dcimke')">D.Címke${getKeszTermekSortIcon('dcimke')}</th>
+                            <th class="p-1.5 md:p-2 font-semibold text-sky-700 text-center cursor-pointer hover:bg-gray-200 select-none" onclick="keszTermekSortBy('webshippy')" title="Webshippy szabad készlet">☁️ WS${getKeszTermekSortIcon('webshippy')}</th>
                             <th class="p-1.5 md:p-2 font-semibold text-gray-700 text-center"></th>
                         </tr>
                     </thead>
@@ -7426,6 +7472,12 @@
                                 <td class="p-1.5 md:p-2 text-center font-bold ${polconDb > 0 ? 'text-emerald-700' : 'text-gray-300'}">${polconDb}</td>
                                 <td class="p-1.5 md:p-2 text-center font-bold ${termekCimkeDb > 0 ? 'text-blue-700' : 'text-gray-300'}">${termekCimkeDb}</td>
                                 <td class="p-1.5 md:p-2 text-center font-bold ${dobozcimkeDb > 0 ? 'text-purple-700' : 'text-gray-300'}">${dobozcimkeDb}</td>
+                                <td class="p-1.5 md:p-2 text-center font-bold ${
+                                    !window.webshippyBetoltve ? 'text-gray-300' :
+                                    (window.webshippyKeszlet[sku] > 0 ? 'text-sky-700' : 'text-red-400')
+                                }" title="${window.webshippyBetoltve ? 'Webshippy szabad készlet' : 'Kattints a ☁️ Webshippy gombra'}">
+                                    ${window.webshippyBetoltve ? (window.webshippyKeszlet[sku] !== undefined ? window.webshippyKeszlet[sku] : '–') : '–'}
+                                </td>
                                 <td class="p-1.5 md:p-2">
                                     <div class="flex gap-0.5 justify-center items-center">
                                         ${kiontveDb > 0 ? `
