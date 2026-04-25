@@ -1045,6 +1045,15 @@
                     class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">
                     📦 + Dobozcímke
                 </button>
+                <span class="border-l border-gray-300 mx-1 self-stretch"></span>
+                <button id="tipusFilterCDL" onclick="keszTermekTipusToggle('CDL')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white">CDL</button>
+                <button id="tipusFilterFUFU" onclick="keszTermekTipusToggle('FUFU')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white">FUFU</button>
+                <button id="tipusFilterDIFI" onclick="keszTermekTipusToggle('DIFI')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white">DIFI</button>
+                <button id="tipusFilterCAR" onclick="keszTermekTipusToggle('CAR')"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white">CAR</button>
                 <input type="text" id="keszTermekKereses" placeholder="🔍 Keresés..." 
                     oninput="renderKeszTermekek()"
                     class="px-3 py-1.5 border rounded-lg text-sm flex-1 min-w-[150px]">
@@ -7359,6 +7368,26 @@
         // Aktív szűrő állapot
         let keszTermekSzuroAllapot = 'mind';
         let keszTermekSortState = { col: 'szin', dir: 'asc' };
+        // Típus filter — alapból mind be van kapcsolva
+        let keszTermekTipusFilter = new Set(['CDL', 'FUFU', 'DIFI', 'CAR']);
+
+        function keszTermekTipusToggle(tipus) {
+            if (keszTermekTipusFilter.has(tipus)) {
+                if (keszTermekTipusFilter.size === 1) return; // legalább egy maradjon
+                keszTermekTipusFilter.delete(tipus);
+            } else {
+                keszTermekTipusFilter.add(tipus);
+            }
+            ['CDL', 'FUFU', 'DIFI', 'CAR'].forEach(t => {
+                const btn = document.getElementById(`tipusFilter${t}`);
+                if (!btn) return;
+                btn.className = keszTermekTipusFilter.has(t)
+                    ? 'px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 text-white'
+                    : 'px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-200 text-gray-400 hover:bg-gray-300';
+            });
+            renderKeszTermekek();
+        }
+        window.keszTermekTipusToggle = keszTermekTipusToggle;
 
         function keszTermekSzuro(allapot) {
             keszTermekSzuroAllapot = allapot;
@@ -7463,8 +7492,7 @@
                 
                 // Alapszűrés a szűrő gombok alapján
                 if (keszTermekSzuroAllapot === 'mind') {
-                    // Mind: csak ahol van termék (kiöntve VAGY polcon)
-                    if (polconDb === 0 && kiontveDb === 0) return false;
+                    // Mind: minden variáns megjelenik, még ha 0 a készlet is
                 } else if (keszTermekSzuroAllapot === 'cimkeletlen') {
                     // Címkézetlen: csak ahol van kiöntve
                     if (kiontveDb === 0) return false;
@@ -7486,6 +7514,11 @@
                         sor.v.termekTipusNev.toLowerCase().includes(kereses);
                     if (!match) return false;
                 }
+
+                // Típus filter
+                const rovid = getTermekTipusRovid(sor.v.termekTipusNev);
+                if (!keszTermekTipusFilter.has(rovid)) return false;
+
                 return true;
             });
 
