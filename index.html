@@ -1029,6 +1029,10 @@
                     class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-600 text-white">
                     Mind
                 </button>
+                <button id="szuroVanValami" onclick="keszTermekSzuro('vanValami')" 
+                    class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">
+                    ⚡ Aktív
+                </button>
                 <button id="szuroCimkeletlenBtn" onclick="keszTermekSzuro('cimkeletlen')" 
                     class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">
                     🟫 Címkézetlen
@@ -7392,14 +7396,13 @@
         function keszTermekSzuro(allapot) {
             keszTermekSzuroAllapot = allapot;
             // Gomb stílusok frissítése
-            ['mind', 'cimkeletlen', 'kesz', 'termekCimke', 'dobozcimke'].forEach(a => {
-                const btn = document.getElementById(`szuro${a.charAt(0).toUpperCase() + a.slice(1)}Btn`);
+            ['mind', 'vanValami', 'cimkeletlen', 'kesz', 'termekCimke', 'dobozcimke'].forEach(a => {
+                const btnId = a === 'vanValami' ? 'szuroVanValami' : `szuro${a.charAt(0).toUpperCase() + a.slice(1)}Btn`;
+                const btn = document.getElementById(btnId);
                 if (btn) {
-                    if (a === allapot) {
-                        btn.className = 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-600 text-white';
-                    } else {
-                        btn.className = 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300';
-                    }
+                    btn.className = a === allapot
+                        ? 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-600 text-white'
+                        : 'px-3 py-1.5 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300';
                 }
             });
             renderKeszTermekek();
@@ -7493,6 +7496,10 @@
                 // Alapszűrés a szűrő gombok alapján
                 if (keszTermekSzuroAllapot === 'mind') {
                     // Mind: minden variáns megjelenik, még ha 0 a készlet is
+                } else if (keszTermekSzuroAllapot === 'vanValami') {
+                    // Van valami: legalább egy oszlopban > 0
+                    const wsDb = window.webshippyKeszlet[sor.sku] || 0;
+                    if (polconDb === 0 && kiontveDb === 0 && termekCimkeDb === 0 && dobozcimkeDb === 0 && wsDb === 0) return false;
                 } else if (keszTermekSzuroAllapot === 'cimkeletlen') {
                     // Címkézetlen: csak ahol van kiöntve
                     if (kiontveDb === 0) return false;
