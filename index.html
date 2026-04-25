@@ -168,27 +168,61 @@
             </div>
 
             <!-- Navigáció -->
-            <nav class="flex-1 px-3 py-4 space-y-1">
-                <button id="navGyartas" onclick="switchTab('gyartas')"
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all bg-gray-900 text-white">
-                    <span class="text-base">🏭</span> Gyártás
+            <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+
+                <!-- Gyártás főmenü -->
+                <button onclick="toggleNavGroup('gyartas')"
+                    id="navGroupGyartas"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
+                    <span class="flex items-center gap-3"><span>🏭</span> Gyártás</span>
+                    <span id="navGroupGyartasArrow" class="text-gray-400 text-xs">▾</span>
                 </button>
-                <button id="navKiszallitas" onclick="switchTab('kiszallitas')"
-                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100">
-                    <span class="text-base">📤</span> Kiszállítás
+                <div id="navGroupGyartasItems" class="space-y-0.5 ml-2">
+                    <button id="navTermekek" onclick="showPage('termekek')"
+                        class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-all">
+                        <span class="text-gray-400">📋</span> Termékek listája
+                    </button>
+                    <button id="navKiontes" onclick="showPage('kiontes')"
+                        class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-all">
+                        <span class="text-gray-400">🕯️</span> Új kiöntés
+                    </button>
+                    <button id="navCimkekGyartasa" onclick="showPage('cimkekGyartasa')"
+                        class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-all">
+                        <span class="text-gray-400">⚠️</span> Címkék gyártása
+                    </button>
+                    <button id="navCimkeNyomtatas" onclick="showPage('cimkeNyomtatas')"
+                        class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-all">
+                        <span class="text-gray-400">🖨️</span> Címke nyomtatás
+                    </button>
+                </div>
+
+                <!-- Elválasztó -->
+                <div class="border-t border-gray-100 my-2"></div>
+
+                <!-- Kiszállítás -->
+                <button id="navKiszallitas" onclick="showPage('kiszallitas')"
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
+                    <span>📤</span> Kiszállítás
                 </button>
+
+                <!-- Termék készlet -->
+                <button id="navKeszlet" onclick="showPage('keszlet')"
+                    class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all">
+                    <span>📦</span> Termék készlet
+                </button>
+
             </nav>
 
             <!-- Alján: user + beállítások + kijelentkezés -->
             <div class="border-t border-gray-100 px-3 py-3 space-y-1">
                 <button onclick="toggleBeallitasok()"
                     class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-all">
-                    <span class="text-base">⚙️</span> Beállítások
+                    <span>⚙️</span> Beállítások
                 </button>
                 <div id="userInfo" class="px-3 py-1.5 text-xs text-gray-400 truncate"></div>
                 <button onclick="kijelentkezes()"
                     class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-all">
-                    <span class="text-base">🚪</span> Kijelentkezés
+                    <span>🚪</span> Kijelentkezés
                 </button>
             </div>
         </aside>
@@ -881,96 +915,100 @@
             </div>
         </div>
 
-        <div id="gyartasTab">
-        <div class="grid md:grid-cols-2 gap-6 mb-6">
-            <!-- Termékek kezelése (hierarchikus: Illat → Variánsok) -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-amber-900">Termékek</h2>
-                    <button onclick="toggleUjIllat()" class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition text-sm">
-                        + Új illat
-                    </button>
-                </div>
-
-                <div id="ujIllatForm" class="mb-4 p-4 bg-amber-50 rounded-lg hidden">
-                    <input
-                        type="text"
-                        id="ujIllatNev"
-                        placeholder="Illat neve (pl. Vanília)"
-                        class="w-full px-4 py-2 border border-amber-300 rounded-lg mb-2 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                    />
-                    <div class="flex gap-2">
-                        <button onclick="illatHozzaad()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex-1">
-                            Hozzáad
-                        </button>
-                        <button onclick="toggleUjIllat()" class="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition">
-                            Mégsem
-                        </button>
-                    </div>
-                </div>
-
-                <div id="termekLista" class="space-y-3 max-h-96 overflow-y-auto"></div>
+        <!-- PAGE: Termékek listája -->
+        <div id="pageTermekek" class="hidden">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Termékek listája</h1>
+            <p class="text-gray-500 text-sm mt-1">Illatok és variánsok kezelése</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-800">Termékek</h2>
+                <button onclick="toggleUjIllat()" class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition text-sm">
+                    + Új illat
+                </button>
             </div>
-
-            <!-- Új termék kiöntése (simplified) -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-xl font-bold text-amber-900 mb-4">Új termék kiöntése</h2>
-                
-                <div id="kiontesForm" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Termék választás</label>
-                        <button type="button" onclick="kiontesTermekValasztModal()" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-left flex justify-between items-center">
-                            <span id="kiontesTermekValasztottNev" class="text-gray-500">Válassz terméket...</span>
-                            <span class="text-gray-400">▼</span>
-                        </button>
-                        <input type="hidden" id="termekValasztas" value="">
-                        <p class="text-xs text-gray-500 mt-1">Ha nincs a listában, adj hozzá új variánst a bal oldalon!</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Darabszám</label>
-                        <input
-                            type="number"
-                            id="darabszam"
-                            min="1"
-                            placeholder="Hány darabot készítettél?"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    <button onclick="kiontesHozzaad()" class="w-full bg-amber-600 text-white px-6 py-3 rounded-lg hover:bg-amber-700 transition font-semibold">
-                        Termék rögzítése
-                    </button>
+            <div id="ujIllatForm" class="mb-4 p-4 bg-amber-50 rounded-lg hidden">
+                <input type="text" id="ujIllatNev" placeholder="Illat neve (pl. Vanília)"
+                    class="w-full px-4 py-2 border border-amber-300 rounded-lg mb-2 focus:ring-2 focus:ring-amber-500 focus:border-transparent"/>
+                <div class="flex gap-2">
+                    <button onclick="illatHozzaad()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex-1">Hozzáad</button>
+                    <button onclick="toggleUjIllat()" class="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500 transition">Mégsem</button>
                 </div>
             </div>
+            <div id="termekLista" class="space-y-3"></div>
+        </div>
         </div>
 
-        <!-- Címke összesítés -->
-        <div id="cimkeOsszesites" class="mb-6"></div>
+        <!-- PAGE: Új kiöntés -->
+        <div id="pageKiontes" class="hidden">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Új termék kiöntése</h1>
+            <p class="text-gray-500 text-sm mt-1">Rögzítsd az elkészített termékeket</p>
+        </div>
+        <div class="max-w-lg bg-white rounded-xl shadow-lg p-6">
+            <div id="kiontesForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Termék választás</label>
+                    <button type="button" onclick="kiontesTermekValasztModal()"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-left flex justify-between items-center">
+                        <span id="kiontesTermekValasztottNev" class="text-gray-500">Válassz terméket...</span>
+                        <span class="text-gray-400">▼</span>
+                    </button>
+                    <input type="hidden" id="termekValasztas" value="">
+                    <p class="text-xs text-gray-500 mt-1">Ha nincs a listában, adj hozzá új variánst a Termékek oldalon!</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Darabszám</label>
+                    <input type="number" id="darabszam" min="1" placeholder="Hány darabot készítettél?"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"/>
+                </div>
+                <button onclick="kiontesHozzaad()" class="w-full bg-amber-600 text-white px-6 py-3 rounded-lg hover:bg-amber-700 transition font-semibold">
+                    Termék rögzítése
+                </button>
+            </div>
+        </div>
+        </div>
 
-        <!-- Címke nyomtatás -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+        <!-- PAGE: Címkék gyártása -->
+        <div id="pageCimkekGyartasa" class="hidden">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Címkék gyártása</h1>
+            <p class="text-gray-500 text-sm mt-1">Hiányzó címkék összesítése</p>
+        </div>
+        <div id="cimkeOsszesites"></div>
+        </div>
+
+        <!-- PAGE: Címke nyomtatás -->
+        <div id="pageCimkeNyomtatas" class="hidden">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Címke nyomtatás</h1>
+            <p class="text-gray-500 text-sm mt-1">12 db / lap</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-lg p-6">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-amber-900">🖨️ Címke nyomtatás (12 db / lap)</h2>
+                <h2 class="text-lg font-bold text-gray-800">Gyors nyomtatás</h2>
                 <button onclick="toggleManualCimkeModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-semibold">
                     ➕ Manuális hozzáadás
                 </button>
             </div>
-            
-            <!-- Gyors nyomtatás lista (középre igazítva) -->
             <div class="max-w-3xl mx-auto">
                 <h3 class="font-semibold text-gray-700 mb-3">Gyors nyomtatás (kiöntött termékek alapján)</h3>
                 <div id="gyorsNyomtatasLista" class="space-y-2 max-h-96 overflow-y-auto"></div>
             </div>
         </div>
+        </div>
 
-
-        <!-- Kész termékek -->
+        <!-- PAGE: Termék készlet -->
+        <div id="pageKeszlet" class="hidden">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Termék készlet</h1>
+            <p class="text-gray-500 text-sm mt-1">Raktáron lévő kész termékek</p>
+        </div>
         <div class="bg-white rounded-xl shadow-lg p-4 md:p-6">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
                 <div class="flex items-center gap-3">
-                    <h2 class="text-xl font-bold text-amber-900">📦 Termék készlet</h2>
+                    <h2 class="text-lg font-bold text-gray-800">📦 Készlet</h2>
                     <button id="webshippyFrissitBtn" onclick="webshippyFrissit()"
                         class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-700 border border-sky-300 px-3 py-1 rounded-full font-medium transition"
                         title="Webshippy raktárkészlet frissítése">
@@ -983,8 +1021,6 @@
                     </button>
                 </div>
             </div>
-
-            <!-- Összesítők -->
             <div id="keszTermekOsszesito" class="mb-4"></div>
 
             <!-- Szűrők és kereső -->
@@ -1016,12 +1052,15 @@
 
             <!-- Táblázat -->
             <div id="keszTermekekLista" class="overflow-x-auto"></div>
-        </div>
-        </div>
-        <!-- GYÁRTÁS TAB VÉGE -->
+        </div><!-- /keszTermekek táblázat wrapper -->
+        </div><!-- /pageKeszlet -->
 
-        <!-- KISZÁLLÍTÁS TAB -->
-        <div id="kiszallitasTab" class="hidden">
+        <!-- PAGE: Kiszállítás -->
+        <div id="pageKiszallitas" class="hidden">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Kiszállítás</h1>
+            <p class="text-gray-500 text-sm mt-1">Kiszállítások kezelése és tervezése</p>
+        </div>
         
             <!-- Draft kiszállítás doboz -->
             <div id="draftDoboz" class="hidden mb-6"></div>
@@ -1142,8 +1181,8 @@
                 <div id="kiszallitasokLista" class="space-y-3 max-h-[600px] overflow-y-auto"></div>
             </div>
             
-        </div>
-        <!-- KISZÁLLÍTÁS TAB VÉGE -->
+        </div><!-- /pageKiszallitas -->
+        <!-- KISZÁLLÍTÁS OLDAL VÉGE -->
             </div><!-- /max-w-6xl -->
         </main><!-- /main content -->
     </div><!-- /app flex -->
@@ -1277,7 +1316,7 @@
         }
         let idCounter = 0; // Egyedi ID számláló
 
-        let aktívTab = 'gyartas'; // Aktív tab követése
+        // aktívTab helyett aktívOldal használatos (showPage kezeli)
         let statisztikaIdoszak = 'heti'; // Statisztika időszak: heti, havi, evi, egyeni
         let migrationDone = false; // Migráció státusz
         
@@ -1519,7 +1558,8 @@
                     betolt().then(() => {
                         document.getElementById('loadingIndicator').classList.add('hidden');
                         document.getElementById('app').style.display = 'flex';
-                        render(); // Most hívjuk meg amikor az adatok megvannak!
+                        render();
+                        showPage('termekek'); // Alapértelmezett oldal
                         // Webshippy auto-betöltés
                         setTimeout(() => window.webshippyFrissit(), 1500);
                     });
@@ -3950,34 +3990,111 @@
             alert('✅ Kiszállítás módosítva!');
         }
 
-        function switchTab(tabName) {
-            aktívTab = tabName;
+        // ===== OLDAL NAVIGÁCIÓ =====
+        const PAGES = ['termekek', 'kiontes', 'cimkekGyartasa', 'cimkeNyomtatas', 'keszlet', 'kiszallitas'];
+        const NAV_IDS = {
+            'termekek': 'navTermekek',
+            'kiontes': 'navKiontes',
+            'cimkekGyartasa': 'navCimkekGyartasa',
+            'cimkeNyomtatas': 'navCimkeNyomtatas',
+            'keszlet': 'navKeszlet',
+            'kiszallitas': 'navKiszallitas',
+        };
+        let aktívOldal = 'termekek';
 
-            // Sidebar nav gombok frissítése
-            const activeClass = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all bg-gray-900 text-white';
-            const inactiveClass = 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100';
+        function showPage(pageName) {
+            aktívOldal = pageName;
 
-            const navGyartas = document.getElementById('navGyartas');
-            const navKiszallitas = document.getElementById('navKiszallitas');
-            if (navGyartas) navGyartas.className = tabName === 'gyartas' ? activeClass : inactiveClass;
-            if (navKiszallitas) navKiszallitas.className = tabName === 'kiszallitas' ? activeClass : inactiveClass;
+            // Minden oldalt elrejtünk
+            PAGES.forEach(p => {
+                const el = document.getElementById('page' + p.charAt(0).toUpperCase() + p.slice(1));
+                if (el) el.classList.add('hidden');
+            });
 
-            // Tab tartalmak váltása
-            document.getElementById('gyartasTab').classList.toggle('hidden', tabName !== 'gyartas');
-            document.getElementById('kiszallitasTab').classList.toggle('hidden', tabName !== 'kiszallitas');
+            // Aktív oldalt mutatjuk
+            const pageId = 'page' + pageName.charAt(0).toUpperCase() + pageName.slice(1);
+            const pageEl = document.getElementById(pageId);
+            if (pageEl) pageEl.classList.remove('hidden');
 
-            // Mobil menü bezárása
-            closeMobilMenu();
+            // Nav gombok stílusa
+            const activeClass = 'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-gray-900 text-white';
+            const inactiveClass = 'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100';
+            const activeMainClass = 'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all bg-gray-900 text-white';
+            const inactiveMainClass = 'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all';
 
-            // Ha kiszállítás tab, rendereljük a draft-ot és statisztikát
-            if (tabName === 'kiszallitas') {
+            Object.entries(NAV_IDS).forEach(([page, navId]) => {
+                const btn = document.getElementById(navId);
+                if (!btn) return;
+                if (page === pageName) {
+                    btn.className = activeClass;
+                } else {
+                    btn.className = inactiveClass;
+                }
+            });
+
+            // Kiszállítás főmenü gomb stílusa
+            const navKiszallitasBtn = document.getElementById('navKiszallitas');
+            if (navKiszallitasBtn) {
+                navKiszallitasBtn.className = pageName === 'kiszallitas'
+                    ? 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all bg-gray-900 text-white'
+                    : 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all';
+            }
+            const navKeszletBtn = document.getElementById('navKeszlet');
+            if (navKeszletBtn) {
+                navKeszletBtn.className = pageName === 'keszlet'
+                    ? 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all bg-gray-900 text-white'
+                    : 'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all';
+            }
+
+            // Gyártás főmenü kiemelése ha almenü aktív
+            const gyartasPages = ['termekek', 'kiontes', 'cimkekGyartasa', 'cimkeNyomtatas'];
+            const navGroupBtn = document.getElementById('navGroupGyartas');
+            if (navGroupBtn) {
+                navGroupBtn.className = gyartasPages.includes(pageName)
+                    ? 'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-900 bg-gray-50 transition-all'
+                    : 'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all';
+            }
+
+            // Oldal-specifikus render hívások
+            if (pageName === 'kiszallitas') {
                 renderDraftDoboz();
                 renderStatisztika();
                 renderKiszallitasok();
                 renderDobozcimkeKeszlet();
                 renderMentettTervezesek();
+            } else if (pageName === 'keszlet') {
+                renderKeszTermekek();
+            } else if (pageName === 'cimkekGyartasa') {
+                renderCimkeOsszesites();
+            } else if (pageName === 'cimkeNyomtatas') {
+                renderGyorsNyomtatas();
+            } else if (pageName === 'termekek') {
+                renderIllatok();
             }
+
+            // Mobil menü bezárása
+            closeMobilMenu();
+
+            // Scroll top
+            window.scrollTo(0, 0);
         }
+
+        function toggleNavGroup(group) {
+            const items = document.getElementById('navGroup' + group.charAt(0).toUpperCase() + group.slice(1) + 'Items');
+            const arrow = document.getElementById('navGroup' + group.charAt(0).toUpperCase() + group.slice(1) + 'Arrow');
+            if (items) items.classList.toggle('hidden');
+            if (arrow) arrow.textContent = items.classList.contains('hidden') ? '▸' : '▾';
+        }
+
+        // Visszafelé kompatibilitás - switchTab helyett showPage
+        function switchTab(tabName) {
+            if (tabName === 'gyartas') showPage('termekek');
+            else if (tabName === 'kiszallitas') showPage('kiszallitas');
+        }
+
+        window.showPage = showPage;
+        window.toggleNavGroup = toggleNavGroup;
+        window.switchTab = switchTab;
 
         function toggleMobilMenu() {
             const overlay = document.getElementById('mobilMenuOverlay');
@@ -6527,6 +6644,9 @@
             const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
             return date.toLocaleDateString('hu-HU', options);
         }
+
+        function renderIllatok() { render(); }
+        window.renderIllatok = renderIllatok;
 
         function render() {
             // Termék lista - Hierarchikus: Illatok + Variánsok
