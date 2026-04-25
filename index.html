@@ -1137,11 +1137,11 @@
         <div class="grid md:grid-cols-2 gap-6 mb-6">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 class="text-lg font-bold text-gray-900 mb-4">🏆 Top kiöntött illatok</h2>
-                <div id="statTopKiontes" class="space-y-2"></div>
+                <div id="statTopKiontes" class="space-y-1 max-h-[500px] overflow-y-auto"></div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 class="text-lg font-bold text-gray-900 mb-4">🏆 Top kiszállított illatok</h2>
-                <div id="statTopKiszall" class="space-y-2"></div>
+                <div id="statTopKiszall" class="space-y-1 max-h-[500px] overflow-y-auto"></div>
             </div>
         </div>
 
@@ -1283,6 +1283,7 @@
         let illatok = [];
         let termekVariansok = []; // ÚJ: Termék variánsok (illat + típus + méret + SKU)
         let kiontesek = [];
+        let kiontesNaplo = []; // Eseménynapló: minden kiöntési esemény külön rekordként
         let cimkeKeszlet = {}; // Címke készlet tárolása: { "illatId-termekTipus-meret": darabszam }
         let dobozcimkeKeszlet = {}; // Dobozcímke készlet tárolása: { "illatId-termekTipus-meret": darabszam }
         let mentettTervezesek = []; // Mentett kiszállítás tervezések: [{ id, nev, datum, dobozolva, termekek: [...] }]
@@ -1768,6 +1769,12 @@
                 const kiontesekDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'kiontesek'));
                 if (kiontesekDoc.exists()) {
                     kiontesek = kiontesekDoc.data().data || [];
+                }
+
+                // Kiöntés napló betöltése (eseménynapló statisztikához)
+                const kiontesNaploDoc = await window.firestore.getDoc(window.firestore.doc(window.db, 'appData', 'kiontesNaplo'));
+                if (kiontesNaploDoc.exists()) {
+                    kiontesNaplo = kiontesNaploDoc.data().data || [];
                 }
                 
                 // Méretek betöltése
@@ -4164,11 +4171,12 @@
 
         function renderKiontesChart() {
             const labels = getHaviLabels();
-            const szurt = szurdDatumra(kiontesek, 'datum');
+            // Napló használata ha van adat, különben kiontesek (átmeneti)
+            const forrás = kiontesNaplo.length > 0 ? kiontesNaplo : [];
+            const szurt = szurdDatumra(forrás, 'datum');
             let datasets = [];
 
             if (statKiontesNezet_aktiv === 'db') {
-                // Összesített havi
                 const havi = {};
                 labels.forEach(l => havi[l] = 0);
                 szurt.forEach(k => {
@@ -4185,7 +4193,6 @@
                     borderRadius: 6,
                 }];
             } else {
-                // Típusonként
                 const tipusok = ['CDL', 'FUFU', 'DIFI', 'CAR'];
                 datasets = tipusok.map(tipus => {
                     const havi = {};
@@ -4207,6 +4214,20 @@
             if (kiontesChartInst) kiontesChartInst.destroy();
             const ctx = document.getElementById('kiontesChart');
             if (!ctx) return;
+
+            // Ha még nincs napló adat, figyelmeztetés
+            if (kiontesNaplo.length === 0) {
+                ctx.parentElement.innerHTML = `
+                    <div class="flex items-center justify-center h-full text-gray-400 text-sm">
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">📋</div>
+                            <div>A kiöntés grafikon az első új kiöntéstől kezdve gyűjt adatot.</div>
+                            <div class="text-xs mt-1 text-gray-300">A korábbi kiöntések nem kerültek naplózásra.</div>
+                        </div>
+                    </div>`;
+                return;
+            }
+
             kiontesChartInst = new Chart(ctx, {
                 type: 'bar',
                 data: { labels: labels.map(l => l.slice(0,7)), datasets },
@@ -4328,43 +4349,67 @@
         }
 
         function renderTopIllatok() {
-            // Top kiöntött
-            const szurtKiontes = szurdDatumra(kiontesek, 'datum');
+            // Top kiöntött (napló alapján ha van, különben üres)
+            const szurtKiontes = szurdDatumra(kiontesNaplo, 'datum');
             const kiontesByIllat = {};
             szurtKiontes.forEach(k => {
                 const nev = k.illatNev || 'Ismeretlen';
-                kiontesByIllat[nev] = (kiontesByIllat[nev] || 0) + (k.darabszam || 0);
+                const tipus = getTermekTipusRovidFromKiontes(k);
+                if (!kiontesByIllat[nev]) kiontesByIllat[nev] = { ossz: 0, CDL: 0, FUFU: 0, DIFI: 0, CAR: 0 };
+                kiontesByIllat[nev].ossz += (k.darabszam || 0);
+                kiontesByIllat[nev][tipus] = (kiontesByIllat[nev][tipus] || 0) + (k.darabszam || 0);
             });
-            const topKiontes = Object.entries(kiontesByIllat).sort((a,b) => b[1]-a[1]).slice(0, 8);
-            const maxK = topKiontes[0]?.[1] || 1;
-            document.getElementById('statTopKiontes').innerHTML = topKiontes.map(([nev, db]) => `
-                <div class="flex items-center gap-3">
-                    <div class="text-sm text-gray-700 w-36 truncate" title="${nev}">${nev}</div>
-                    <div class="flex-1 bg-gray-100 rounded-full h-2">
-                        <div class="bg-amber-500 h-2 rounded-full" style="width:${Math.round(db/maxK*100)}%"></div>
+            const topKiontes = Object.entries(kiontesByIllat).sort((a,b) => b[1].ossz - a[1].ossz).slice(0, 20);
+            const maxK = topKiontes[0]?.[1].ossz || 1;
+            document.getElementById('statTopKiontes').innerHTML = topKiontes.length > 0
+                ? topKiontes.map(([nev, adatok]) => `
+                <div class="flex items-center gap-3 py-1">
+                    <div class="text-sm text-gray-700 w-32 truncate" title="${nev}">${nev}</div>
+                    <div class="flex gap-1 text-xs">
+                        ${adatok.CDL > 0 ? `<span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">CDL ${adatok.CDL}</span>` : ''}
+                        ${adatok.FUFU > 0 ? `<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">FUFU ${adatok.FUFU}</span>` : ''}
+                        ${adatok.DIFI > 0 ? `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">DIFI ${adatok.DIFI}</span>` : ''}
+                        ${adatok.CAR > 0 ? `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">CAR ${adatok.CAR}</span>` : ''}
                     </div>
-                    <div class="text-sm font-bold text-gray-700 w-10 text-right">${db}</div>
+                    <div class="flex-1 bg-gray-100 rounded-full h-1.5">
+                        <div class="bg-amber-500 h-1.5 rounded-full" style="width:${Math.round(adatok.ossz/maxK*100)}%"></div>
+                    </div>
+                    <div class="text-sm font-bold text-gray-700 w-8 text-right">${adatok.ossz}</div>
                 </div>
-            `).join('') || '<p class="text-gray-400 text-sm">Nincs adat</p>';
+            `).join('')
+                : '<p class="text-gray-400 text-sm">Az első kiöntéstől kezdve gyűlik az adat.</p>';
 
-            // Top kiszállított
+            // Top kiszállított (top 20, típus bontással)
             const szurtKiszall = szurdDatumra(kiszallitasok, 'datum');
             const kiszallByIllat = {};
             szurtKiszall.forEach(k => {
                 const nev = k.illatNev || 'Ismeretlen';
-                kiszallByIllat[nev] = (kiszallByIllat[nev] || 0) + (k.mennyiseg || 0);
+                const v = termekVariansok.find(tv => tv.sku === k.sku);
+                const tipus = v ? getTermekTipusRovid(v.termekTipusNev) : 'Egyéb';
+                if (!kiszallByIllat[nev]) kiszallByIllat[nev] = { ossz: 0, CDL: 0, FUFU: 0, DIFI: 0, CAR: 0, Egyéb: 0 };
+                kiszallByIllat[nev].ossz += (k.mennyiseg || 0);
+                kiszallByIllat[nev][tipus] = (kiszallByIllat[nev][tipus] || 0) + (k.mennyiseg || 0);
             });
-            const topKiszall = Object.entries(kiszallByIllat).sort((a,b) => b[1]-a[1]).slice(0, 8);
-            const maxKi = topKiszall[0]?.[1] || 1;
-            document.getElementById('statTopKiszall').innerHTML = topKiszall.map(([nev, db]) => `
-                <div class="flex items-center gap-3">
-                    <div class="text-sm text-gray-700 w-36 truncate" title="${nev}">${nev}</div>
-                    <div class="flex-1 bg-gray-100 rounded-full h-2">
-                        <div class="bg-blue-500 h-2 rounded-full" style="width:${Math.round(db/maxKi*100)}%"></div>
+            const topKiszall = Object.entries(kiszallByIllat).sort((a,b) => b[1].ossz - a[1].ossz).slice(0, 20);
+            const maxKi = topKiszall[0]?.[1].ossz || 1;
+            document.getElementById('statTopKiszall').innerHTML = topKiszall.length > 0
+                ? topKiszall.map(([nev, adatok]) => `
+                <div class="flex items-center gap-3 py-1">
+                    <div class="text-sm text-gray-700 w-32 truncate" title="${nev}">${nev}</div>
+                    <div class="flex gap-1 text-xs">
+                        ${adatok.CDL > 0 ? `<span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">CDL ${adatok.CDL}</span>` : ''}
+                        ${adatok.FUFU > 0 ? `<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">FUFU ${adatok.FUFU}</span>` : ''}
+                        ${adatok.DIFI > 0 ? `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">DIFI ${adatok.DIFI}</span>` : ''}
+                        ${adatok.CAR > 0 ? `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">CAR ${adatok.CAR}</span>` : ''}
+                        ${adatok.Egyéb > 0 ? `<span class="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium">Egyéb ${adatok.Egyéb}</span>` : ''}
                     </div>
-                    <div class="text-sm font-bold text-gray-700 w-10 text-right">${db}</div>
+                    <div class="flex-1 bg-gray-100 rounded-full h-1.5">
+                        <div class="bg-blue-500 h-1.5 rounded-full" style="width:${Math.round(adatok.ossz/maxKi*100)}%"></div>
+                    </div>
+                    <div class="text-sm font-bold text-gray-700 w-8 text-right">${adatok.ossz}</div>
                 </div>
-            `).join('') || '<p class="text-gray-400 text-sm">Nincs adat</p>';
+            `).join('')
+                : '<p class="text-gray-400 text-sm">Nincs adat</p>';
         }
 
         function renderStatisztikaiOldal() {
@@ -4921,6 +4966,7 @@
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'illatok'), { data: illatok }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'termekVariansok'), { data: termekVariansok }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiontesek'), { data: kiontesek }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiontesNaplo'), { data: kiontesNaplo }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'meretek'), { data: meretek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'cimkeKeszlet'), { data: cimkeKeszlet }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'dobozcimkeKeszlet'), { data: dobozcimkeKeszlet }),
@@ -6990,6 +7036,20 @@
                 darabszam: darab,
                 datum: new Date().toISOString(),
                 cimkeGyartva: false
+            });
+
+            // Kiöntés napló bejegyzés (statisztikához)
+            kiontesNaplo.push({
+                id: generateId(),
+                datum: new Date().toISOString(),
+                illatId: varianss.illatId,
+                illatNev: varianss.illatNev,
+                termekTipus: varianss.termekTipus,
+                termekTipusNev: varianss.termekTipusNev,
+                meret: varianss.meret,
+                sku: varianss.sku,
+                darabszam: darab,
+                felhasznalo: jelenlegiUser?.email || 'ismeretlen'
             });
             
             // Form reset
