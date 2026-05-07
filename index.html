@@ -4976,6 +4976,12 @@
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'partnerek'), { data: partnerek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'aktivDraft'), { data: aktivDraft })
                 ]);
+
+                // Mindig frissítjük a címke oldalakat — hogy a készlet változások azonnal látszódjanak
+                if (typeof renderCimkeOsszesites === 'function') renderCimkeOsszesites();
+                if (typeof renderGyorsNyomtatas === 'function') renderGyorsNyomtatas();
+                if (typeof renderKeszTermekek === 'function') renderKeszTermekek();
+
             } catch (error) {
                 console.error('Mentési hiba:', error);
                 alert('Hiba történt az adatok mentése közben!');
