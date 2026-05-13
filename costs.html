@@ -252,27 +252,49 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
 
   <!-- MUNKADÍJ -->
   <div id="page-munkadij" class="page">
-    <div class="card">
-      <div class="card-title" style="margin-bottom:16px">Globális munkadíj & rezsi</div>
-      <div class="two-col">
-        <div class="section-box">
-          <h4>Munkadíj</h4>
-          <div class="field" style="margin-bottom:12px"><label>Órabér (Ft/óra)</label><input type="number" id="mdOrabér" placeholder="pl. 3000" oninput="updateMdPreview()"></div>
-          <div class="field" style="margin-bottom:12px"><label>Batch mérete (db)</label><input type="number" id="mdBatchDb" placeholder="pl. 50" oninput="updateMdPreview()"></div>
-          <div class="field" style="margin-bottom:12px"><label>Batch ideje (óra)</label><input type="number" id="mdBatchOra" placeholder="pl. 4" step="0.5" oninput="updateMdPreview()"></div>
-          <div class="calc-preview" id="mdPreview">— Ft/db</div>
-        </div>
-        <div class="section-box">
-          <h4>Rezsi</h4>
-          <div class="field" style="margin-bottom:12px"><label>Havi rezsi összesen (Ft)</label><input type="number" id="mdHaviRezsi" placeholder="pl. 80000" oninput="updateMdPreview()"></div>
-          <div class="field" style="margin-bottom:12px"><label>Havi termelés (db)</label><input type="number" id="mdHaviDb" placeholder="pl. 500" oninput="updateMdPreview()"></div>
-          <div class="calc-preview" id="rezsiPreview">— Ft/db</div>
-        </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title">Dolgozók</span>
+        <button class="btn-primary" onclick="window.ujDolgozo()">+ Új dolgozó</button>
       </div>
-      <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
-        <button class="btn-primary" onclick="mentMunkadij()">Mentés</button>
-        <span id="mdMentve" style="font-size:11px;color:#2A6049"></span>
+      <table class="tbl" id="dolgozoTbl">
+        <thead><tr>
+          <th style="width:50%">Név</th>
+          <th>Havi összeg (Ft)</th>
+          <th>Megjegyzés</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="dolgozoBody">
+          <tr><td colspan="4" style="text-align:center;color:#C8C0B4;padding:24px">Betöltés...</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid #E0D8CC;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:#5C554E">Összes havi bérköltség: <strong id="osszesBer">— Ft</strong></span>
       </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px">Termelés</div>
+        <div class="field" style="margin-bottom:12px">
+          <label>Havi termelt db (összes termék)</label>
+          <input type="number" id="mdHaviDb" placeholder="pl. 500" oninput="updateMdPreview()">
+        </div>
+        <div class="calc-preview" id="mdPreview">— Ft/db munkadíj</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px">Rezsi</div>
+        <div class="field" style="margin-bottom:12px">
+          <label>Havi rezsi összesen (Ft)</label>
+          <input type="number" id="mdHaviRezsi" placeholder="pl. 80000" oninput="updateMdPreview()">
+        </div>
+        <div class="calc-preview" id="rezsiPreview">— Ft/db rezsi</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn-primary" onclick="window.mentMunkadij()">Mentés</button>
+      <span id="mdMentve" style="font-size:11px;color:#2A6049"></span>
     </div>
   </div>
 
@@ -439,6 +461,7 @@ async function initData() {
     }
   });
 
+  initDolgozok();
   document.getElementById('szDatum').value = new Date().toISOString().split('T')[0];
   if (!invSorokData.length) addInvSor();
 }
@@ -851,18 +874,68 @@ window.delTipus = async function() {
 };
 
 // ── MUNKADÍJ ──
+let dolgozok = {}; // { id: { nev, osszeg, megjegyzes } }
+
+function initDolgozok() {
+  onSnapshot(collection(db, 'costs_dolgozok'), snap => {
+    dolgozok = {};
+    snap.forEach(d => dolgozok[d.id] = d.data());
+    renderDolgozok();
+    updateMdPreview();
+    renderEredmeny();
+  });
+}
+
+function renderDolgozok() {
+  const tbody = document.getElementById('dolgozoBody');
+  if (!tbody) return;
+  const ids = Object.keys(dolgozok);
+  if (!ids.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#C8C0B4;padding:24px">Még nincs dolgozó felvéve.</td></tr>';
+    document.getElementById('osszesBer').textContent = '— Ft';
+    return;
+  }
+  tbody.innerHTML = ids.map(id => {
+    const d = dolgozok[id];
+    return `<tr>
+      <td><input value="${esc(d.nev||'')}" onchange="window.updateDolgozo('${id}','nev',this.value)" style="width:100%;border:none;background:none;font-family:'DM Mono',monospace;font-size:12px;color:#1A1714;outline:none;padding:0" placeholder="pl. Márti"></td>
+      <td><input type="number" value="${d.osszeg||''}" onchange="window.updateDolgozo('${id}','osszeg',parseFloat(this.value)||0)" style="width:100%;border:none;background:none;font-family:'DM Mono',monospace;font-size:12px;color:#1A1714;outline:none;padding:0" placeholder="pl. 350000"></td>
+      <td><input value="${esc(d.megjegyzes||'')}" onchange="window.updateDolgozo('${id}','megjegyzes',this.value)" style="width:100%;border:none;background:none;font-family:'DM Mono',monospace;font-size:12px;color:#AAA49D;outline:none;padding:0" placeholder="—"></td>
+      <td><button class="btn-del" onclick="window.delDolgozo('${id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+  const osszes = ids.reduce((sum, id) => sum + (parseFloat(dolgozok[id].osszeg) || 0), 0);
+  document.getElementById('osszesBer').textContent = Math.round(osszes).toLocaleString('hu-HU') + ' Ft';
+}
+
+window.ujDolgozo = async function() {
+  await addDoc(collection(db, 'costs_dolgozok'), { nev: '', osszeg: 0, megjegyzes: '' });
+};
+
+window.updateDolgozo = async function(id, field, val) {
+  await updateDoc(doc(db, 'costs_dolgozok', id), { [field]: val });
+};
+
+window.delDolgozo = async function(id) {
+  if (!confirm('Biztosan törlöd?')) return;
+  await deleteDoc(doc(db, 'costs_dolgozok', id));
+};
+
+function getOsszesBer() {
+  return Object.values(dolgozok).reduce((sum, d) => sum + (parseFloat(d.osszeg) || 0), 0);
+}
+
 function fillMdFields() {
   const d = munkadij;
   const sv = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined) el.value = v; };
-  sv('mdOrabér', d.orabér); sv('mdBatchDb', d.batchDb); sv('mdBatchOra', d.batchOra);
-  sv('mdHaviRezsi', d.haviRezsi); sv('mdHaviDb', d.haviDb);
+  sv('mdHaviRezsi', d.haviRezsi);
+  sv('mdHaviDb', d.haviDb);
 }
 
 function getMdPerDb() {
-  const o = parseFloat(document.getElementById('mdOrabér')?.value) || munkadij.orabér || 0;
-  const b = parseFloat(document.getElementById('mdBatchDb')?.value) || munkadij.batchDb || 0;
-  const h = parseFloat(document.getElementById('mdBatchOra')?.value) || munkadij.batchOra || 0;
-  return b > 0 ? (o * h) / b : 0;
+  const osszesBer = getOsszesBer();
+  const haviDb = parseFloat(document.getElementById('mdHaviDb')?.value) || munkadij.haviDb || 0;
+  return haviDb > 0 ? osszesBer / haviDb : 0;
 }
 
 function getRezsiPerDb() {
@@ -874,16 +947,13 @@ function getRezsiPerDb() {
 function updateMdPreview() {
   const m = getMdPerDb(), r = getRezsiPerDb();
   const mEl = document.getElementById('mdPreview'), rEl = document.getElementById('rezsiPreview');
-  if (mEl) mEl.textContent = m > 0 ? Math.round(m) + ' Ft/db munkadíj' : '— Ft/db';
-  if (rEl) rEl.textContent = r > 0 ? Math.round(r) + ' Ft/db rezsi' : '— Ft/db';
+  if (mEl) mEl.textContent = m > 0 ? Math.round(m).toLocaleString('hu-HU') + ' Ft/db munkadíj' : '— Ft/db';
+  if (rEl) rEl.textContent = r > 0 ? Math.round(r).toLocaleString('hu-HU') + ' Ft/db rezsi' : '— Ft/db';
 }
 window.updateMdPreview = updateMdPreview;
 
 window.mentMunkadij = async function() {
   const adat = {
-    orabér: parseFloat(document.getElementById('mdOrabér').value) || 0,
-    batchDb: parseFloat(document.getElementById('mdBatchDb').value) || 0,
-    batchOra: parseFloat(document.getElementById('mdBatchOra').value) || 0,
     haviRezsi: parseFloat(document.getElementById('mdHaviRezsi').value) || 0,
     haviDb: parseFloat(document.getElementById('mdHaviDb').value) || 0
   };
