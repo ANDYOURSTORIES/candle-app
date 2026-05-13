@@ -31,7 +31,7 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
 .tab{padding:12px 20px;border:none;background:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;color:#AAA49D;border-bottom:2px solid transparent;margin-bottom:-0.5px}
 .tab:hover{color:#5C554E}
 .tab.active{color:#1A1714;border-bottom-color:#1A1714;font-weight:500}
-.content{padding:28px 32px;max-width:1000px}
+.content{padding:28px 32px;max-width:1100px}
 .page{display:none}
 .page.active{display:block}
 .fx-bar{display:flex;align-items:center;gap:14px;background:#fff;border:0.5px solid #E0D8CC;padding:11px 18px;margin-bottom:20px}
@@ -62,14 +62,14 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
 .field input,.field select{width:100%;padding:8px 10px;border:0.5px solid #C8C0B4;background:#fff;font-family:'DM Mono',monospace;font-size:13px;color:#1A1714;outline:none}
 .field input:focus,.field select:focus{border-color:#B8924A}
 .divider{height:0.5px;background:#E0D8CC;margin:16px 0}
-.inv-header{display:grid;grid-template-columns:2.2fr 90px 90px 100px 100px 28px;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;font-weight:500;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
-.inv-row{display:grid;grid-template-columns:2.2fr 90px 90px 100px 100px 28px;gap:8px;align-items:center;padding:8px 0;border-bottom:0.5px solid #F0EBE2}
+.inv-header{display:grid;grid-template-columns:2fr 90px 90px 100px 100px 28px;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;font-weight:500;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
+.inv-row{display:grid;grid-template-columns:2fr 90px 90px 100px 100px 28px;gap:8px;align-items:center;padding:8px 0;border-bottom:0.5px solid #F0EBE2}
 .inv-row:last-of-type{border-bottom:none}
 .inv-row input,.inv-row select{padding:6px 8px;border:0.5px solid #E0D8CC;font-family:'DM Mono',monospace;font-size:12px;background:#fff;color:#1A1714;outline:none;width:100%}
 .inv-row input:focus,.inv-row select:focus{border-color:#B8924A}
 .preview-box{background:#F9F6F1;border:0.5px solid #E0D8CC;padding:18px 20px;margin-top:16px}
-.preview-header{display:grid;grid-template-columns:2.2fr 1fr 1fr 1.3fr;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;font-weight:500;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
-.preview-row{display:grid;grid-template-columns:2.2fr 1fr 1fr 1.3fr;gap:8px;padding:7px 0;border-bottom:0.5px solid #EEE8DF;font-size:12px;align-items:center}
+.preview-header{display:grid;grid-template-columns:2fr 1fr 1fr 1.3fr;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;font-weight:500;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
+.preview-row{display:grid;grid-template-columns:2fr 1fr 1fr 1.3fr;gap:8px;padding:7px 0;border-bottom:0.5px solid #EEE8DF;font-size:12px;align-items:center}
 .preview-row:last-of-type{border-bottom:none}
 .preview-footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:0.5px solid #E0D8CC}
 .badge-pct{display:inline-block;padding:2px 7px;font-size:10px;font-weight:500;background:#F4F0E8;color:#5C554E}
@@ -78,8 +78,8 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
 .pill:hover{border-color:#AAA49D}
 .pill.active{background:#1A1714;border-color:#1A1714;color:#F4F0E8}
 .pill-add{border-style:dashed}
-.rec-header{display:grid;grid-template-columns:2.5fr 100px 70px 100px 28px;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
-.rec-row{display:grid;grid-template-columns:2.5fr 100px 70px 100px 28px;gap:8px;align-items:center;padding:7px 0;border-bottom:0.5px solid #F0EBE2}
+.rec-header{display:grid;grid-template-columns:2.5fr 100px 90px 100px 28px;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
+.rec-row{display:grid;grid-template-columns:2.5fr 100px 90px 100px 28px;gap:8px;align-items:center;padding:7px 0;border-bottom:0.5px solid #F0EBE2}
 .rec-row:last-of-type{border-bottom:none}
 .rec-row select,.rec-row input{padding:5px 8px;border:0.5px solid #E0D8CC;font-family:'DM Mono',monospace;font-size:12px;background:#fff;color:#1A1714;outline:none;width:100%}
 .rec-row select:focus,.rec-row input:focus{border-color:#B8924A}
@@ -99,6 +99,15 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
 .toast{position:fixed;bottom:24px;right:24px;background:#1A1714;color:#F4F0E8;padding:12px 20px;font-size:12px;z-index:9999;opacity:0;transition:opacity 0.2s;pointer-events:none}
 .toast.show{opacity:1}
 .muted{color:#AAA49D}
+/* Egység konverzió táblázat */
+.conv-table{margin-top:12px;font-size:11px;color:#AAA49D;line-height:1.8}
+.conv-row{display:flex;gap:16px}
+.conv-val{font-weight:500;color:#5C554E}
+/* Típus badge */
+.tipus-badge{display:inline-block;padding:2px 8px;font-size:10px;font-weight:500;border-radius:2px}
+.tipus-suly{background:#FBF4E8;color:#B8924A}
+.tipus-terfogat{background:#E8F4FB;color:#2A6A9E}
+.tipus-db{background:#F0EBF8;color:#6A3FA0}
 </style>
 </head>
 <body>
@@ -161,14 +170,17 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
       <div class="tbl-wrap">
         <table class="tbl">
           <thead><tr>
-            <th style="width:32%">Megnevezés</th>
-            <th>Mértékegység</th>
-            <th>Súlyozott átlagár</th>
+            <th style="width:28%">Megnevezés</th>
+            <th>Típus</th>
+            <th>Ft/g vagy Ft/ml vagy Ft/db</th>
+            <th>Ft/kg</th>
+            <th>Ft/L</th>
+            <th>Ft/oz</th>
             <th>Megjegyzés</th>
             <th></th>
           </tr></thead>
           <tbody id="alapanyagBody">
-            <tr><td colspan="5" style="text-align:center;color:#C8C0B4;padding:24px">Betöltés...</td></tr>
+            <tr><td colspan="8" style="text-align:center;color:#C8C0B4;padding:24px">Betöltés...</td></tr>
           </tbody>
         </table>
       </div>
@@ -178,9 +190,7 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
   <!-- SZÁMLA -->
   <div id="page-szamla" class="page">
     <div class="card">
-      <div class="card-header">
-        <span class="card-title">Számla adatok</span>
-      </div>
+      <div class="card-header"><span class="card-title">Számla adatok</span></div>
       <div class="g3">
         <div class="field"><label>Szállító neve</label><input type="text" id="szSzallito" placeholder="pl. Candle Science GmbH"></div>
         <div class="field"><label>Számla dátuma</label><input type="date" id="szDatum"></div>
@@ -264,7 +274,14 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
     <div class="card">
       <div class="card-header">
         <span class="card-title">Bekerülési ár összesítő</span>
-        <button class="btn-secondary" onclick="renderEredmeny()">Frissítés</button>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;color:#AAA49D">Megjelenítés:</span>
+          <div style="display:flex;border:0.5px solid #C8C0B4;overflow:hidden">
+            <button id="toggleHuf" onclick="window.setEredmenyValuta('HUF')" style="padding:5px 14px;border:none;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;background:#1A1714;color:#F4F0E8">Ft</button>
+            <button id="toggleEur" onclick="window.setEredmenyValuta('EUR')" style="padding:5px 14px;border:none;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;background:#fff;color:#AAA49D;border-left:0.5px solid #C8C0B4">EUR</button>
+          </div>
+          <button class="btn-secondary" onclick="renderEredmeny()">Frissítés</button>
+        </div>
       </div>
       <div class="res-grid" id="resGrid"><div style="color:#C8C0B4;font-size:12px">Betöltés...</div></div>
     </div>
@@ -275,7 +292,7 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, addDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFirestore, collection, doc, setDoc, getDoc, deleteDoc, onSnapshot, addDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 const firebaseConfig = {
@@ -291,9 +308,64 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+// ══════════════════════════════════════════
+//  EGYSÉG KONVERZIÓ
+//  Minden ár Ft/g (súly) vagy Ft/ml (térfogat) vagy Ft/db alapon tárolódik
+// ══════════════════════════════════════════
+
+// Egy egységnyi = hány alap egység (g vagy ml)
+const CONV = {
+  // Súly → g
+  'g':    1,
+  'kg':   1000,
+  'oz':   28.3495,
+  // Térfogat → ml
+  'ml':   1,
+  'L':    1000,
+  'fl.oz': 29.5735,
+  // Darab
+  'db':   1
+};
+
+// Melyik típushoz melyik egységek tartoznak
+const TIPUS_EGYSEGEK = {
+  'suly':     ['g', 'kg', 'oz'],
+  'terfogat': ['ml', 'L', 'fl.oz'],
+  'db':       ['db']
+};
+
+// Alap egység típusonként (ebben tároljuk az árat)
+const ALAP_EGYSEG = {
+  'suly': 'g',
+  'terfogat': 'ml',
+  'db': 'db'
+};
+
+// Mennyiség adott egységből alap egységbe
+function toAlap(mennyiseg, egyseg) {
+  return mennyiseg * (CONV[egyseg] || 1);
+}
+
+// Alap egységben lévő ár átváltása adott egységbe
+function arban(alapAr, egyseg) {
+  return alapAr * (CONV[egyseg] || 1);
+}
+
+// Egységek egy alapanyag típusához
+function egysegekTipushoz(tipus) {
+  return TIPUS_EGYSEGEK[tipus] || ['g', 'kg', 'oz', 'ml', 'L', 'fl.oz', 'db'];
+}
+
+// Típus badge HTML
+function tipusBadge(tipus) {
+  if (tipus === 'suly') return '<span class="tipus-badge tipus-suly">súly</span>';
+  if (tipus === 'terfogat') return '<span class="tipus-badge tipus-terfogat">térfogat</span>';
+  return '<span class="tipus-badge tipus-db">darab</span>';
+}
+
 // ── STATE ──
-let alapanyagok = {};   // { id: {...} }
-let recepturak = {};    // { tipusId: { nev, sorok:[{alapanyagId, mennyiseg}] } }
+let alapanyagok = {};
+let recepturak = {};
 let munkadij = {};
 let fx = { eur: 395, usd: 362 };
 let aktivTipus = null;
@@ -327,7 +399,6 @@ window.doLogout = () => signOut(auth);
 
 // ── INIT ──
 async function initData() {
-  // FX
   const fxDoc = await getDoc(doc(db, 'costs', 'fx'));
   if (fxDoc.exists()) {
     fx = fxDoc.data();
@@ -336,7 +407,6 @@ async function initData() {
     if (fx.updatedAt) document.getElementById('fxDate').textContent = 'Frissítve: ' + new Date(fx.updatedAt).toLocaleDateString('hu-HU');
   }
 
-  // Alapanyagok — live
   onSnapshot(collection(db, 'costs_alapanyagok'), snap => {
     alapanyagok = {};
     snap.forEach(d => alapanyagok[d.id] = d.data());
@@ -346,7 +416,6 @@ async function initData() {
     updatePreview();
   });
 
-  // Receptúrák — live
   onSnapshot(collection(db, 'costs_recepturak'), snap => {
     recepturak = {};
     snap.forEach(d => recepturak[d.id] = d.data());
@@ -354,7 +423,6 @@ async function initData() {
     renderEredmeny();
   });
 
-  // Munkadíj
   onSnapshot(doc(db, 'costs', 'munkadij'), snap => {
     if (snap.exists()) {
       munkadij = snap.data();
@@ -395,7 +463,6 @@ window.showTab = function(name, btn) {
   if (name === 'recepturak') renderTypePills();
 };
 
-// ── TOAST ──
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -410,31 +477,52 @@ function renderAlapanyagok() {
   const tbody = document.getElementById('alapanyagBody');
   const ids = Object.keys(alapanyagok);
   if (!ids.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#C8C0B4;padding:24px">Még nincs alapanyag. Kattints az "+ Új alapanyag" gombra.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#C8C0B4;padding:24px">Még nincs alapanyag. Kattints az "+ Új alapanyag" gombra.</td></tr>';
     return;
   }
   tbody.innerHTML = ids.map(id => {
     const a = alapanyagok[id];
-    const ar = a.sulyozottAr || 0;
-    const arStr = ar > 0 ? (Math.round(ar * 100) / 100) + ' Ft/' + (a.egyseg || '?') : '—';
+    const tipus = a.tipus || 'suly';
+    const alapEgy = ALAP_EGYSEG[tipus];
+    const alapAr = a.sulyozottAr || 0; // Ft/g vagy Ft/ml vagy Ft/db
+
+    // Konvertált árak
+    const arG   = alapAr > 0 ? fmt(alapAr) + ' Ft/' + alapEgy : '—';
+    const arKg  = (tipus === 'suly' && alapAr > 0) ? fmt(arban(alapAr, 'kg')) + ' Ft/kg' : (tipus === 'terfogat' && alapAr > 0) ? fmt(arban(alapAr, 'L')) + ' Ft/L' : '—';
+    const arOz  = (tipus === 'suly' && alapAr > 0) ? fmt(arban(alapAr, 'oz')) + ' Ft/oz' : (tipus === 'terfogat' && alapAr > 0) ? fmt(arban(alapAr, 'fl.oz')) + ' Ft/fl.oz' : '—';
+
     return `<tr>
       <td><input value="${esc(a.nev||'')}" onchange="window.updateAlapanyag('${id}','nev',this.value)" style="width:100%;border:none;background:none;font-family:'DM Mono',monospace;font-size:12px;color:#1A1714;outline:none;padding:0" placeholder="Megnevezés"></td>
-      <td><select onchange="window.updateAlapanyag('${id}','egyseg',this.value)" style="border:none;background:none;font-family:'DM Mono',monospace;font-size:12px;color:#5C554E;outline:none;cursor:pointer">
-        ${['g','kg','ml','L','oz','fl.oz','db'].map(e => `<option${a.egyseg===e?' selected':''}>${e}</option>`).join('')}
-      </select></td>
-      <td style="font-weight:500">${arStr}</td>
+      <td>
+        <select onchange="window.updateAlapanyagTipus('${id}',this.value)" style="border:none;background:none;font-family:'DM Mono',monospace;font-size:11px;color:#5C554E;outline:none;cursor:pointer">
+          <option value="suly"${tipus==='suly'?' selected':''}>⚖️ Súly</option>
+          <option value="terfogat"${tipus==='terfogat'?' selected':''}>💧 Térfogat</option>
+          <option value="db"${tipus==='db'?' selected':''}>📦 Darab</option>
+        </select>
+      </td>
+      <td style="font-weight:500;color:#1A1714">${arG}</td>
+      <td style="color:#5C554E">${arKg}</td>
+      <td style="color:#5C554E">${arOz}</td>
+      <td style="color:#5C554E">${tipus==='db'?'—':''}</td>
       <td><input value="${esc(a.megjegyzes||'')}" onchange="window.updateAlapanyag('${id}','megjegyzes',this.value)" style="width:100%;border:none;background:none;font-family:'DM Mono',monospace;font-size:12px;color:#AAA49D;outline:none;padding:0" placeholder="—"></td>
       <td><button class="btn-del" onclick="window.delAlapanyag('${id}')">✕</button></td>
     </tr>`;
   }).join('');
 }
 
+function fmt(n) { return Math.round(n * 100) / 100; }
+
 window.ujAlapanyag = async function() {
-  await addDoc(collection(db, 'costs_alapanyagok'), { nev: '', egyseg: 'g', sulyozottAr: 0, sulyozottDb: 0, megjegyzes: '' });
+  await addDoc(collection(db, 'costs_alapanyagok'), { nev: '', tipus: 'suly', sulyozottAr: 0, sulyozottDb: 0, megjegyzes: '' });
 };
 
 window.updateAlapanyag = async function(id, field, val) {
   await updateDoc(doc(db, 'costs_alapanyagok', id), { [field]: val });
+};
+
+window.updateAlapanyagTipus = async function(id, tipus) {
+  // Típus váltáskor reseteljük az árat mert más egységben volt
+  await updateDoc(doc(db, 'costs_alapanyagok', id), { tipus, sulyozottAr: 0, sulyozottDb: 0 });
 };
 
 window.delAlapanyag = async function(id) {
@@ -448,12 +536,16 @@ function alapanyagOptions(selectedId) {
   if (!ids.length) return '<option value="">— Előbb végy fel alapanyagot —</option>';
   return '<option value="">— Válassz —</option>' + ids.map(id => {
     const a = alapanyagok[id];
-    return `<option value="${id}"${id === selectedId ? ' selected' : ''}>${esc(a.nev || '?')} (${a.egyseg || '?'})</option>`;
+    return `<option value="${id}"${id === selectedId ? ' selected' : ''}>${esc(a.nev || '?')}</option>`;
   }).join('');
 }
 
-function egysegOpts(sel) {
-  return ['g','kg','ml','L','oz','fl.oz','db'].map(e => `<option${e === sel ? ' selected' : ''}>${e}</option>`).join('');
+// Egység options az alapanyag típusa alapján
+function egysegOptions(selectedEgyseg, alapanyagId) {
+  const a = alapanyagok[alapanyagId];
+  const tipus = a ? (a.tipus || 'suly') : null;
+  const egysegek = tipus ? egysegekTipushoz(tipus) : ['g','kg','oz','ml','L','fl.oz','db'];
+  return egysegek.map(e => `<option value="${e}"${e === selectedEgyseg ? ' selected' : ''}>${e}</option>`).join('');
 }
 
 window.addInvSor = function(data) {
@@ -467,15 +559,27 @@ function renderInvSorok() {
   if (!cont) return;
   cont.innerHTML = invSorokData.map((s, i) => `
     <div class="inv-row">
-      <select onchange="window.invUpdate(${i},'alapanyagId',this.value)">${alapanyagOptions(s.alapanyagId)}</select>
+      <select onchange="window.invUpdateAlapanyag(${i},this.value)">${alapanyagOptions(s.alapanyagId)}</select>
       <input type="number" value="${s.mennyiseg}" placeholder="0" oninput="window.invUpdate(${i},'mennyiseg',this.value)">
-      <select onchange="window.invUpdate(${i},'egyseg',this.value)">${egysegOpts(s.egyseg)}</select>
-      <input type="number" value="${s.egysegar}" placeholder="0.00" step="0.001" oninput="window.invUpdate(${i},'egysegar',this.value)">
+      <select onchange="window.invUpdate(${i},'egyseg',this.value)">${egysegOptions(s.egyseg, s.alapanyagId)}</select>
+      <input type="number" value="${s.egysegar}" placeholder="0.00" step="0.0001" oninput="window.invUpdate(${i},'egysegar',this.value)">
       <span style="font-size:12px;font-weight:500;color:#1A1714" id="irt${i}">—</span>
       <button class="btn-del" onclick="window.delInvSor(${i})">✕</button>
     </div>`).join('');
   updateRowTotals();
 }
+
+// Ha alapanyagot vált → egységet is reseteljük a típushoz
+window.invUpdateAlapanyag = function(i, alapanyagId) {
+  invSorokData[i].alapanyagId = alapanyagId;
+  const a = alapanyagok[alapanyagId];
+  if (a) {
+    const tipus = a.tipus || 'suly';
+    invSorokData[i].egyseg = egysegekTipushoz(tipus)[0]; // default első egység
+  }
+  renderInvSorok();
+  updatePreview();
+};
 
 window.invUpdate = function(i, field, val) { invSorokData[i][field] = val; updateRowTotals(); updatePreview(); };
 window.delInvSor = function(i) { invSorokData.splice(i, 1); renderInvSorok(); updatePreview(); };
@@ -499,29 +603,48 @@ function updatePreview() {
   const szallVal = document.getElementById('szSzallitasValuta') ? document.getElementById('szSzallitasValuta').value : val;
   const sorok = invSorokData.filter(s => s.alapanyagId && parseFloat(s.mennyiseg) > 0 && parseFloat(s.egysegar) > 0);
   if (!sorok.length) { document.getElementById('previewBox').style.display = 'none'; return; }
+
   const ossz = sorok.reduce((s, r) => s + getSorErtek(r), 0);
   const szallHuf = toHuf(szall, szallVal);
   let rows = '';
+
   sorok.forEach(s => {
     const a = alapanyagok[s.alapanyagId]; if (!a) return;
+    const tipus = a.tipus || 'suly';
+    const alapEgy = ALAP_EGYSEG[tipus];
+
     const ert = getSorErtek(s);
     const arany = ossz > 0 ? ert / ossz : 0;
     const szallResz = szallHuf * arany;
     const tHuf = toHuf(ert, val);
-    const m = parseFloat(s.mennyiseg);
-    const ujEgy = m > 0 ? (tHuf + szallResz) / m : 0;
-    const regiAr = a.sulyozottAr || 0;
-    const regiDb = a.sulyozottDb || 0;
-    const ujSuly = regiDb > 0 ? (regiAr * regiDb + ujEgy * m) / (regiDb + m) : ujEgy;
+
+    // Mennyiség alap egységben (pl. g vagy ml)
+    const mAlap = toAlap(parseFloat(s.mennyiseg) || 0, s.egyseg);
+    // Alap egységenkénti ár (Ft/g vagy Ft/ml)
+    const ujAlapEgyAr = mAlap > 0 ? (tHuf + szallResz) / mAlap : 0;
+
+    // Súlyozott átlag alap egységben
+    const regiAlapAr = a.sulyozottAr || 0;
+    const regiAlapDb = a.sulyozottDb || 0;
+    const ujSulyozott = regiAlapDb > 0
+      ? (regiAlapAr * regiAlapDb + ujAlapEgyAr * mAlap) / (regiAlapDb + mAlap)
+      : ujAlapEgyAr;
+
     const pct = Math.round(arany * 100);
-    const regiStr = regiAr > 0 ? `<span style="color:#C8C0B4;font-size:11px;text-decoration:line-through;margin-left:4px">${Math.round(regiAr * 10) / 10}</span>` : '';
+    const regiStr = regiAlapAr > 0
+      ? `<span style="color:#C8C0B4;font-size:11px;text-decoration:line-through;margin-left:4px">${fmt(arban(regiAlapAr, s.egyseg))} Ft/${s.egyseg}</span>`
+      : '';
+
     rows += `<div class="preview-row">
       <span>${esc(a.nev || '?')}</span>
       <span>${ert.toFixed(2)} ${val} <span class="badge-pct">${pct}%</span></span>
       <span style="color:#AAA49D;font-size:11px">${szallResz > 0 ? Math.round(szallResz) + ' Ft' : '—'}</span>
-      <span style="font-weight:500">${Math.round(ujSuly * 10) / 10} Ft/${a.egyseg || '?'} ${regiStr}</span>
+      <span style="font-weight:500">${fmt(arban(ujSulyozott, s.egyseg))} Ft/${s.egyseg} ${regiStr}<br>
+        <span style="font-size:10px;color:#AAA49D">(= ${fmt(ujSulyozott)} Ft/${alapEgy})</span>
+      </span>
     </div>`;
   });
+
   document.getElementById('previewBody').innerHTML = rows;
   const totalHuf = toHuf(ossz, val) + szallHuf;
   document.getElementById('prevTotal').textContent = ossz.toFixed(2) + ' ' + val + ' → ' + Math.round(totalHuf).toLocaleString('hu-HU') + ' Ft';
@@ -536,20 +659,33 @@ window.mentSzamla = async function() {
   const szallHuf = toHuf(szall, szallVal);
   const sorok = invSorokData.filter(s => s.alapanyagId && parseFloat(s.mennyiseg) > 0 && parseFloat(s.egysegar) > 0);
   if (!sorok.length) { toast('Nincs érvényes tétel!'); return; }
+
   const ossz = sorok.reduce((s, r) => s + getSorErtek(r), 0);
+
   const promises = sorok.map(s => {
     const a = alapanyagok[s.alapanyagId]; if (!a) return;
+    const tipus = a.tipus || 'suly';
     const ert = getSorErtek(s);
     const arany = ossz > 0 ? ert / ossz : 0;
     const tHuf = toHuf(ert, val);
     const szallResz = szallHuf * arany;
-    const m = parseFloat(s.mennyiseg);
-    const ujEgy = m > 0 ? (tHuf + szallResz) / m : 0;
-    const regiAr = a.sulyozottAr || 0;
-    const regiDb = a.sulyozottDb || 0;
-    const ujSuly = regiDb > 0 ? (regiAr * regiDb + ujEgy * m) / (regiDb + m) : ujEgy;
-    return updateDoc(doc(db, 'costs_alapanyagok', s.alapanyagId), { sulyozottAr: ujSuly, sulyozottDb: regiDb + m });
+
+    // Alap egységben számolunk
+    const mAlap = toAlap(parseFloat(s.mennyiseg) || 0, s.egyseg);
+    const ujAlapEgyAr = mAlap > 0 ? (tHuf + szallResz) / mAlap : 0;
+
+    const regiAlapAr = a.sulyozottAr || 0;
+    const regiAlapDb = a.sulyozottDb || 0;
+    const ujSulyozott = regiAlapDb > 0
+      ? (regiAlapAr * regiAlapDb + ujAlapEgyAr * mAlap) / (regiAlapDb + mAlap)
+      : ujAlapEgyAr;
+
+    return updateDoc(doc(db, 'costs_alapanyagok', s.alapanyagId), {
+      sulyozottAr: ujSulyozott,   // mindig Ft/g vagy Ft/ml
+      sulyozottDb: regiAlapDb + mAlap
+    });
   });
+
   await Promise.all(promises);
   await addDoc(collection(db, 'costs_szamlak'), {
     szallito: document.getElementById('szSzallito').value,
@@ -557,6 +693,7 @@ window.mentSzamla = async function() {
     valuta: val, szallitas: szall, szallitasValuta: szallVal,
     sorok, rogzitve: Date.now()
   });
+
   toast('Mentve! Súlyozott átlagok frissítve. ✓');
   invSorokData = []; window.addInvSor();
   document.getElementById('szSzallitas').value = '0';
@@ -585,6 +722,14 @@ window.ujTipus = async function() {
   toast('Típus létrehozva: ' + nev.trim());
 };
 
+function recEgysegOptions(selectedEgyseg, alapanyagId) {
+  // Receptúrában is csak a típusnak megfelelő egységek jelennek meg
+  const a = alapanyagok[alapanyagId];
+  const tipus = a ? (a.tipus || 'suly') : null;
+  const egysegek = tipus ? egysegekTipushoz(tipus) : ['g','kg','oz','ml','L','fl.oz','db'];
+  return egysegek.map(e => `<option value="${e}"${e === selectedEgyseg ? ' selected' : ''}>${e}</option>`).join('');
+}
+
 function renderRecContent() {
   const cont = document.getElementById('recContent'); if (!cont) return;
   if (!aktivTipus || !recepturak[aktivTipus]) {
@@ -593,26 +738,39 @@ function renderRecContent() {
   }
   const sorok = (recepturak[aktivTipus].sorok || []).filter(s => s);
   let html = '<div class="rec-header"><span>Összetevő</span><span>Mennyiség</span><span>Egység</span><span>Egységköltség</span><span></span></div>';
+
   if (!Object.keys(alapanyagok).length) {
     html += '<div style="color:#C8C0B4;font-size:12px;padding:12px 0">Előbb végy fel alapanyagokat!</div>';
   } else {
     html += sorok.map((s, i) => {
       const a = alapanyagok[s.alapanyagId] || {};
-      const k = (a.sulyozottAr || 0) * (parseFloat(s.mennyiseg) || 0);
+      const tipus = a.tipus || 'suly';
+      const alapAr = a.sulyozottAr || 0;
+      const egyseg = s.egyseg || ALAP_EGYSEG[tipus] || 'g';
+      // Egységköltség: az alapAr Ft/g vagy Ft/ml, konvertáljuk a receptúra egységére
+      const arEgysegben = arban(alapAr, egyseg);
+      const k = arEgysegben * (parseFloat(s.mennyiseg) || 0);
       return `<div class="rec-row">
-        <select onchange="window.recUpdate(${i},'alapanyagId',this.value)">${alapanyagOptions(s.alapanyagId)}</select>
+        <select onchange="window.recUpdateAlapanyag(${i},this.value)">${alapanyagOptions(s.alapanyagId)}</select>
         <input type="number" value="${s.mennyiseg || ''}" placeholder="0" step="0.001" oninput="window.recUpdate(${i},'mennyiseg',this.value)">
-        <span style="font-size:11px;color:#AAA49D;padding:0 4px">${a.egyseg || ''}</span>
-        <span class="rec-cost">${k > 0 ? Math.round(k * 10) / 10 + ' Ft' : '—'}</span>
+        <select onchange="window.recUpdate(${i},'egyseg',this.value)">${recEgysegOptions(egyseg, s.alapanyagId)}</select>
+        <span class="rec-cost">${k > 0 ? fmt(k) + ' Ft' : '—'}</span>
         <button class="btn-del" onclick="window.recDelSor(${i})">✕</button>
       </div>`;
     }).join('');
   }
-  const ossz = sorok.reduce((sum, s) => { const a = alapanyagok[s.alapanyagId]; return a ? sum + (a.sulyozottAr || 0) * (parseFloat(s.mennyiseg) || 0) : sum; }, 0);
+
+  const ossz = sorok.reduce((sum, s) => {
+    const a = alapanyagok[s.alapanyagId];
+    if (!a || !a.sulyozottAr) return sum;
+    const egyseg = s.egyseg || ALAP_EGYSEG[a.tipus || 'suly'] || 'g';
+    return sum + arban(a.sulyozottAr, egyseg) * (parseFloat(s.mennyiseg) || 0);
+  }, 0);
+
   html += `<div class="rec-footer">
     <button class="btn-add" style="margin:0" onclick="window.recAddSor()">+ Sor hozzáadása</button>
     <div style="display:flex;align-items:center;gap:12px">
-      <span style="font-size:12px;color:#5C554E">Alapanyag: <strong>${Math.round(ossz)} Ft</strong></span>
+      <span style="font-size:12px;color:#5C554E">Alapanyag: <strong>${fmt(ossz)} Ft</strong></span>
       <button class="btn-secondary" onclick="window.delTipus()" style="color:#B83232;border-color:#f0c0c0">Törlés</button>
       <button class="btn-primary" onclick="window.mentRec()">Mentés</button>
     </div>
@@ -620,24 +778,37 @@ function renderRecContent() {
   cont.innerHTML = html;
 }
 
+window.recUpdateAlapanyag = function(i, alapanyagId) {
+  if (!recepturak[aktivTipus]) return;
+  const sorok = [...(recepturak[aktivTipus].sorok || [])];
+  while (sorok.length <= i) sorok.push({});
+  const a = alapanyagok[alapanyagId];
+  const tipus = a ? (a.tipus || 'suly') : 'suly';
+  sorok[i] = { ...sorok[i], alapanyagId, egyseg: egysegekTipushoz(tipus)[0] };
+  recepturak[aktivTipus] = { ...recepturak[aktivTipus], sorok };
+  renderRecContent();
+};
+
 window.recUpdate = function(i, field, val) {
   if (!recepturak[aktivTipus]) return;
   const sorok = [...(recepturak[aktivTipus].sorok || [])];
   while (sorok.length <= i) sorok.push({});
   sorok[i] = { ...sorok[i], [field]: val };
   recepturak[aktivTipus] = { ...recepturak[aktivTipus], sorok };
-  if (field === 'alapanyagId') renderRecContent();
+  if (field === 'egyseg') renderRecContent();
   else {
-    const a = alapanyagok[sorok[i].alapanyagId] || {};
-    const k = (a.sulyozottAr || 0) * (parseFloat(sorok[i].mennyiseg) || 0);
+    const s = sorok[i];
+    const a = alapanyagok[s.alapanyagId] || {};
+    const egyseg = s.egyseg || 'g';
+    const k = arban(a.sulyozottAr || 0, egyseg) * (parseFloat(s.mennyiseg) || 0);
     const costs = document.querySelectorAll('.rec-cost');
-    if (costs[i]) costs[i].textContent = k > 0 ? Math.round(k * 10) / 10 + ' Ft' : '—';
+    if (costs[i]) costs[i].textContent = k > 0 ? fmt(k) + ' Ft' : '—';
   }
 };
 
 window.recAddSor = function() {
   if (!recepturak[aktivTipus]) return;
-  const sorok = [...(recepturak[aktivTipus].sorok || []), { alapanyagId: '', mennyiseg: '' }];
+  const sorok = [...(recepturak[aktivTipus].sorok || []), { alapanyagId: '', mennyiseg: '', egyseg: 'g' }];
   recepturak[aktivTipus] = { ...recepturak[aktivTipus], sorok };
   renderRecContent();
 };
@@ -720,9 +891,10 @@ function renderEredmeny() {
     sorok.forEach(s => {
       const a = alapanyagok[s.alapanyagId];
       if (!a || !a.sulyozottAr) return;
-      const k = a.sulyozottAr * (parseFloat(s.mennyiseg) || 0);
+      const egyseg = s.egyseg || ALAP_EGYSEG[a.tipus || 'suly'] || 'g';
+      const k = arban(a.sulyozottAr, egyseg) * (parseFloat(s.mennyiseg) || 0);
       aK += k;
-      bHtml += `<div class="res-line"><span>${esc(a.nev || '?')}</span><span>${Math.round(k)} Ft</span></div>`;
+      bHtml += `<div class="res-line"><span>${esc(a.nev || '?')} (${s.mennyiseg} ${egyseg})</span><span>${fmt(k)} Ft</span></div>`;
     });
     if (!sorok.length) bHtml = '<div style="color:#C8C0B4;font-size:11px;margin-top:8px">Nincs receptúra.</div>';
     const total = aK + md + r;
@@ -733,6 +905,56 @@ function renderEredmeny() {
       ${md > 0 ? `<div class="res-line"><span>Munkadíj</span><span>${Math.round(md)} Ft</span></div>` : ''}
       ${r > 0 ? `<div class="res-line"><span>Rezsi</span><span>${Math.round(r)} Ft</span></div>` : ''}
       ${total > 0 ? `<div class="res-line bold"><span>Összesen</span><span>${Math.round(total).toLocaleString('hu-HU')} Ft</span></div>` : ''}
+    </div>`;
+  }).join('');
+}
+// ── EREDMÉNY ──
+let eredmenyValuta = 'HUF';
+
+window.setEredmenyValuta = function(v) {
+  eredmenyValuta = v;
+  document.getElementById('toggleHuf').style.background = v === 'HUF' ? '#1A1714' : '#fff';
+  document.getElementById('toggleHuf').style.color = v === 'HUF' ? '#F4F0E8' : '#AAA49D';
+  document.getElementById('toggleEur').style.background = v === 'EUR' ? '#1A1714' : '#fff';
+  document.getElementById('toggleEur').style.color = v === 'EUR' ? '#F4F0E8' : '#AAA49D';
+  renderEredmeny();
+};
+
+function fmtValuta(ftOssz) {
+  if (eredmenyValuta === 'EUR') {
+    const eurAr = fx.eur || 395;
+    return (Math.round((ftOssz / eurAr) * 100) / 100).toLocaleString('hu-HU', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' EUR';
+  }
+  return Math.round(ftOssz).toLocaleString('hu-HU') + ' Ft';
+}
+
+function renderEredmeny() {
+  const grid = document.getElementById('resGrid'); if (!grid) return;
+  const tipusok = Object.keys(recepturak);
+  if (!tipusok.length) { grid.innerHTML = '<div style="color:#C8C0B4;font-size:12px">Még nincs receptúra.</div>'; return; }
+  const md = getMdPerDb(), r = getRezsiPerDb();
+  const valutaLabel = eredmenyValuta === 'EUR' ? 'EUR/db' : 'Ft/db';
+  grid.innerHTML = tipusok.map(id => {
+    const t = recepturak[id];
+    const sorok = (t.sorok || []).filter(s => s && s.alapanyagId);
+    let aK = 0, bHtml = '';
+    sorok.forEach(s => {
+      const a = alapanyagok[s.alapanyagId];
+      if (!a || !a.sulyozottAr) return;
+      const egyseg = s.egyseg || ALAP_EGYSEG[a.tipus || 'suly'] || 'g';
+      const k = arban(a.sulyozottAr, egyseg) * (parseFloat(s.mennyiseg) || 0);
+      aK += k;
+      bHtml += `<div class="res-line"><span>${esc(a.nev || '?')} (${s.mennyiseg} ${egyseg})</span><span>${fmtValuta(k)}</span></div>`;
+    });
+    if (!sorok.length) bHtml = '<div style="color:#C8C0B4;font-size:11px;margin-top:8px">Nincs receptúra.</div>';
+    const total = aK + md + r;
+    return `<div class="res-card">
+      <div class="res-type">${esc(t.nev || id)}</div>
+      <div class="res-total">${total > 0 ? fmtValuta(total) : '—'} <small style="font-size:11px;color:#AAA49D">/ db</small></div>
+      ${bHtml}
+      ${md > 0 ? `<div class="res-line"><span>Munkadíj</span><span>${fmtValuta(md)}</span></div>` : ''}
+      ${r > 0 ? `<div class="res-line"><span>Rezsi</span><span>${fmtValuta(r)}</span></div>` : ''}
+      ${total > 0 ? `<div class="res-line bold"><span>Összesen</span><span>${fmtValuta(total)}</span></div>` : ''}
     </div>`;
   }).join('');
 }
