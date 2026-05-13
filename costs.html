@@ -215,8 +215,11 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
             <option value="EUR">EUR</option><option value="USD">USD</option><option value="HUF">HUF</option>
           </select>
         </div>
-        <div class="field" style="display:flex;align-items:flex-end">
-          <span style="font-size:11px;color:#AAA49D;padding-bottom:10px">Érték arányosan osztva</span>
+        <div class="field"><label>Kedvezmény (csak tételekre)</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="number" id="szDiscount" placeholder="0" value="0" min="0" max="100" step="0.1" oninput="updatePreview()" style="flex:1">
+            <span style="font-size:13px;color:#5C554E;font-weight:500">%</span>
+          </div>
         </div>
       </div>
       <div class="preview-box" id="previewBox" style="display:none">
@@ -601,7 +604,10 @@ function updatePreview() {
   const sorok = invSorokData.filter(s => s.alapanyagId && (parseFloat(s.darab) || 1) > 0 && parseFloat(s.egysegar) > 0);
   if (!sorok.length) { document.getElementById('previewBox').style.display = 'none'; return; }
 
+  const discount = Math.min(Math.max(parseFloat(document.getElementById('szDiscount')?.value) || 0, 0), 100);
+  const discountSzorzo = 1 - discount / 100;
   const ossz = sorok.reduce((s, r) => s + getSorErtek(r), 0);
+  const osszKedvezmeny = ossz * discountSzorzo; // kedvezményes tétel összeg
   const szallHuf = toHuf(szall, szallVal);
   let rows = '';
 
@@ -611,9 +617,10 @@ function updatePreview() {
     const alapEgy = ALAP_EGYSEG[tipus];
 
     const ert = getSorErtek(s);
-    const arany = ossz > 0 ? ert / ossz : 0;
+    const ertKedvezmeny = ert * discountSzorzo; // kedvezményes tétel ár
+    const arany = osszKedvezmeny > 0 ? ertKedvezmeny / osszKedvezmeny : 0;
     const szallResz = szallHuf * arany;
-    const tHuf = toHuf(ert, val);
+    const tHuf = toHuf(ertKedvezmeny, val); // kedvezményes ár Ft-ban
 
     // Mennyiség alap egységben (pl. g vagy ml)
     const mAlap = toAlap((parseFloat(s.darab) || 1) * (parseFloat(s.egysegMeret) || 1), s.egyseg);
@@ -631,10 +638,11 @@ function updatePreview() {
     const regiStr = regiAlapAr > 0
       ? `<span style="color:#C8C0B4;font-size:11px;text-decoration:line-through;margin-left:4px">${fmt(arban(regiAlapAr, s.egyseg))} Ft/${s.egyseg}</span>`
       : '';
+    const discStr = discount > 0 ? `<span style="color:#2A6049;font-size:10px;margin-left:4px">-${discount}%</span>` : '';
 
     rows += `<div class="preview-row">
       <span>${esc(a.nev || '?')}</span>
-      <span>${ert.toFixed(2)} ${val} <span class="badge-pct">${pct}%</span></span>
+      <span>${ert.toFixed(2)} ${val}${discStr} <span class="badge-pct">${pct}%</span></span>
       <span style="color:#AAA49D;font-size:11px">${szallResz > 0 ? Math.round(szallResz) + ' Ft' : '—'}</span>
       <span style="font-weight:500">${fmt(arban(ujSulyozott, s.egyseg))} Ft/${s.egyseg} ${regiStr}<br>
         <span style="font-size:10px;color:#AAA49D">(= ${fmt(ujSulyozott)} Ft/${alapEgy})</span>
@@ -643,8 +651,9 @@ function updatePreview() {
   });
 
   document.getElementById('previewBody').innerHTML = rows;
-  const totalHuf = toHuf(ossz, val) + szallHuf;
-  document.getElementById('prevTotal').textContent = ossz.toFixed(2) + ' ' + val + ' → ' + Math.round(totalHuf).toLocaleString('hu-HU') + ' Ft';
+  const totalHuf = toHuf(osszKedvezmeny, val) + szallHuf;
+  const discountInfo = discount > 0 ? ` (${discount}% kedvezmény után)` : '';
+  document.getElementById('prevTotal').textContent = osszKedvezmeny.toFixed(2) + ' ' + val + discountInfo + ' + ' + szall + ' ' + szallVal + ' szállítás → ' + Math.round(totalHuf).toLocaleString('hu-HU') + ' Ft';
   document.getElementById('previewBox').style.display = 'block';
 }
 window.updatePreview = updatePreview;
@@ -657,13 +666,16 @@ window.mentSzamla = async function() {
   const sorok = invSorokData.filter(s => s.alapanyagId && (parseFloat(s.darab) || 1) > 0 && parseFloat(s.egysegar) > 0);
   if (!sorok.length) { toast('Nincs érvényes tétel!'); return; }
 
+  const discount = Math.min(Math.max(parseFloat(document.getElementById('szDiscount')?.value) || 0, 0), 100);
+  const discountSzorzo = 1 - discount / 100;
   const ossz = sorok.reduce((s, r) => s + getSorErtek(r), 0);
+  const osszKedvezmeny = ossz * discountSzorzo;
 
   const promises = sorok.map(s => {
     const a = alapanyagok[s.alapanyagId]; if (!a) return;
     const tipus = a.tipus || 'suly';
-    const ert = getSorErtek(s);
-    const arany = ossz > 0 ? ert / ossz : 0;
+    const ert = getSorErtek(s) * discountSzorzo; // kedvezményes ár
+    const arany = osszKedvezmeny > 0 ? ert / osszKedvezmeny : 0;
     const tHuf = toHuf(ert, val);
     const szallResz = szallHuf * arany;
 
@@ -688,12 +700,13 @@ window.mentSzamla = async function() {
     szallito: document.getElementById('szSzallito').value,
     datum: document.getElementById('szDatum').value,
     valuta: val, szallitas: szall, szallitasValuta: szallVal,
-    sorok, rogzitve: Date.now()
+    discount, sorok, rogzitve: Date.now()
   });
 
   toast('Mentve! Súlyozott átlagok frissítve. ✓');
   invSorokData = []; window.addInvSor();
   document.getElementById('szSzallitas').value = '0';
+  document.getElementById('szDiscount').value = '0';
   document.getElementById('szSzallito').value = '';
   document.getElementById('previewBox').style.display = 'none';
 };
