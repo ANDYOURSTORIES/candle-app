@@ -879,36 +879,6 @@ window.mentMunkadij = async function() {
 };
 
 // ── EREDMÉNY ──
-function renderEredmeny() {
-  const grid = document.getElementById('resGrid'); if (!grid) return;
-  const tipusok = Object.keys(recepturak);
-  if (!tipusok.length) { grid.innerHTML = '<div style="color:#C8C0B4;font-size:12px">Még nincs receptúra.</div>'; return; }
-  const md = getMdPerDb(), r = getRezsiPerDb();
-  grid.innerHTML = tipusok.map(id => {
-    const t = recepturak[id];
-    const sorok = (t.sorok || []).filter(s => s && s.alapanyagId);
-    let aK = 0, bHtml = '';
-    sorok.forEach(s => {
-      const a = alapanyagok[s.alapanyagId];
-      if (!a || !a.sulyozottAr) return;
-      const egyseg = s.egyseg || ALAP_EGYSEG[a.tipus || 'suly'] || 'g';
-      const k = arban(a.sulyozottAr, egyseg) * (parseFloat(s.mennyiseg) || 0);
-      aK += k;
-      bHtml += `<div class="res-line"><span>${esc(a.nev || '?')} (${s.mennyiseg} ${egyseg})</span><span>${fmt(k)} Ft</span></div>`;
-    });
-    if (!sorok.length) bHtml = '<div style="color:#C8C0B4;font-size:11px;margin-top:8px">Nincs receptúra.</div>';
-    const total = aK + md + r;
-    return `<div class="res-card">
-      <div class="res-type">${esc(t.nev || id)}</div>
-      <div class="res-total">${total > 0 ? Math.round(total).toLocaleString('hu-HU') : '—'} <small>Ft/db</small></div>
-      ${bHtml}
-      ${md > 0 ? `<div class="res-line"><span>Munkadíj</span><span>${Math.round(md)} Ft</span></div>` : ''}
-      ${r > 0 ? `<div class="res-line"><span>Rezsi</span><span>${Math.round(r)} Ft</span></div>` : ''}
-      ${total > 0 ? `<div class="res-line bold"><span>Összesen</span><span>${Math.round(total).toLocaleString('hu-HU')} Ft</span></div>` : ''}
-    </div>`;
-  }).join('');
-}
-// ── EREDMÉNY ──
 let eredmenyValuta = 'HUF';
 
 window.setEredmenyValuta = function(v) {
