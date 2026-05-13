@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bekerülési Költség — AYS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Mono',monospace;background:#F4F0E8;color:#1A1714;min-height:100vh;font-size:13px}
+#authScreen{position:fixed;inset:0;background:#1A1714;display:flex;align-items:center;justify-content:center;z-index:999}
+.auth-box{background:#F4F0E8;padding:48px 40px;width:360px}
+.auth-logo{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#B8924A;margin-bottom:32px}
+.auth-title{font-size:22px;font-weight:500;margin-bottom:24px}
+.auth-field{margin-bottom:14px}
+.auth-field label{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#5C554E;margin-bottom:5px}
+.auth-field input{width:100%;padding:10px 12px;border:0.5px solid #C8C0B4;background:#fff;font-family:'DM Mono',monospace;font-size:13px;color:#1A1714;outline:none}
+.auth-field input:focus{border-color:#B8924A}
+.auth-btn{width:100%;padding:12px;background:#1A1714;color:#F4F0E8;border:none;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;margin-top:8px}
+.auth-btn:hover{background:#3C3835}
+.auth-error{font-size:11px;color:#B83232;margin-top:10px;min-height:16px}
+header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.h-logo{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:#B8924A;font-weight:500}
+.h-title{font-size:14px;font-weight:500}
+.h-right{display:flex;align-items:center;gap:12px}
+.h-user{font-size:11px;color:#AAA49D}
+.h-logout{font-size:11px;color:#5C554E;background:none;border:0.5px solid #E0D8CC;padding:5px 12px;cursor:pointer;font-family:'DM Mono',monospace}
+.h-logout:hover{background:#F4F0E8}
+.tabs{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;display:flex}
+.tab{padding:12px 20px;border:none;background:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;color:#AAA49D;border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab:hover{color:#5C554E}
+.tab.active{color:#1A1714;border-bottom-color:#1A1714;font-weight:500}
+.content{padding:28px 32px;max-width:1000px}
+.page{display:none}
+.page.active{display:block}
+.fx-bar{display:flex;align-items:center;gap:14px;background:#fff;border:0.5px solid #E0D8CC;padding:11px 18px;margin-bottom:20px}
+.fx-label{font-size:11px;color:#5C554E}
+.fx-input{width:76px;padding:5px 8px;border:0.5px solid #C8C0B4;background:#F4F0E8;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#1A1714;outline:none}
+.fx-input:focus{border-color:#B8924A}
+.fx-sep{color:#E0D8CC;margin:0 2px}
+.fx-date{font-size:10px;color:#AAA49D;margin-left:auto}
+.card{background:#fff;border:0.5px solid #E0D8CC;padding:20px 24px;margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:11px;font-weight:500;letter-spacing:0.8px;text-transform:uppercase;color:#5C554E}
+.btn-primary{padding:8px 18px;background:#1A1714;color:#F4F0E8;border:none;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer}
+.btn-primary:hover{background:#3C3835}
+.btn-secondary{padding:7px 14px;background:none;border:0.5px solid #C8C0B4;color:#5C554E;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer}
+.btn-secondary:hover{background:#F4F0E8}
+.btn-add{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:0.5px dashed #C8C0B4;background:none;color:#AAA49D;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;margin-top:10px}
+.btn-add:hover{border-color:#AAA49D;color:#5C554E}
+.btn-del{width:24px;height:24px;border:none;background:none;cursor:pointer;color:#C8C0B4;font-size:14px;display:inline-flex;align-items:center;justify-content:center}
+.btn-del:hover{color:#B83232}
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:7px 10px;background:#F9F6F1;border-bottom:0.5px solid #E0D8CC;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;font-weight:500;white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:0.5px solid #F0EBE2;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#FDFAF6}
+.tbl input,.tbl select{border:0.5px solid #E0D8CC;padding:5px 8px;font-family:'DM Mono',monospace;font-size:12px;background:#fff;color:#1A1714;outline:none;width:100%}
+.tbl input:focus,.tbl select:focus{border-color:#B8924A}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.field label{display:block;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#5C554E;margin-bottom:5px;font-weight:500}
+.field input,.field select{width:100%;padding:8px 10px;border:0.5px solid #C8C0B4;background:#fff;font-family:'DM Mono',monospace;font-size:13px;color:#1A1714;outline:none}
+.field input:focus,.field select:focus{border-color:#B8924A}
+.divider{height:0.5px;background:#E0D8CC;margin:16px 0}
+.inv-header{display:grid;grid-template-columns:2.2fr 90px 90px 100px 100px 28px;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;font-weight:500;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
+.inv-row{display:grid;grid-template-columns:2.2fr 90px 90px 100px 100px 28px;gap:8px;align-items:center;padding:8px 0;border-bottom:0.5px solid #F0EBE2}
+.inv-row:last-of-type{border-bottom:none}
+.inv-row input,.inv-row select{padding:6px 8px;border:0.5px solid #E0D8CC;font-family:'DM Mono',monospace;font-size:12px;background:#fff;color:#1A1714;outline:none;width:100%}
+.inv-row input:focus,.inv-row select:focus{border-color:#B8924A}
+.preview-box{background:#F9F6F1;border:0.5px solid #E0D8CC;padding:18px 20px;margin-top:16px}
+.preview-header{display:grid;grid-template-columns:2.2fr 1fr 1fr 1.3fr;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;font-weight:500;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
+.preview-row{display:grid;grid-template-columns:2.2fr 1fr 1fr 1.3fr;gap:8px;padding:7px 0;border-bottom:0.5px solid #EEE8DF;font-size:12px;align-items:center}
+.preview-row:last-of-type{border-bottom:none}
+.preview-footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:0.5px solid #E0D8CC}
+.badge{display:inline-block;padding:2px 7px;font-size:10px;font-weight:500}
+.badge-eur{background:#E6F1FB;color:#185FA5}
+.badge-usd{background:#EAF3DE;color:#3B6D11}
+.badge-huf{background:#F1EFE8;color:#5F5E5A}
+.badge-pct{background:#F4F0E8;color:#5C554E}
+.type-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.pill{padding:5px 14px;border:0.5px solid #C8C0B4;background:none;font-family:'DM Mono',monospace;font-size:11px;color:#5C554E;cursor:pointer}
+.pill:hover{border-color:#AAA49D}
+.pill.active{background:#1A1714;border-color:#1A1714;color:#F4F0E8}
+.pill-add{border-style:dashed}
+.rec-header{display:grid;grid-template-columns:2.5fr 100px 70px 100px 28px;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
+.rec-row{display:grid;grid-template-columns:2.5fr 100px 70px 100px 28px;gap:8px;align-items:center;padding:7px 0;border-bottom:0.5px solid #F0EBE2}
+.rec-row:last-of-type{border-bottom:none}
+.rec-row select,.rec-row input{padding:5px 8px;border:0.5px solid #E0D8CC;font-family:'DM Mono',monospace;font-size:12px;background:#fff;color:#1A1714;outline:none;width:100%}
+.rec-row select:focus,.rec-row input:focus{border-color:#B8924A}
+.rec-cost{font-weight:500;color:#2A6049;font-size:12px}
+.rec-footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:0.5px solid #E0D8CC}
+.res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:4px}
+.res-card{background:#fff;border:0.5px solid #E0D8CC;padding:18px}
+.res-type{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#AAA49D;margin-bottom:8px}
+.res-total{font-size:24px;font-weight:500;color:#1A1714;margin-bottom:12px;line-height:1}
+.res-total small{font-size:12px;font-weight:400;color:#AAA49D}
+.res-line{display:flex;justify-content:space-between;font-size:11px;color:#AAA49D;padding:3px 0}
+.res-line.bold{border-top:0.5px solid #E0D8CC;margin-top:4px;padding-top:6px;font-weight:500;color:#1A1714;font-size:12px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.section-box{background:#F9F6F1;border:0.5px solid #E0D8CC;padding:18px}
+.section-box h4{font-size:11px;letter-spacing:0.8px;text-transform:uppercase;color:#5C554E;margin-bottom:14px;font-weight:500}
+.calc-preview{background:#fff;border:0.5px solid #E0D8CC;padding:10px 14px;margin-top:12px;font-size:13px;font-weight:500;color:#1A1714;text-align:center}
+.pdf-zone{border:0.5px dashed #C8C0B4;padding:32px;text-align:center;cursor:pointer;background:#FDFAF6;margin-bottom:16px}
+.pdf-zone:hover,.pdf-zone.dragover{border-color:#B8924A;background:#FBF7F0}
+.pdf-text{font-size:12px;color:#AAA49D;line-height:2}
+.pdf-text strong{color:#5C554E}
+.pdf-loading{display:none;text-align:center;padding:24px;font-size:12px;color:#5C554E}
+.spinner{width:20px;height:20px;border:2px solid #E0D8CC;border-top-color:#B8924A;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;right:24px;background:#1A1714;color:#F4F0E8;padding:12px 20px;font-size:12px;z-index:9999;opacity:0;transition:opacity 0.2s;pointer-events:none}
+.toast.show{opacity:1}
+.muted{color:#AAA49D}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">ANDYOURSTORIES</div>
+    <div class="auth-title">Bekerülési Költség</div>
+    <div class="auth-field">
+      <label>Email</label>
+      <input type="email" id="authEmail" placeholder="email@andyourstories.com" autocomplete="email">
+    </div>
+    <div class="auth-field">
+      <label>Jelszó</label>
+      <input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="auth-btn" onclick="doLogin()">Belépés</button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<header id="mainHeader" style="display:none">
+  <div class="h-logo">AYS</div>
+  <div class="h-title">Bekerülési Költség</div>
+  <div class="h-right">
+    <span class="h-user" id="hUser"></span>
+    <button class="h-logout" onclick="doLogout()">Kilépés</button>
+  </div>
+</header>
+
+<div class="tabs" id="mainTabs" style="display:none">
+  <button class="tab active" onclick="showTab('alapanyagok',this)">Alapanyagok</button>
+  <button class="tab" onclick="showTab('szamla',this)">Számla rögzítés</button>
+  <button class="tab" onclick="showTab('recepturak',this)">Receptúrák</button>
+  <button class="tab" onclick="showTab('munkadij',this)">Munkadíj & Rezsi</button>
+  <button class="tab" onclick="showTab('eredmeny',this)">Eredmény</button>
+</div>
+
+<div class="content" id="mainContent" style="display:none">
+
+  <div class="fx-bar">
+    <span class="fx-label">Árfolyam:</span>
+    <span class="fx-label">1 EUR =</span>
+    <input class="fx-input" id="fxEur" type="number" value="395" step="0.5" onchange="saveFx()">
+    <span class="fx-label">Ft</span>
+    <span class="fx-sep">|</span>
+    <span class="fx-label">1 USD =</span>
+    <input class="fx-input" id="fxUsd" type="number" value="362" step="0.5" onchange="saveFx()">
+    <span class="fx-label">Ft</span>
+    <span class="fx-date" id="fxDate"></span>
+  </div>
+
+  <!-- ALAPANYAGOK -->
+  <div id="page-alapanyagok" class="page active">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Alapanyagok</span>
+        <button class="btn-primary" onclick="ujAlapanyag()">+ Új alapanyag</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr>
+            <th style="width:32%">Megnevezés</th>
+            <th>Mértékegység</th>
+            <th>Súlyozott átlagár</th>
+            <th>Megjegyzés</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="alapanyagBody">
+            <tr><td colspan="5" style="text-align:center;color:#C8C0B4;padding:24px">Betöltés...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SZÁMLA -->
+  <div id="page-szamla" class="page">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">PDF számla feltöltése</span>
+        <span class="muted" style="font-size:11px">Claude automatikusan kinyeri a tételeket</span>
+      </div>
+      <div class="pdf-zone" id="pdfZone" onclick="document.getElementById('pdfInput').click()" ondragover="pdfDragOver(event)" ondragleave="pdfDragLeave(event)" ondrop="pdfDrop(event)">
+        <div style="font-size:28px;color:#C8C0B4;margin-bottom:10px">📄</div>
+        <div class="pdf-text"><strong>Kattints vagy húzd ide a PDF számlát</strong><br>Claude kinyeri a szállítót, tételeket, árakat és a szállítási költséget</div>
+      </div>
+      <div class="pdf-loading" id="pdfLoading">
+        <div class="spinner"></div>
+        Claude olvassa a számlát...
+      </div>
+      <input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="pdfSelected(this)">
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Számla adatok</span>
+        <span class="muted" style="font-size:11px" id="pdfFillNote"></span>
+      </div>
+      <div class="g3">
+        <div class="field"><label>Szállító neve</label><input type="text" id="szSzallito" placeholder="pl. Candle Science GmbH"></div>
+        <div class="field"><label>Számla dátuma</label><input type="date" id="szDatum"></div>
+        <div class="field"><label>Valuta</label>
+          <select id="szValuta" onchange="updateRowTotals()">
+            <option value="EUR">EUR</option><option value="USD">USD</option><option value="HUF">HUF</option>
+          </select>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="card-title" style="margin-bottom:12px">Tételek</div>
+      <div class="inv-header">
+        <span>Alapanyag</span><span>Mennyiség</span><span>Egység</span><span>Egységár</span><span>Tétel érték</span><span></span>
+      </div>
+      <div id="invSorok"></div>
+      <button class="btn-add" onclick="addInvSor()">+ Tétel hozzáadása</button>
+      <div class="divider"></div>
+      <div class="g3">
+        <div class="field"><label>Szállítási költség</label><input type="number" id="szSzallitas" placeholder="0" value="0" oninput="updatePreview()"></div>
+        <div class="field"><label>Szállítás valutája</label>
+          <select id="szSzallitasValuta" onchange="updatePreview()">
+            <option value="EUR">EUR</option><option value="USD">USD</option><option value="HUF">HUF</option>
+          </select>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end">
+          <span style="font-size:11px;color:#AAA49D;padding-bottom:10px">Érték arányosan osztva</span>
+        </div>
+      </div>
+      <div class="preview-box" id="previewBox" style="display:none">
+        <div class="card-title" style="margin-bottom:12px">Kalkuláció előnézet</div>
+        <div class="preview-header"><span>Alapanyag</span><span>Tétel érték</span><span>Szállítás</span><span>Új egységköltség</span></div>
+        <div id="previewBody"></div>
+        <div class="preview-footer">
+          <div style="font-size:12px;color:#5C554E">Összesen: <strong id="prevTotal"></strong></div>
+          <button class="btn-primary" onclick="mentSzamla()">Mentés & átlag frissítése</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECEPTÚRÁK -->
+  <div id="page-recepturak" class="page">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Termék típusok</span>
+        <button class="btn-primary" onclick="ujTipus()">+ Új típus</button>
+      </div>
+      <div class="type-pills" id="typePills"></div>
+      <div id="recContent"><div style="color:#C8C0B4;font-size:12px;padding:16px 0">Válassz vagy hozz létre termék típust.</div></div>
+    </div>
+  </div>
+
+  <!-- MUNKADÍJ -->
+  <div id="page-munkadij" class="page">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">Globális munkadíj & rezsi</div>
+      <div class="two-col">
+        <div class="section-box">
+          <h4>Munkadíj</h4>
+          <div class="field" style="margin-bottom:12px"><label>Órabér (Ft/óra)</label><input type="number" id="mdOrabér" placeholder="pl. 3000" oninput="updateMdPreview()"></div>
+          <div class="field" style="margin-bottom:12px"><label>Batch mérete (db)</label><input type="number" id="mdBatchDb" placeholder="pl. 50" oninput="updateMdPreview()"></div>
+          <div class="field" style="margin-bottom:12px"><label>Batch ideje (óra)</label><input type="number" id="mdBatchOra" placeholder="pl. 4" step="0.5" oninput="updateMdPreview()"></div>
+          <div class="calc-preview" id="mdPreview">— Ft/db</div>
+        </div>
+        <div class="section-box">
+          <h4>Rezsi</h4>
+          <div class="field" style="margin-bottom:12px"><label>Havi rezsi összesen (Ft)</label><input type="number" id="mdHaviRezsi" placeholder="pl. 80000" oninput="updateMdPreview()"></div>
+          <div class="field" style="margin-bottom:12px"><label>Havi termelés (db)</label><input type="number" id="mdHaviDb" placeholder="pl. 500" oninput="updateMdPreview()"></div>
+          <div class="calc-preview" id="rezsiPreview">— Ft/db</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
+        <button class="btn-primary" onclick="mentMunkadij()">Mentés</button>
+        <span id="mdMentve" style="font-size:11px;color:#2A6049"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- EREDMÉNY -->
+  <div id="page-eredmeny" class="page">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Bekerülési ár összesítő</span>
+        <button class="btn-secondary" onclick="renderEredmeny()">Frissítés</button>
+      </div>
+      <div class="res-grid" id="resGrid"><div style="color:#C8C0B4;font-size:12px">Betöltés...</div></div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const firebaseConfig={apiKey:"AIzaSyBKEAA01f16INT22nX2fSV8YGOfB3fDuMw",authDomain:"ays-production-5ab41.firebaseapp.com",projectId:"ays-production-5ab41",storageBucket:"ays-production-5ab41.firebasestorage.app",messagingSenderId:"642343737324",appId:"1:642343737324:web:2a2f1bd9455cb83a2752c9",databaseURL:"https://ays-production-5ab41-default-rtdb.europe-west1.firebasedatabase.app"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.database();
+
+let alapanyagok={};
+let recepturak={};
+let munkadij={};
+let fx={eur:395,usd:362};
+let aktivTipus=null;
+let invSorokData=[];
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById('authScreen').style.display='none';
+    document.getElementById('mainHeader').style.display='flex';
+    document.getElementById('mainTabs').style.display='flex';
+    document.getElementById('mainContent').style.display='block';
+    document.getElementById('hUser').textContent=user.email;
+    initData();
+  } else {
+    document.getElementById('authScreen').style.display='flex';
+    ['mainHeader','mainTabs','mainContent'].forEach(id=>document.getElementById(id).style.display='none');
+  }
+});
+
+function doLogin(){
+  const e=document.getElementById('authEmail').value.trim();
+  const p=document.getElementById('authPass').value;
+  document.getElementById('authError').textContent='';
+  auth.signInWithEmailAndPassword(e,p).catch(()=>document.getElementById('authError').textContent='Hibás email vagy jelszó.');
+}
+document.getElementById('authPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+function doLogout(){auth.signOut();}
+
+function initData(){
+  db.ref('costs/fx').on('value',snap=>{
+    const v=snap.val();
+    if(v){fx=v;document.getElementById('fxEur').value=v.eur||395;document.getElementById('fxUsd').value=v.usd||362;
+    if(v.updatedAt)document.getElementById('fxDate').textContent='Frissítve: '+new Date(v.updatedAt).toLocaleDateString('hu-HU');}
+  });
+  db.ref('costs/alapanyagok').on('value',snap=>{
+    alapanyagok=snap.val()||{};
+    renderAlapanyagok();renderInvSorok();renderRecContent();updatePreview();
+  });
+  db.ref('costs/recepturak').on('value',snap=>{
+    recepturak=snap.val()||{};renderTypePills();renderEredmeny();
+  });
+  db.ref('costs/munkadij').on('value',snap=>{
+    munkadij=snap.val()||{};fillMdFields();updateMdPreview();renderEredmeny();
+  });
+  document.getElementById('szDatum').value=new Date().toISOString().split('T')[0];
+  if(!invSorokData.length)addInvSor();
+}
+
+function saveFx(){
+  fx.eur=parseFloat(document.getElementById('fxEur').value)||395;
+  fx.usd=parseFloat(document.getElementById('fxUsd').value)||362;
+  fx.updatedAt=Date.now();
+  db.ref('costs/fx').set(fx);
+  updatePreview();renderEredmeny();
+}
+
+function toHuf(amount,currency){
+  if(currency==='HUF')return amount;
+  if(currency==='EUR')return amount*fx.eur;
+  if(currency==='USD')return amount*fx.usd;
+  return amount;
+}
+
+function showTab(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='eredmeny')renderEredmeny();
+  if(name==='recepturak')renderTypePills();
+}
+
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+function esc(s){return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+// ALAPANYAGOK
+function renderAlapanyagok(){
+  const tbody=document.getElementById('alapanyagBody');
+  const ids=Object.keys(alapanyagok);
+  if(!ids.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#C8C0B4;padding:24px">Még nincs alapanyag. Kattints az "+ Új alapanyag" gombra.</td></tr>';return;}
+  tbody.innerHTML=ids.map(id=>{
+    const a=alapanyagok[id];
+    const ar=a.sulyozottAr||0;
+    const arStr=ar>0?(Math.round(ar*100)/100)+' Ft/'+(a.egyseg||'?'):'—';
+    return `<tr>
+      <td><input value="${esc(a.nev||'')}" onchange="updateAlapanyag('${id}','nev',this.value)" style="width:100%;border:none;background:none;font-family:'DM Mono',monospace;font-size:12px;color:#1A1714;outline:none;padding:0" placeholder="Megnevezés"></td>
+      <td><select onchange="updateAlapanyag('${id}','egyseg',this.value)" style="border:none;background:none;font-family:'DM Mono',monospace;font-size:12px;color:#5C554E;outline:none;cursor:pointer">
+        ${['g','kg','ml','L','oz','fl.oz','db'].map(e=>`<option${a.egyseg===e?' selected':''}>${e}</option>`).join('')}
+      </select></td>
+      <td style="font-weight:500">${arStr}</td>
+      <td><input value="${esc(a.megjegyzes||'')}" onchange="updateAlapanyag('${id}','megjegyzes',this.value)" style="width:100%;border:none;background:none;font-family:'DM Mono',monospace;font-size:12px;color:#AAA49D;outline:none;padding:0" placeholder="—"></td>
+      <td><button class="btn-del" onclick="delAlapanyag('${id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function ujAlapanyag(){db.ref('costs/alapanyagok').push({nev:'',egyseg:'g',sulyozottAr:0,sulyozottDb:0,megjegyzes:''});}
+function updateAlapanyag(id,field,val){db.ref(`costs/alapanyagok/${id}/${field}`).set(val);}
+function delAlapanyag(id){if(!confirm('Biztosan törlöd? A receptúrákban is eltűnik.'))return;db.ref(`costs/alapanyagok/${id}`).remove();}
+
+// SZÁMLA
+function alapanyagOptions(selectedId){
+  const ids=Object.keys(alapanyagok);
+  if(!ids.length)return '<option value="">— Előbb végy fel alapanyagot —</option>';
+  return '<option value="">— Válassz —</option>'+ids.map(id=>{
+    const a=alapanyagok[id];
+    return `<option value="${id}"${id===selectedId?' selected':''}>${esc(a.nev||'?')} (${a.egyseg||'?'})</option>`;
+  }).join('');
+}
+
+function egysegOpts(sel){return['g','kg','ml','L','oz','fl.oz','db'].map(e=>`<option${e===sel?' selected':''}>${e}</option>`).join('');}
+
+function addInvSor(data){
+  invSorokData.push(data||{alapanyagId:'',mennyiseg:'',egyseg:'g',egysegar:''});
+  renderInvSorok();updatePreview();
+}
+
+function renderInvSorok(){
+  const cont=document.getElementById('invSorok');
+  if(!cont)return;
+  cont.innerHTML=invSorokData.map((s,i)=>`
+    <div class="inv-row">
+      <select onchange="invUpdate(${i},'alapanyagId',this.value)">${alapanyagOptions(s.alapanyagId)}</select>
+      <input type="number" value="${s.mennyiseg}" placeholder="0" oninput="invUpdate(${i},'mennyiseg',this.value)">
+      <select onchange="invUpdate(${i},'egyseg',this.value)">${egysegOpts(s.egyseg)}</select>
+      <input type="number" value="${s.egysegar}" placeholder="0.00" step="0.001" oninput="invUpdate(${i},'egysegar',this.value)">
+      <span style="font-size:12px;font-weight:500;color:#1A1714" id="irt${i}">—</span>
+      <button class="btn-del" onclick="delInvSor(${i})">✕</button>
+    </div>`).join('');
+  updateRowTotals();
+}
+
+function invUpdate(i,field,val){invSorokData[i][field]=val;updateRowTotals();updatePreview();}
+function delInvSor(i){invSorokData.splice(i,1);renderInvSorok();updatePreview();}
+
+function updateRowTotals(){
+  const val=document.getElementById('szValuta')?document.getElementById('szValuta').value:'EUR';
+  invSorokData.forEach((s,i)=>{
+    const el=document.getElementById('irt'+i);
+    if(!el)return;
+    const t=(parseFloat(s.mennyiseg)||0)*(parseFloat(s.egysegar)||0);
+    el.textContent=t>0?t.toFixed(2)+' '+val:'—';
+  });
+}
+
+function getSorErtek(s){return(parseFloat(s.mennyiseg)||0)*(parseFloat(s.egysegar)||0);}
+
+function updatePreview(){
+  const val=document.getElementById('szValuta')?document.getElementById('szValuta').value:'EUR';
+  const szall=parseFloat(document.getElementById('szSzallitas')?document.getElementById('szSzallitas').value:0)||0;
+  const szallVal=document.getElementById('szSzallitasValuta')?document.getElementById('szSzallitasValuta').value:val;
+  const sorok=invSorokData.filter(s=>s.alapanyagId&&parseFloat(s.mennyiseg)>0&&parseFloat(s.egysegar)>0);
+  if(!sorok.length){document.getElementById('previewBox').style.display='none';return;}
+  const ossz=sorok.reduce((s,r)=>s+getSorErtek(r),0);
+  const szallHuf=toHuf(szall,szallVal);
+  let rows='';
+  sorok.forEach(s=>{
+    const a=alapanyagok[s.alapanyagId];if(!a)return;
+    const ert=getSorErtek(s);
+    const arany=ossz>0?ert/ossz:0;
+    const szallResz=szallHuf*arany;
+    const tHuf=toHuf(ert,val);
+    const m=parseFloat(s.mennyiseg);
+    const ujEgy=m>0?(tHuf+szallResz)/m:0;
+    const regiAr=a.sulyozottAr||0;
+    const regiDb=a.sulyozottDb||0;
+    const ujSuly=regiDb>0?(regiAr*regiDb+ujEgy*m)/(regiDb+m):ujEgy;
+    const pct=Math.round(arany*100);
+    const regiStr=regiAr>0?`<span style="color:#C8C0B4;font-size:11px;text-decoration:line-through;margin-left:4px">${Math.round(regiAr*10)/10}</span>`:'';
+    rows+=`<div class="preview-row">
+      <span>${esc(a.nev||'?')}</span>
+      <span>${ert.toFixed(2)} ${val} <span class="badge badge-pct">${pct}%</span></span>
+      <span style="color:#AAA49D;font-size:11px">${szallResz>0?Math.round(szallResz)+' Ft':'—'}</span>
+      <span style="font-weight:500">${Math.round(ujSuly*10)/10} Ft/${a.egyseg||'?'} ${regiStr}</span>
+    </div>`;
+  });
+  document.getElementById('previewBody').innerHTML=rows;
+  const totalHuf=toHuf(ossz,val)+szallHuf;
+  document.getElementById('prevTotal').textContent=ossz.toFixed(2)+' '+val+' → '+Math.round(totalHuf).toLocaleString('hu-HU')+' Ft';
+  document.getElementById('previewBox').style.display='block';
+}
+
+function mentSzamla(){
+  const val=document.getElementById('szValuta').value;
+  const szall=parseFloat(document.getElementById('szSzallitas').value)||0;
+  const szallVal=document.getElementById('szSzallitasValuta').value;
+  const szallHuf=toHuf(szall,szallVal);
+  const sorok=invSorokData.filter(s=>s.alapanyagId&&parseFloat(s.mennyiseg)>0&&parseFloat(s.egysegar)>0);
+  if(!sorok.length){toast('Nincs érvényes tétel!');return;}
+  const ossz=sorok.reduce((s,r)=>s+getSorErtek(r),0);
+  const updates={};
+  sorok.forEach(s=>{
+    const a=alapanyagok[s.alapanyagId];if(!a)return;
+    const ert=getSorErtek(s);
+    const arany=ossz>0?ert/ossz:0;
+    const tHuf=toHuf(ert,val);
+    const szallResz=szallHuf*arany;
+    const m=parseFloat(s.mennyiseg);
+    const ujEgy=m>0?(tHuf+szallResz)/m:0;
+    const regiAr=a.sulyozottAr||0;
+    const regiDb=a.sulyozottDb||0;
+    const ujSuly=regiDb>0?(regiAr*regiDb+ujEgy*m)/(regiDb+m):ujEgy;
+    updates[`costs/alapanyagok/${s.alapanyagId}/sulyozottAr`]=ujSuly;
+    updates[`costs/alapanyagok/${s.alapanyagId}/sulyozottDb`]=regiDb+m;
+  });
+  const nk=db.ref('costs/szamlaNaplo').push().key;
+  updates[`costs/szamlaNaplo/${nk}`]={szallito:document.getElementById('szSzallito').value,datum:document.getElementById('szDatum').value,valuta:val,szallitas:szall,szallitasValuta:szallVal,sorok,rogzitve:Date.now()};
+  db.ref().update(updates).then(()=>{
+    toast('Mentve! Súlyozott átlagok frissítve. ✓');
+    invSorokData=[];addInvSor();
+    document.getElementById('szSzallitas').value='0';
+    document.getElementById('szSzallito').value='';
+    document.getElementById('pdfFillNote').textContent='';
+    document.getElementById('previewBox').style.display='none';
+  }).catch(e=>alert('Hiba: '+e.message));
+}
+
+// PDF
+function pdfDragOver(e){e.preventDefault();document.getElementById('pdfZone').classList.add('dragover');}
+function pdfDragLeave(){document.getElementById('pdfZone').classList.remove('dragover');}
+function pdfDrop(e){e.preventDefault();document.getElementById('pdfZone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')processPdf(f);else toast('Csak PDF fájl támogatott!');}
+function pdfSelected(input){const f=input.files[0];if(f)processPdf(f);input.value='';}
+
+async function processPdf(file){
+  document.getElementById('pdfZone').style.display='none';
+  document.getElementById('pdfLoading').style.display='block';
+  try{
+    const base64=await fileToBase64(file);
+    const lista=Object.entries(alapanyagok).map(([id,a])=>`ID: ${id} | Név: ${a.nev} | Egység: ${a.egyseg}`).join('\n');
+    const prompt=`Te egy számla-feldolgozó asszisztens vagy. Az alábbi PDF egy beszerzési számla.\n\nMeglévő alapanyagaim:\n${lista||'Nincs még.'}\n\nOlvasd ki: szállító neve, dátum (YYYY-MM-DD), valuta, tételek, szállítási költség.\n\nVálaszolj CSAK JSON formátumban:\n{"szallito":"...","datum":"YYYY-MM-DD","valuta":"EUR","szallitas":0,"szallitasValuta":"EUR","tetelek":[{"nev":"...","alapanyagId":"ID vagy null","mennyiseg":0,"egyseg":"kg","egysegar":0}]}`;
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},{type:'text',text:prompt}]}]})});
+    const data=await resp.json();
+    const text=data.content.map(c=>c.text||'').join('');
+    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    if(parsed.szallito)document.getElementById('szSzallito').value=parsed.szallito;
+    if(parsed.datum)document.getElementById('szDatum').value=parsed.datum;
+    if(parsed.valuta)document.getElementById('szValuta').value=parsed.valuta;
+    if(parsed.szallitas)document.getElementById('szSzallitas').value=parsed.szallitas;
+    if(parsed.szallitasValuta)document.getElementById('szSzallitasValuta').value=parsed.szallitasValuta;
+    if(parsed.tetelek&&parsed.tetelek.length){invSorokData=parsed.tetelek.map(t=>({alapanyagId:t.alapanyagId||'',mennyiseg:t.mennyiseg||'',egyseg:t.egyseg||'g',egysegar:t.egysegar||''}));renderInvSorok();}
+    document.getElementById('pdfFillNote').textContent='✓ Claude kitöltötte — ellenőrizd a mezőket';
+    updatePreview();toast('PDF feldolgozva! Ellenőrizd a mezőket.');
+  }catch(e){toast('Hiba a PDF feldolgozásakor. Töltsd ki kézzel.');console.error(e);}
+  finally{document.getElementById('pdfZone').style.display='block';document.getElementById('pdfLoading').style.display='none';}
+}
+
+function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('Olvasási hiba'));r.readAsDataURL(file);});}
+
+// RECEPTÚRÁK
+function renderTypePills(){
+  const cont=document.getElementById('typePills');if(!cont)return;
+  const tipusok=Object.keys(recepturak);
+  if(!aktivTipus&&tipusok.length)aktivTipus=tipusok[0];
+  cont.innerHTML=tipusok.map(t=>`<button class="pill${aktivTipus===t?' active':''}" onclick="selectTipus('${esc(t)}')">${esc(t)}</button>`).join('')+`<button class="pill pill-add" onclick="ujTipus()">+ Új típus</button>`;
+  renderRecContent();
+}
+
+function selectTipus(t){aktivTipus=t;renderTypePills();}
+
+function ujTipus(){
+  const nev=prompt('Új termék típus neve (pl. CDL 200g):');
+  if(!nev||!nev.trim())return;
+  db.ref(`costs/recepturak/${nev.trim()}`).set([]).then(()=>{aktivTipus=nev.trim();toast('Típus létrehozva: '+nev.trim());});
+}
+
+function renderRecContent(){
+  const cont=document.getElementById('recContent');if(!cont)return;
+  if(!aktivTipus){cont.innerHTML='<div style="color:#C8C0B4;font-size:12px;padding:16px 0">Válassz vagy hozz létre termék típust.</div>';return;}
+  const sorok=(recepturak[aktivTipus]||[]).filter(s=>s);
+  let html='<div class="rec-header"><span>Összetevő</span><span>Mennyiség</span><span>Egység</span><span>Egységköltség</span><span></span></div>';
+  if(!Object.keys(alapanyagok).length){html+='<div style="color:#C8C0B4;font-size:12px;padding:12px 0">Előbb végy fel alapanyagokat!</div>';}
+  else{
+    html+=sorok.map((s,i)=>{
+      const a=alapanyagok[s.alapanyagId]||{};
+      const k=(a.sulyozottAr||0)*(parseFloat(s.mennyiseg)||0);
+      return `<div class="rec-row">
+        <select onchange="recUpdate(${i},'alapanyagId',this.value)">${alapanyagOptions(s.alapanyagId)}</select>
+        <input type="number" value="${s.mennyiseg||''}" placeholder="0" step="0.001" oninput="recUpdate(${i},'mennyiseg',this.value)">
+        <span style="font-size:11px;color:#AAA49D;padding:0 4px">${a.egyseg||''}</span>
+        <span class="rec-cost">${k>0?Math.round(k*10)/10+' Ft':'—'}</span>
+        <button class="btn-del" onclick="recDelSor(${i})">✕</button>
+      </div>`;
+    }).join('');
+  }
+  const ossz=sorok.reduce((sum,s)=>{const a=alapanyagok[s.alapanyagId];return a?sum+(a.sulyozottAr||0)*(parseFloat(s.mennyiseg)||0):sum;},0);
+  html+=`<div class="rec-footer">
+    <button class="btn-add" style="margin:0" onclick="recAddSor()">+ Sor hozzáadása</button>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:12px;color:#5C554E">Alapanyag: <strong>${Math.round(ossz)} Ft</strong></span>
+      <button class="btn-secondary" onclick="delTipus('${esc(aktivTipus)}')" style="color:#B83232;border-color:#f0c0c0">Törlés</button>
+      <button class="btn-primary" onclick="mentRec()">Mentés</button>
+    </div>
+  </div>`;
+  cont.innerHTML=html;
+}
+
+function recUpdate(i,field,val){
+  if(!recepturak[aktivTipus])recepturak[aktivTipus]=[];
+  while(recepturak[aktivTipus].length<=i)recepturak[aktivTipus].push({});
+  recepturak[aktivTipus][i][field]=val;
+  if(field==='alapanyagId')renderRecContent();
+  else{
+    const s=recepturak[aktivTipus][i];
+    const a=alapanyagok[s.alapanyagId]||{};
+    const k=(a.sulyozottAr||0)*(parseFloat(s.mennyiseg)||0);
+    const costs=document.querySelectorAll('.rec-cost');
+    if(costs[i])costs[i].textContent=k>0?Math.round(k*10)/10+' Ft':'—';
+  }
+}
+function recAddSor(){if(!recepturak[aktivTipus])recepturak[aktivTipus]=[];recepturak[aktivTipus].push({alapanyagId:'',mennyiseg:''});renderRecContent();}
+function recDelSor(i){recepturak[aktivTipus].splice(i,1);renderRecContent();}
+function mentRec(){
+  const tiszta=(recepturak[aktivTipus]||[]).filter(s=>s&&s.alapanyagId);
+  db.ref(`costs/recepturak/${aktivTipus}`).set(tiszta).then(()=>toast(aktivTipus+' receptúra mentve ✓')).catch(e=>alert('Hiba: '+e.message));
+}
+function delTipus(t){if(!confirm(`Biztosan törlöd: "${t}"?`))return;db.ref(`costs/recepturak/${t}`).remove().then(()=>{aktivTipus=null;toast('Törölve.');});}
+
+// MUNKADÍJ
+function fillMdFields(){
+  const d=munkadij;
+  const sv=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined)el.value=v;};
+  sv('mdOrabér',d.orabér);sv('mdBatchDb',d.batchDb);sv('mdBatchOra',d.batchOra);sv('mdHaviRezsi',d.haviRezsi);sv('mdHaviDb',d.haviDb);
+}
+function getMdPerDb(){
+  const o=parseFloat(document.getElementById('mdOrabér')?.value)||munkadij.orabér||0;
+  const b=parseFloat(document.getElementById('mdBatchDb')?.value)||munkadij.batchDb||0;
+  const h=parseFloat(document.getElementById('mdBatchOra')?.value)||munkadij.batchOra||0;
+  return b>0?(o*h)/b:0;
+}
+function getRezsiPerDb(){
+  const r=parseFloat(document.getElementById('mdHaviRezsi')?.value)||munkadij.haviRezsi||0;
+  const d=parseFloat(document.getElementById('mdHaviDb')?.value)||munkadij.haviDb||0;
+  return d>0?r/d:0;
+}
+function updateMdPreview(){
+  const m=getMdPerDb(),r=getRezsiPerDb();
+  const mEl=document.getElementById('mdPreview'),rEl=document.getElementById('rezsiPreview');
+  if(mEl)mEl.textContent=m>0?Math.round(m)+' Ft/db munkadíj':'— Ft/db';
+  if(rEl)rEl.textContent=r>0?Math.round(r)+' Ft/db rezsi':'— Ft/db';
+}
+function mentMunkadij(){
+  const adat={orabér:parseFloat(document.getElementById('mdOrabér').value)||0,batchDb:parseFloat(document.getElementById('mdBatchDb').value)||0,batchOra:parseFloat(document.getElementById('mdBatchOra').value)||0,haviRezsi:parseFloat(document.getElementById('mdHaviRezsi').value)||0,haviDb:parseFloat(document.getElementById('mdHaviDb').value)||0};
+  db.ref('costs/munkadij').set(adat).then(()=>{munkadij=adat;document.getElementById('mdMentve').textContent='✓ Mentve';setTimeout(()=>document.getElementById('mdMentve').textContent='',2500);renderEredmeny();}).catch(e=>alert('Hiba: '+e.message));
+}
+
+// EREDMÉNY
+function renderEredmeny(){
+  const grid=document.getElementById('resGrid');if(!grid)return;
+  const tipusok=Object.keys(recepturak);
+  if(!tipusok.length){grid.innerHTML='<div style="color:#C8C0B4;font-size:12px">Még nincs receptúra.</div>';return;}
+  const md=getMdPerDb(),r=getRezsiPerDb();
+  grid.innerHTML=tipusok.map(t=>{
+    const sorok=(recepturak[t]||[]).filter(s=>s&&s.alapanyagId);
+    let aK=0,bHtml='';
+    sorok.forEach(s=>{const a=alapanyagok[s.alapanyagId];if(!a||!a.sulyozottAr)return;const k=a.sulyozottAr*(parseFloat(s.mennyiseg)||0);aK+=k;bHtml+=`<div class="res-line"><span>${esc(a.nev||'?')}</span><span>${Math.round(k)} Ft</span></div>`;});
+    if(!sorok.length)bHtml='<div style="color:#C8C0B4;font-size:11px;margin-top:8px">Nincs receptúra.</div>';
+    const total=aK+md+r;
+    return `<div class="res-card">
+      <div class="res-type">${esc(t)}</div>
+      <div class="res-total">${total>0?Math.round(total).toLocaleString('hu-HU'):'—'} <small>Ft/db</small></div>
+      ${bHtml}
+      ${md>0?`<div class="res-line"><span>Munkadíj</span><span>${Math.round(md)} Ft</span></div>`:''}
+      ${r>0?`<div class="res-line"><span>Rezsi</span><span>${Math.round(r)} Ft</span></div>`:''}
+      ${total>0?`<div class="res-line bold"><span>Összesen</span><span>${Math.round(total).toLocaleString('hu-HU')} Ft</span></div>`:''}
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
