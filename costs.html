@@ -85,13 +85,17 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
 .rec-row select:focus,.rec-row input:focus{border-color:#B8924A}
 .rec-cost{font-weight:500;color:#2A6049;font-size:12px}
 .rec-footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:0.5px solid #E0D8CC}
-.res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:4px}
-.res-card{background:#fff;border:0.5px solid #E0D8CC;padding:18px}
-.res-type{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#AAA49D;margin-bottom:8px}
-.res-total{font-size:24px;font-weight:500;color:#1A1714;margin-bottom:12px;line-height:1}
+.res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:4px}
+.res-card{background:#fff;border:0.5px solid #E0D8CC;padding:22px 24px}
+.res-type{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#AAA49D;margin-bottom:10px}
+.res-total{font-size:28px;font-weight:500;color:#1A1714;margin-bottom:16px;line-height:1}
 .res-total small{font-size:12px;font-weight:400;color:#AAA49D}
-.res-line{display:flex;justify-content:space-between;font-size:11px;color:#AAA49D;padding:3px 0}
-.res-line.bold{border-top:0.5px solid #E0D8CC;margin-top:4px;padding-top:6px;font-weight:500;color:#1A1714;font-size:12px}
+.res-line{display:grid;grid-template-columns:1fr auto;gap:16px;font-size:12px;color:#AAA49D;padding:4px 0;border-bottom:0.5px solid #F5F0E8}
+.res-line:last-of-type{border-bottom:none}
+.res-line span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-line span:last-child{font-weight:500;white-space:nowrap;text-align:right}
+.res-line.bold{border-top:0.5px solid #E0D8CC;border-bottom:none;margin-top:8px;padding-top:8px;font-weight:500;color:#1A1714;font-size:13px}
+.res-line.bold span:last-child{color:#1A1714}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .section-box{background:#F9F6F1;border:0.5px solid #E0D8CC;padding:18px}
 .section-box h4{font-size:11px;letter-spacing:0.8px;text-transform:uppercase;color:#5C554E;margin-bottom:14px;font-weight:500}
@@ -700,7 +704,9 @@ window.mentSzamla = async function() {
     szallito: document.getElementById('szSzallito').value,
     datum: document.getElementById('szDatum').value,
     valuta: val, szallitas: szall, szallitasValuta: szallVal,
-    discount, sorok, rogzitve: Date.now()
+    discount, sorok,
+    arfolyam: { eur: fx.eur, usd: fx.usd },
+    rogzitve: Date.now()
   });
 
   toast('Mentve! Súlyozott átlagok frissítve. ✓');
