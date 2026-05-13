@@ -62,8 +62,8 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
 .field input,.field select{width:100%;padding:8px 10px;border:0.5px solid #C8C0B4;background:#fff;font-family:'DM Mono',monospace;font-size:13px;color:#1A1714;outline:none}
 .field input:focus,.field select:focus{border-color:#B8924A}
 .divider{height:0.5px;background:#E0D8CC;margin:16px 0}
-.inv-header{display:grid;grid-template-columns:2fr 90px 90px 100px 100px 28px;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;font-weight:500;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
-.inv-row{display:grid;grid-template-columns:2fr 90px 90px 100px 100px 28px;gap:8px;align-items:center;padding:8px 0;border-bottom:0.5px solid #F0EBE2}
+.inv-header{display:grid;grid-template-columns:2fr 60px 80px 70px 100px 100px 28px;gap:8px;padding:0 0 8px;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;color:#AAA49D;font-weight:500;border-bottom:0.5px solid #E0D8CC;margin-bottom:4px}
+.inv-row{display:grid;grid-template-columns:2fr 60px 80px 70px 100px 100px 28px;gap:8px;align-items:center;padding:8px 0;border-bottom:0.5px solid #F0EBE2}
 .inv-row:last-of-type{border-bottom:none}
 .inv-row input,.inv-row select{padding:6px 8px;border:0.5px solid #E0D8CC;font-family:'DM Mono',monospace;font-size:12px;background:#fff;color:#1A1714;outline:none;width:100%}
 .inv-row input:focus,.inv-row select:focus{border-color:#B8924A}
@@ -202,8 +202,8 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
       </div>
       <div class="divider"></div>
       <div class="card-title" style="margin-bottom:12px">Tételek</div>
-      <div class="inv-header">
-        <span>Alapanyag</span><span>Mennyiség</span><span>Egység</span><span>Egységár</span><span>Tétel érték</span><span></span>
+      <div class="inv-header" style="grid-template-columns:2fr 60px 80px 70px 100px 100px 28px">
+        <span>Alapanyag</span><span>Db</span><span>Egységméret</span><span>Egység</span><span>Ár/db</span><span>Tétel érték</span><span></span>
       </div>
       <div id="invSorok"></div>
       <button class="btn-add" onclick="addInvSor()">+ Tétel hozzáadása</button>
@@ -521,8 +521,8 @@ window.updateAlapanyag = async function(id, field, val) {
 };
 
 window.updateAlapanyagTipus = async function(id, tipus) {
-  // Típus váltáskor reseteljük az árat mert más egységben volt
-  await updateDoc(doc(db, 'costs_alapanyagok', id), { tipus, sulyozottAr: 0, sulyozottDb: 0 });
+  // Csak a típust mentjük, az árat NEM töröljük
+  await updateDoc(doc(db, 'costs_alapanyagok', id), { tipus });
 };
 
 window.delAlapanyag = async function(id) {
@@ -540,16 +540,14 @@ function alapanyagOptions(selectedId) {
   }).join('');
 }
 
-// Egység options az alapanyag típusa alapján
+// Egység options - számla bevitelnél minden egység elérhető
 function egysegOptions(selectedEgyseg, alapanyagId) {
-  const a = alapanyagok[alapanyagId];
-  const tipus = a ? (a.tipus || 'suly') : null;
-  const egysegek = tipus ? egysegekTipushoz(tipus) : ['g','kg','oz','ml','L','fl.oz','db'];
+  const egysegek = ['g','kg','oz','ml','L','fl.oz','db'];
   return egysegek.map(e => `<option value="${e}"${e === selectedEgyseg ? ' selected' : ''}>${e}</option>`).join('');
 }
 
 window.addInvSor = function(data) {
-  invSorokData.push(data || { alapanyagId: '', mennyiseg: '', egyseg: 'g', egysegar: '' });
+  invSorokData.push(data || { alapanyagId: '', darab: 1, egysegMeret: '', egyseg: 'g', egysegar: '' });
   renderInvSorok();
   updatePreview();
 };
@@ -560,9 +558,10 @@ function renderInvSorok() {
   cont.innerHTML = invSorokData.map((s, i) => `
     <div class="inv-row">
       <select onchange="window.invUpdateAlapanyag(${i},this.value)">${alapanyagOptions(s.alapanyagId)}</select>
-      <input type="number" value="${s.mennyiseg}" placeholder="0" oninput="window.invUpdate(${i},'mennyiseg',this.value)">
+      <input type="number" value="${s.darab||1}" placeholder="1" min="1" step="1" oninput="window.invUpdate(${i},'darab',this.value)" title="Darabszám">
+      <input type="number" value="${s.egysegMeret||''}" placeholder="pl. 600" step="0.001" oninput="window.invUpdate(${i},'egysegMeret',this.value)" title="Egységméret (ml, g stb.)">
       <select onchange="window.invUpdate(${i},'egyseg',this.value)">${egysegOptions(s.egyseg, s.alapanyagId)}</select>
-      <input type="number" value="${s.egysegar}" placeholder="0.00" step="0.0001" oninput="window.invUpdate(${i},'egysegar',this.value)">
+      <input type="number" value="${s.egysegar}" placeholder="0.00" step="0.0001" oninput="window.invUpdate(${i},'egysegar',this.value)" title="Ár darabonként">
       <span style="font-size:12px;font-weight:500;color:#1A1714" id="irt${i}">—</span>
       <button class="btn-del" onclick="window.delInvSor(${i})">✕</button>
     </div>`).join('');
@@ -572,11 +571,9 @@ function renderInvSorok() {
 // Ha alapanyagot vált → egységet is reseteljük a típushoz
 window.invUpdateAlapanyag = function(i, alapanyagId) {
   invSorokData[i].alapanyagId = alapanyagId;
-  const a = alapanyagok[alapanyagId];
-  if (a) {
-    const tipus = a.tipus || 'suly';
-    invSorokData[i].egyseg = egysegekTipushoz(tipus)[0]; // default első egység
-  }
+  invSorokData[i].darab = invSorokData[i].darab || 1;
+  invSorokData[i].egysegMeret = invSorokData[i].egysegMeret || '';
+  // Szabad egységválasztás - nem szűrünk típus alapján
   renderInvSorok();
   updatePreview();
 };
@@ -589,19 +586,19 @@ function updateRowTotals() {
   invSorokData.forEach((s, i) => {
     const el = document.getElementById('irt' + i);
     if (!el) return;
-    const t = (parseFloat(s.mennyiseg) || 0) * (parseFloat(s.egysegar) || 0);
+    const t = (parseFloat(s.darab) || 1) * (parseFloat(s.egysegar) || 0);
     el.textContent = t > 0 ? t.toFixed(2) + ' ' + val : '—';
   });
 }
 window.updateRowTotals = updateRowTotals;
 
-function getSorErtek(s) { return (parseFloat(s.mennyiseg) || 0) * (parseFloat(s.egysegar) || 0); }
+function getSorErtek(s) { return (parseFloat(s.darab) || 1) * (parseFloat(s.egysegar) || 0); }
 
 function updatePreview() {
   const val = document.getElementById('szValuta') ? document.getElementById('szValuta').value : 'EUR';
   const szall = parseFloat(document.getElementById('szSzallitas') ? document.getElementById('szSzallitas').value : 0) || 0;
   const szallVal = document.getElementById('szSzallitasValuta') ? document.getElementById('szSzallitasValuta').value : val;
-  const sorok = invSorokData.filter(s => s.alapanyagId && parseFloat(s.mennyiseg) > 0 && parseFloat(s.egysegar) > 0);
+  const sorok = invSorokData.filter(s => s.alapanyagId && (parseFloat(s.darab) || 1) > 0 && parseFloat(s.egysegar) > 0);
   if (!sorok.length) { document.getElementById('previewBox').style.display = 'none'; return; }
 
   const ossz = sorok.reduce((s, r) => s + getSorErtek(r), 0);
@@ -619,7 +616,7 @@ function updatePreview() {
     const tHuf = toHuf(ert, val);
 
     // Mennyiség alap egységben (pl. g vagy ml)
-    const mAlap = toAlap(parseFloat(s.mennyiseg) || 0, s.egyseg);
+    const mAlap = toAlap((parseFloat(s.darab) || 1) * (parseFloat(s.egysegMeret) || 1), s.egyseg);
     // Alap egységenkénti ár (Ft/g vagy Ft/ml)
     const ujAlapEgyAr = mAlap > 0 ? (tHuf + szallResz) / mAlap : 0;
 
@@ -657,7 +654,7 @@ window.mentSzamla = async function() {
   const szall = parseFloat(document.getElementById('szSzallitas').value) || 0;
   const szallVal = document.getElementById('szSzallitasValuta').value;
   const szallHuf = toHuf(szall, szallVal);
-  const sorok = invSorokData.filter(s => s.alapanyagId && parseFloat(s.mennyiseg) > 0 && parseFloat(s.egysegar) > 0);
+  const sorok = invSorokData.filter(s => s.alapanyagId && (parseFloat(s.darab) || 1) > 0 && parseFloat(s.egysegar) > 0);
   if (!sorok.length) { toast('Nincs érvényes tétel!'); return; }
 
   const ossz = sorok.reduce((s, r) => s + getSorErtek(r), 0);
@@ -671,7 +668,7 @@ window.mentSzamla = async function() {
     const szallResz = szallHuf * arany;
 
     // Alap egységben számolunk
-    const mAlap = toAlap(parseFloat(s.mennyiseg) || 0, s.egyseg);
+    const mAlap = toAlap((parseFloat(s.darab) || 1) * (parseFloat(s.egysegMeret) || 1), s.egyseg);
     const ujAlapEgyAr = mAlap > 0 ? (tHuf + szallResz) / mAlap : 0;
 
     const regiAlapAr = a.sulyozottAr || 0;
