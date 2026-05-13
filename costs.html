@@ -105,13 +105,7 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
 .section-box{background:#F9F6F1;border:0.5px solid #E0D8CC;padding:18px}
 .section-box h4{font-size:11px;letter-spacing:0.8px;text-transform:uppercase;color:#5C554E;margin-bottom:14px;font-weight:500}
 .calc-preview{background:#fff;border:0.5px solid #E0D8CC;padding:10px 14px;margin-top:12px;font-size:13px;font-weight:500;color:#1A1714;text-align:center}
-.pdf-zone{border:0.5px dashed #C8C0B4;padding:32px;text-align:center;cursor:pointer;background:#FDFAF6;margin-bottom:16px}
-.pdf-zone:hover,.pdf-zone.dragover{border-color:#B8924A;background:#FBF7F0}
-.pdf-text{font-size:12px;color:#AAA49D;line-height:2}
-.pdf-text strong{color:#5C554E}
-.pdf-loading{display:none;text-align:center;padding:24px;font-size:12px;color:#5C554E}
-.spinner{width:20px;height:20px;border:2px solid #E0D8CC;border-top-color:#B8924A;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px}
-@keyframes spin{to{transform:rotate(360deg)}}
+
 .toast{position:fixed;bottom:24px;right:24px;background:#1A1714;color:#F4F0E8;padding:12px 20px;font-size:12px;z-index:9999;opacity:0;transition:opacity 0.2s;pointer-events:none}
 .toast.show{opacity:1}
 .muted{color:#AAA49D}
@@ -193,26 +187,12 @@ header{background:#fff;border-bottom:0.5px solid #E0D8CC;padding:0 32px;height:5
 
   <!-- SZÁMLA -->
   <div id="page-szamla" class="page">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">PDF számla feltöltése</span>
-        <span class="muted" style="font-size:11px">Claude automatikusan kinyeri a tételeket</span>
-      </div>
-      <div class="pdf-zone" id="pdfZone" onclick="document.getElementById('pdfInput').click()" ondragover="pdfDragOver(event)" ondragleave="pdfDragLeave(event)" ondrop="pdfDrop(event)">
-        <div style="font-size:28px;color:#C8C0B4;margin-bottom:10px">📄</div>
-        <div class="pdf-text"><strong>Kattints vagy húzd ide a PDF számlát</strong><br>Claude kinyeri a szállítót, tételeket, árakat és a szállítási költséget</div>
-      </div>
-      <div class="pdf-loading" id="pdfLoading">
-        <div class="spinner"></div>
-        Claude olvassa a számlát...
-      </div>
-      <input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="pdfSelected(this)">
-    </div>
+
 
     <div class="card">
       <div class="card-header">
         <span class="card-title">Számla adatok</span>
-        <span class="muted" style="font-size:11px" id="pdfFillNote"></span>
+
       </div>
       <div class="g3">
         <div class="field"><label>Szállító neve</label><input type="text" id="szSzallito" placeholder="pl. Candle Science GmbH"></div>
@@ -531,41 +511,12 @@ function mentSzamla(){
     invSorokData=[];addInvSor();
     document.getElementById('szSzallitas').value='0';
     document.getElementById('szSzallito').value='';
-    document.getElementById('pdfFillNote').textContent='';
+    
     document.getElementById('previewBox').style.display='none';
   }).catch(e=>alert('Hiba: '+e.message));
 }
 
-// PDF
-function pdfDragOver(e){e.preventDefault();document.getElementById('pdfZone').classList.add('dragover');}
-function pdfDragLeave(){document.getElementById('pdfZone').classList.remove('dragover');}
-function pdfDrop(e){e.preventDefault();document.getElementById('pdfZone').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')processPdf(f);else toast('Csak PDF fájl támogatott!');}
-function pdfSelected(input){const f=input.files[0];if(f)processPdf(f);input.value='';}
-
-async function processPdf(file){
-  document.getElementById('pdfZone').style.display='none';
-  document.getElementById('pdfLoading').style.display='block';
-  try{
-    const base64=await fileToBase64(file);
-    const lista=Object.entries(alapanyagok).map(([id,a])=>`ID: ${id} | Név: ${a.nev} | Egység: ${a.egyseg}`).join('\n');
-    const prompt=`Te egy számla-feldolgozó asszisztens vagy. Az alábbi PDF egy beszerzési számla.\n\nMeglévő alapanyagaim:\n${lista||'Nincs még.'}\n\nOlvasd ki: szállító neve, dátum (YYYY-MM-DD), valuta, tételek, szállítási költség.\n\nVálaszolj CSAK JSON formátumban:\n{"szallito":"...","datum":"YYYY-MM-DD","valuta":"EUR","szallitas":0,"szallitasValuta":"EUR","tetelek":[{"nev":"...","alapanyagId":"ID vagy null","mennyiseg":0,"egyseg":"kg","egysegar":0}]}`;
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}},{type:'text',text:prompt}]}]})});
-    const data=await resp.json();
-    const text=data.content.map(c=>c.text||'').join('');
-    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
-    if(parsed.szallito)document.getElementById('szSzallito').value=parsed.szallito;
-    if(parsed.datum)document.getElementById('szDatum').value=parsed.datum;
-    if(parsed.valuta)document.getElementById('szValuta').value=parsed.valuta;
-    if(parsed.szallitas)document.getElementById('szSzallitas').value=parsed.szallitas;
-    if(parsed.szallitasValuta)document.getElementById('szSzallitasValuta').value=parsed.szallitasValuta;
-    if(parsed.tetelek&&parsed.tetelek.length){invSorokData=parsed.tetelek.map(t=>({alapanyagId:t.alapanyagId||'',mennyiseg:t.mennyiseg||'',egyseg:t.egyseg||'g',egysegar:t.egysegar||''}));renderInvSorok();}
-    document.getElementById('pdfFillNote').textContent='✓ Claude kitöltötte — ellenőrizd a mezőket';
-    updatePreview();toast('PDF feldolgozva! Ellenőrizd a mezőket.');
-  }catch(e){toast('Hiba a PDF feldolgozásakor. Töltsd ki kézzel.');console.error(e);}
-  finally{document.getElementById('pdfZone').style.display='block';document.getElementById('pdfLoading').style.display='none';}
-}
-
-function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('Olvasási hiba'));r.readAsDataURL(file);});}
+// PDF feltöltés ideiglenesen letiltva (CORS)
 
 // RECEPTÚRÁK
 function renderTypePills(){
