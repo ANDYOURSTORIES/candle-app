@@ -517,20 +517,31 @@ function renderStatusKartyak() {
         const tipus = isSzabin(s);
         const cfg = tipus ? TIPUS_CONFIG[tipus] : null;
         const kov = kozelgoBejegyzes(s, 60);
-        const eviNap = (window._bejegyzesek||[])
-            .filter(b=>b.szemelyId===s.id && b.kezdes.startsWith(aktualisEv+''))
-            .length;
+        
+        // Típusonkénti összesítés az idei évre
+        const eveiBej = (window._bejegyzesek||[]).filter(b=>b.szemelyId===s.id && b.kezdes.startsWith(aktualisEv+''));
+        const osszesites = {};
+        Object.keys(TIPUS_CONFIG).forEach(t => osszesites[t] = 0);
+        eveiBej.forEach(b => { 
+            const t = b.tipus || 'szabadsag';
+            if (osszesites[t] !== undefined) osszesites[t]++;
+        });
 
-        return `<div class="bg-white rounded-2xl border ${tipus?'border-opacity-50':'border-gray-100'} p-4" style="${tipus?'border-color:'+cfg.szin+'40;background:'+cfg.halvany:''}">
+        const bontasSorok = Object.entries(TIPUS_CONFIG)
+            .filter(([t]) => osszesites[t] > 0)
+            .map(([t, cfg]) => `<div class="text-xs mt-0.5" style="color:${cfg.szin}">${cfg.ikon} ${osszesites[t]} nap ${cfg.label.toLowerCase()}</div>`)
+            .join('');
+
+        return `<div class="bg-white rounded-2xl border p-4" style="${tipus?'border-color:'+cfg.szin+'40;background:'+cfg.halvany:'border-color:#f3f4f6'}">
             <div class="flex items-center gap-2 mb-3">
                 <div class="w-2 h-2 rounded-full flex-shrink-0" style="background:${s.szin}"></div>
                 <span class="text-sm font-semibold text-gray-900">${s.nev}</span>
             </div>
-            <div class="text-sm font-medium mb-1" style="color:${tipus?cfg.szin:'#10b981'}">
+            <div class="text-sm font-medium mb-2" style="color:${tipus?cfg.szin:'#10b981'}">
                 ${tipus ? cfg.ikon+' '+cfg.label : '✓ Elérhető'}
             </div>
-            <div class="text-xs text-gray-400 mt-2">${eviNap} nap idén</div>
-            ${kov ? `<div class="text-xs text-gray-400 mt-0.5">Következő: ${kov.kezdes}</div>` : ''}
+            ${bontasSorok || '<div class="text-xs text-gray-400">0 nap idén</div>'}
+            ${kov ? `<div class="text-xs text-gray-400 mt-1.5">Következő: ${kov.kezdes}</div>` : ''}
         </div>`;
     }).join('');
 }
