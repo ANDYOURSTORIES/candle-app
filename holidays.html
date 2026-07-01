@@ -7,659 +7,682 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        * { font-family: 'Inter', sans-serif; }
-        body { background: #f8f8f6; }
+        * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+        body { background: #f5f5f3; margin: 0; }
 
-        .day-cell {
-            aspect-ratio: 1;
+        .timeline-row { display: grid; align-items: center; border-bottom: 1px solid #f0f0ee; }
+        .timeline-row:last-child { border-bottom: none; }
+        .timeline-track { position: relative; height: 36px; }
+        .vacation-block {
+            position: absolute;
+            height: 28px;
+            top: 4px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            border-radius: 6px;
+            padding: 0 8px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
             cursor: pointer;
-            transition: all 0.15s;
-            position: relative;
-            font-weight: 500;
+            transition: opacity 0.15s;
+            color: white;
         }
-        .day-cell:hover:not(.day-other):not(.day-empty) { transform: scale(1.1); }
-        .day-empty { cursor: default; }
-        .day-other { color: #d1d5db; cursor: default; }
-        .day-today { box-shadow: inset 0 0 0 2px #1a1a1a; }
-        .day-weekend { color: #9ca3af; }
+        .vacation-block:hover { opacity: 0.85; }
 
-        .person-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
+        .today-line {
             position: absolute;
-            bottom: 2px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ef4444;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .today-line::before {
+            content: 'MA';
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            font-weight: 700;
+            color: #ef4444;
+            white-space: nowrap;
         }
 
-        .log-entry {
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .stat-bar {
-            height: 4px;
-            border-radius: 2px;
-            transition: width 0.5s ease;
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .status-szabin { background: #f59e0b; animation: pulse 2s infinite; }
+        .status-itthon { background: #10b981; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
 
-        /* Naptár grid */
-        .cal-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 3px;
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100; padding: 16px;
         }
+        .modal { background: white; border-radius: 20px; padding: 28px; width: 100%; max-width: 420px; }
 
-        .selected-range {
-            background: #1a1a1a !important;
-            color: white !important;
+        input[type="date"], select, input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e5e5e3;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s;
+            background: white;
         }
-        .selected-range-mid {
-            background: #e5e7eb !important;
-            color: #1a1a1a !important;
-            border-radius: 0 !important;
+        input:focus, select:focus { border-color: #1a1a1a; }
+
+        .btn-primary {
+            background: #1a1a1a; color: white; border: none;
+            padding: 11px 20px; border-radius: 10px; font-size: 14px;
+            font-weight: 600; cursor: pointer; transition: background 0.15s;
         }
-        .selected-start {
-            border-radius: 6px 0 0 6px !important;
+        .btn-primary:hover { background: #333; }
+        .btn-secondary {
+            background: transparent; color: #666; border: 1.5px solid #e5e5e3;
+            padding: 11px 20px; border-radius: 10px; font-size: 14px;
+            font-weight: 500; cursor: pointer; transition: all 0.15s;
         }
-        .selected-end {
-            border-radius: 0 6px 6px 0 !important;
-        }
+        .btn-secondary:hover { border-color: #999; color: #333; }
+
+        .month-label { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* Scrollable timeline */
+        .timeline-scroll { overflow-x: auto; }
+        .timeline-inner { min-width: 800px; }
     </style>
 </head>
 <body>
 
-<!-- Login képernyő -->
-<div id="loginScreen" class="fixed inset-0 bg-[#f8f8f6] z-50 flex items-center justify-center p-4">
-    <div class="w-full max-w-sm">
-        <div class="mb-10">
-            <div class="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-2">ANDYOURSTORIES</div>
-            <h1 class="text-3xl font-light text-gray-900">Szabadság</h1>
+<!-- LOGIN -->
+<div id="loginScreen" class="fixed inset-0 bg-[#f5f5f3] z-50 flex items-center justify-center p-4">
+    <div class="w-full max-w-xs">
+        <div class="mb-8">
+            <div class="text-xs font-bold tracking-widest text-gray-400 uppercase mb-1">ANDYOURSTORIES</div>
+            <h1 class="text-2xl font-semibold text-gray-900">Szabadság nyilvántartó</h1>
         </div>
         <div class="space-y-3">
-            <input type="email" id="loginEmail" placeholder="Email"
-                class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-900 transition">
-            <input type="password" id="loginPassword" placeholder="Jelszó"
-                class="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-900 transition">
-            <button onclick="bejelentkezes()"
-                class="w-full py-3 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition">
-                Belépés
-            </button>
+            <input type="email" id="loginEmail" placeholder="Email cím">
+            <input type="password" id="loginPassword" placeholder="Jelszó">
+            <button class="btn-primary w-full" onclick="bejelentkezes()">Belépés</button>
         </div>
-        <p id="loginHiba" class="text-red-500 text-xs mt-3 text-center hidden"></p>
+        <p id="loginHiba" class="text-red-500 text-xs mt-3 text-center hidden">Hibás email vagy jelszó.</p>
     </div>
 </div>
 
-<!-- Fő alkalmazás -->
-<div id="app" style="display:none" class="min-h-screen">
+<!-- APP -->
+<div id="app" style="display:none">
 
-    <!-- Header -->
-    <header class="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
-        <div class="flex items-center gap-4">
+    <!-- HEADER -->
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-30">
+        <div class="max-w-5xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between">
             <div>
-                <span class="text-xs font-semibold tracking-widest text-gray-400 uppercase">ANDYOURSTORIES</span>
-                <h1 class="text-lg font-semibold text-gray-900 leading-tight">Szabadság <span id="evFelirat" class="text-gray-400 font-normal"></span></h1>
+                <div class="text-xs font-bold tracking-widest text-gray-400 uppercase">ANDYOURSTORIES</div>
+                <h1 class="text-lg font-semibold text-gray-900 leading-tight">Szabadság <span id="evCimke" class="font-normal text-gray-400"></span></h1>
             </div>
-        </div>
-        <div class="flex items-center gap-3">
-            <button onclick="ujBejegyzes()"
-                class="flex items-center gap-2 bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-800 transition">
-                + Szabadság
-            </button>
-            <button onclick="kijelentkezes()" class="text-gray-400 hover:text-gray-600 text-sm transition">Kilépés</button>
+            <div class="flex items-center gap-2">
+                <button onclick="showModal('ujBejegyzesModal')" class="btn-primary text-sm">+ Szabadság</button>
+                <div id="adminGomb" class="hidden">
+                    <button onclick="showModal('szemelyekModal')" class="btn-secondary text-sm">⚙ Személyek</button>
+                </div>
+                <button onclick="kijelentkezes()" class="text-gray-400 hover:text-gray-600 text-sm ml-1">Kilépés</button>
+            </div>
         </div>
     </header>
 
-    <div class="max-w-6xl mx-auto px-4 py-6 md:px-6">
+    <div class="max-w-5xl mx-auto px-4 md:px-6 py-6">
 
-        <!-- Személyek összesítő -->
-        <div id="szemelyKartyak" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"></div>
+        <!-- KI VAN MOST ITT / SZABIN -->
+        <div id="statusKartyak" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"></div>
 
-        <!-- Fő tartalom: naptár + log -->
-        <div class="grid md:grid-cols-3 gap-6">
+        <!-- KÖZELGŐ SZABADSÁGOK -->
+        <div id="kozelgoSection" class="mb-8 hidden">
+            <h2 class="text-xs font-bold tracking-widest text-gray-400 uppercase mb-3">Közelgő szabadságok</h2>
+            <div id="kozelgoLista" class="space-y-2"></div>
+        </div>
 
-            <!-- Naptár -->
-            <div class="md:col-span-2">
-                <div class="bg-white rounded-2xl border border-gray-100 p-5">
-                    <!-- Naptár nav -->
-                    <div class="flex items-center justify-between mb-5">
-                        <button onclick="navHonap(-1)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition text-gray-600">‹</button>
-                        <h2 id="honapFelirat" class="text-base font-semibold text-gray-900"></h2>
-                        <button onclick="navHonap(1)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition text-gray-600">›</button>
-                    </div>
-
-                    <!-- Jelmagyarázat -->
-                    <div id="jelmagS" class="flex flex-wrap gap-3 mb-4"></div>
-
-                    <!-- Nap fejléc -->
-                    <div class="cal-grid mb-1">
-                        <div class="text-center text-xs font-medium text-gray-400 py-1">H</div>
-                        <div class="text-center text-xs font-medium text-gray-400 py-1">K</div>
-                        <div class="text-center text-xs font-medium text-gray-400 py-1">Sze</div>
-                        <div class="text-center text-xs font-medium text-gray-400 py-1">Cs</div>
-                        <div class="text-center text-xs font-medium text-gray-400 py-1">P</div>
-                        <div class="text-center text-xs font-medium text-gray-400 py-1">Szo</div>
-                        <div class="text-center text-xs font-medium text-gray-400 py-1">V</div>
-                    </div>
-                    <div id="calGrid" class="cal-grid"></div>
+        <!-- IDŐVONAL -->
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
+            <!-- Hónap váltó -->
+            <div class="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button onclick="navHonap(-1)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 text-lg">‹</button>
+                    <h2 id="idovonalCim" class="text-base font-semibold text-gray-900"></h2>
+                    <button onclick="navHonap(1)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 text-lg">›</button>
                 </div>
+                <button onclick="maraHonap()" class="text-xs text-gray-400 hover:text-gray-600 font-medium">Ma</button>
             </div>
 
-            <!-- Log / Napló -->
-            <div>
-                <div class="bg-white rounded-2xl border border-gray-100 p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-sm font-semibold text-gray-900">Bejegyzések</h3>
-                        <select id="logSzuroSzemely" onchange="renderLog()"
-                            class="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 focus:outline-none">
-                            <option value="">Mindenki</option>
-                        </select>
-                    </div>
-                    <div id="logLista" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
+            <!-- Timeline -->
+            <div class="timeline-scroll">
+                <div class="timeline-inner" id="timelineContainer">
+                    <!-- JS tölti -->
                 </div>
             </div>
+        </div>
+
+        <!-- BEJEGYZÉSEK LOG -->
+        <div class="bg-white rounded-2xl border border-gray-100 p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold text-gray-900">Összes bejegyzés</h2>
+                <select id="logSzuro" onchange="renderLog()" class="text-xs py-1 px-2 w-auto" style="width:auto">
+                    <option value="">Mindenki</option>
+                </select>
+            </div>
+            <div id="logLista" class="space-y-2"></div>
         </div>
     </div>
 </div>
 
-<!-- Új bejegyzés modal -->
-<div id="ujBejegyzesModal" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+<!-- MODAL: Új bejegyzés -->
+<div id="ujBejegyzesModal" class="modal-overlay hidden">
+    <div class="modal">
         <h3 class="text-lg font-semibold text-gray-900 mb-5">Szabadság felvétele</h3>
         <div class="space-y-4">
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Személy</label>
-                <select id="ujSzemely" class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-900 transition">
-                </select>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Személy</label>
+                <select id="ujSzemely"></select>
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Kezdés</label>
-                    <input type="date" id="ujKezdes" class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-900 transition">
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Kezdés</label>
+                    <input type="date" id="ujKezdes" onchange="frissitNapok()">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Vége</label>
-                    <input type="date" id="ujVege" class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-900 transition">
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Vége</label>
+                    <input type="date" id="ujVege" onchange="frissitNapok()">
                 </div>
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">Megjegyzés (opcionális)</label>
-                <input type="text" id="ujMegjegyzes" placeholder="pl. nyaralás, betegszabadság..."
-                    class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-900 transition">
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Megjegyzés</label>
+                <input type="text" id="ujMegjegyzes" placeholder="pl. nyaralás, konferencia...">
             </div>
+            <div id="napokInfo" class="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2 hidden"></div>
         </div>
-        <div id="ujNapokSzama" class="mt-3 text-sm text-gray-500 hidden"></div>
-        <div class="flex gap-3 mt-5">
-            <button onclick="bezarModal()" class="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">Mégsem</button>
-            <button onclick="mentBejegyzes()" class="flex-1 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition">Mentés</button>
+        <div class="flex gap-3 mt-6">
+            <button class="btn-secondary flex-1" onclick="hideModal('ujBejegyzesModal')">Mégsem</button>
+            <button class="btn-primary flex-1" onclick="mentBejegyzes()">Mentés</button>
         </div>
     </div>
 </div>
 
-<!-- Személyek kezelése modal -->
-<div id="szemelyekModal" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+<!-- MODAL: Személyek (csak admin) -->
+<div id="szemelyekModal" class="modal-overlay hidden">
+    <div class="modal">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Személyek kezelése</h3>
-        <div id="szemelyLista" class="space-y-2 mb-4"></div>
+        <div id="szemelyLista" class="space-y-2 mb-4 max-h-48 overflow-y-auto"></div>
         <div class="flex gap-2">
-            <input type="text" id="ujSzemelyNev" placeholder="Név"
-                class="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-gray-900 transition">
-            <button onclick="szemelyHozzaad()" class="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition">+</button>
+            <input type="text" id="ujSzemelyNev" placeholder="Név hozzáadása" style="flex:1">
+            <button class="btn-primary px-4" onclick="szemelyHozzaad()">+</button>
         </div>
-        <button onclick="document.getElementById('szemelyekModal').classList.add('hidden')"
-            class="w-full mt-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition">Kész</button>
+        <button class="btn-secondary w-full mt-3" onclick="hideModal('szemelyekModal')">Kész</button>
     </div>
 </div>
 
 <!-- Firebase -->
 <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyBKEAA01f16INT22nX2fSV8YGOfB3fDuMw",
-        authDomain: "ays-production-5ab41.firebaseapp.com",
-        projectId: "ays-production-5ab41",
-        storageBucket: "ays-production-5ab41.firebasestorage.app",
-        messagingSenderId: "642343737324",
-        appId: "1:642343737324:web:2a2f1bd9455cb83a2752c9"
-    };
+const app = initializeApp({
+    apiKey: "AIzaSyBKEAA01f16INT22nX2fSV8YGOfB3fDuMw",
+    authDomain: "ays-production-5ab41.firebaseapp.com",
+    projectId: "ays-production-5ab41",
+    storageBucket: "ays-production-5ab41.firebasestorage.app",
+    messagingSenderId: "642343737324",
+    appId: "1:642343737324:web:2a2f1bd9455cb83a2752c9"
+});
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-    window._db = db;
-    window._auth = auth;
-    window._firebase = { doc, setDoc, getDoc, onSnapshot, collection };
-    window._fbAuth = { signInWithEmailAndPassword, onAuthStateChanged, signOut };
+window._db = db;
+window._doc = doc;
+window._setDoc = setDoc;
 
-    // Auth state
-    window._fbAuth.onAuthStateChanged(window._auth, (user) => {
-        if (user) {
-            window._user = user;
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('app').style.display = 'block';
-            document.getElementById('evFelirat').textContent = new Date().getFullYear();
-            startListeners();
-        } else {
-            window._user = null;
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('app').style.display = 'none';
-        }
+window._fbAuth = { signInWithEmailAndPassword, onAuthStateChanged, signOut };
+
+window._fbAuth.onAuthStateChanged(auth, user => {
+    if (user) {
+        window._user = user;
+        window._isAdmin = user.email === 'juraj.german@andyourstories.com';
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('evCimke').textContent = new Date().getFullYear();
+        if (window._isAdmin) document.getElementById('adminGomb').classList.remove('hidden');
+        startListeners(db, doc, onSnapshot);
+    } else {
+        window._user = null;
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('app').style.display = 'none';
+    }
+});
+
+function startListeners(db, doc, onSnapshot) {
+    onSnapshot(doc(db, 'holidays', 'szemelyek'), snap => {
+        window._szemelyek = snap.exists() ? (snap.data().data || []) : [];
+        renderAll();
     });
+    onSnapshot(doc(db, 'holidays', 'bejegyzesek'), snap => {
+        window._bejegyzesek = snap.exists() ? (snap.data().data || []) : [];
+        renderAll();
+    });
+}
 </script>
 
 <script>
-    // ===== ÁLLAPOT =====
-    let szemelyek = []; // [{ id, nev, szin }]
-    let bejegyzesek = []; // [{ id, szemelyId, kezdes, vege, megjegyzes, rogzitette, rogzitveKor }]
-    let aktualisHonap = new Date().getMonth();
-    let aktualisEv = new Date().getFullYear();
+// ===== ÁLLAPOT =====
+window._szemelyek = [];
+window._bejegyzesek = [];
+const ADMIN_EMAIL = 'juraj.german@andyourstories.com';
+const SZINEK = ['#1a1a1a','#ef4444','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
+const HONAPOK = ['Január','Február','Március','Április','Május','Június','Július','Augusztus','Szeptember','Október','November','December'];
 
-    const SZINEK = ['#1a1a1a', '#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+let aktualisHonap = new Date().getMonth();
+let aktualisEv = new Date().getFullYear();
 
-    // ===== FIREBASE =====
-    function startListeners() {
-        window._firebase.onSnapshot(
-            window._firebase.doc(window._db, 'holidays', 'szemelyek'),
-            (snap) => {
-                szemelyek = snap.exists() ? (snap.data().data || []) : [];
-                renderAll();
-            }
-        );
-        window._firebase.onSnapshot(
-            window._firebase.doc(window._db, 'holidays', 'bejegyzesek'),
-            (snap) => {
-                bejegyzesek = snap.exists() ? (snap.data().data || []) : [];
-                renderAll();
-            }
-        );
+// ===== HELPERS =====
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function munkanapok(kezdes, vege) {
+    let n = 0, d = new Date(kezdes), v = new Date(vege);
+    while (d <= v) { const dow = d.getDay(); if (dow && dow !== 6) n++; d.setDate(d.getDate()+1); }
+    return n;
+}
+
+function szemelyById(id) { return (window._szemelyek||[]).find(s=>s.id===id); }
+
+function maDate() { return new Date().toISOString().slice(0,10); }
+
+function isSzabin(szemely) {
+    const ma = maDate();
+    return (window._bejegyzesek||[]).some(b => b.szemelyId===szemely.id && ma>=b.kezdes && ma<=b.vege);
+}
+
+function kozelgoBejegyzes(szemely, napok=30) {
+    const ma = maDate();
+    const hatar = new Date(); hatar.setDate(hatar.getDate()+napok);
+    const hatarStr = hatar.toISOString().slice(0,10);
+    return (window._bejegyzesek||[]).filter(b =>
+        b.szemelyId===szemely.id && b.kezdes>ma && b.kezdes<=hatarStr
+    ).sort((a,b)=>a.kezdes.localeCompare(b.kezdes))[0];
+}
+
+async function ment() {
+    await Promise.all([
+        window._setDoc(window._doc(window._db,'holidays','szemelyek'),{data:window._szemelyek}),
+        window._setDoc(window._doc(window._db,'holidays','bejegyzesek'),{data:window._bejegyzesek}),
+    ]);
+}
+
+// ===== AUTH =====
+function bejelentkezes() {
+    const e = document.getElementById('loginEmail').value.trim();
+    const p = document.getElementById('loginPassword').value;
+    window._fbAuth.signInWithEmailAndPassword(window._auth||getAuth(),e,p)
+        .catch(()=>document.getElementById('loginHiba').classList.remove('hidden'));
+}
+document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')bejelentkezes();});
+function kijelentkezes() { window._fbAuth.signOut(window._auth||{}); }
+
+// ===== MODAL =====
+function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+window.showModal=showModal; window.hideModal=hideModal;
+
+// ===== RENDER ALL =====
+function renderAll() {
+    renderStatusKartyak();
+    renderKozelgo();
+    renderTimeline();
+    renderLog();
+    renderSzemelySelectek();
+}
+
+// ===== STATUS KÁRTYÁK =====
+function renderStatusKartyak() {
+    const el = document.getElementById('statusKartyak');
+    const szemelyek = window._szemelyek||[];
+
+    if (!szemelyek.length) {
+        el.innerHTML = `<div class="col-span-full bg-white rounded-2xl border border-gray-100 p-5 text-center text-sm text-gray-400">
+            Még nincs személy. <button onclick="showModal('szemelyekModal')" class="underline text-gray-600 ml-1">Hozzáadás</button></div>`;
+        return;
     }
 
-    async function ment() {
-        await Promise.all([
-            window._firebase.setDoc(window._firebase.doc(window._db, 'holidays', 'szemelyek'), { data: szemelyek }),
-            window._firebase.setDoc(window._firebase.doc(window._db, 'holidays', 'bejegyzesek'), { data: bejegyzesek }),
-        ]);
-    }
+    el.innerHTML = szemelyek.map(s => {
+        const szabin = isSzabin(s);
+        const kov = kozelgoBejegyzes(s, 60);
+        const eviNap = (window._bejegyzesek||[])
+            .filter(b=>b.szemelyId===s.id && b.kezdes.startsWith(aktualisEv+''))
+            .reduce((sum,b)=>sum+munkanapok(b.kezdes,b.vege),0);
 
-    // ===== AUTH =====
-    function bejelentkezes() {
-        const email = document.getElementById('loginEmail').value.trim();
-        const pw = document.getElementById('loginPassword').value;
-        window._fbAuth.signInWithEmailAndPassword(window._auth, email, pw)
-            .catch(e => {
-                const hiba = document.getElementById('loginHiba');
-                hiba.textContent = 'Hibás email vagy jelszó.';
-                hiba.classList.remove('hidden');
+        return `<div class="bg-white rounded-2xl border ${szabin?'border-amber-200 bg-amber-50':'border-gray-100'} p-4">
+            <div class="flex items-center gap-2 mb-3">
+                <span class="status-dot ${szabin?'status-szabin':'status-itthon'}"></span>
+                <span class="text-sm font-semibold text-gray-900">${s.nev}</span>
+            </div>
+            <div class="text-xs text-gray-500 mb-1">
+                ${szabin ? '<span class="font-medium text-amber-600">🌴 Szabadságon</span>' : '<span class="text-emerald-600 font-medium">✓ Elérhető</span>'}
+            </div>
+            <div class="text-xs text-gray-400 mt-2">${eviNap} nap idén</div>
+            ${kov ? `<div class="text-xs text-gray-400 mt-0.5">Következő: ${kov.kezdes}</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+// ===== KÖZELGŐ =====
+function renderKozelgo() {
+    const el = document.getElementById('kozelgoSection');
+    const lista = document.getElementById('kozelgoLista');
+    const ma = maDate();
+    const hatar = new Date(); hatar.setDate(hatar.getDate()+21);
+    const hatarStr = hatar.toISOString().slice(0,10);
+
+    const kozelgok = (window._bejegyzesek||[])
+        .filter(b=>b.kezdes>ma && b.kezdes<=hatarStr)
+        .sort((a,b)=>a.kezdes.localeCompare(b.kezdes));
+
+    if (!kozelgok.length) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+
+    lista.innerHTML = kozelgok.map(b => {
+        const s = szemelyById(b.szemelyId);
+        if (!s) return '';
+        const nap = munkanapok(b.kezdes, b.vege);
+        return `<div class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 px-4 py-3">
+            <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${s.szin}"></div>
+            <span class="text-sm font-medium text-gray-900">${s.nev}</span>
+            <span class="text-sm text-gray-400">${b.kezdes} → ${b.vege}</span>
+            <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full ml-auto">${nap} nap</span>
+            ${b.megjegyzes?`<span class="text-xs text-gray-400 italic">${b.megjegyzes}</span>`:''}
+        </div>`;
+    }).join('');
+}
+
+// ===== TIMELINE =====
+function renderTimeline() {
+    const container = document.getElementById('timelineContainer');
+    const szemelyek = window._szemelyek||[];
+    if (!container) return;
+
+    const ev = aktualisEv;
+    const ho = aktualisHonap;
+    const napokSzama = new Date(ev, ho+1, 0).getDate();
+    const elso = new Date(ev, ho, 1);
+    const utolso = new Date(ev, ho, napokSzama);
+    const ma = maDate();
+
+    // Cím
+    document.getElementById('idovonalCim').textContent = `${HONAPOK[ho]} ${ev}`;
+
+    // Nap fejléc
+    const NAP_W = 32; // px per nap
+    const NEV_W = 120;
+    const TOTAL_W = NEV_W + napokSzama * NAP_W;
+
+    let html = `<div style="min-width:${TOTAL_W}px">`;
+
+    // Fejléc: nap számok
+    html += `<div class="flex border-b border-gray-50" style="padding-left:${NEV_W}px">`;
+    for (let d=1; d<=napokSzama; d++) {
+        const dt = new Date(ev,ho,d);
+        const dow = dt.getDay();
+        const hevege = dow===0||dow===6;
+        const maNap = `${ev}-${String(ho+1).padStart(2,'0')}-${String(d).padStart(2,'0')}` === ma;
+        html += `<div style="width:${NAP_W}px;flex-shrink:0" class="text-center py-2 ${hevege?'text-gray-300':'text-gray-400'} ${maNap?'text-red-500 font-bold':''}">
+            <div class="text-xs">${d}</div>
+            <div style="font-size:9px" class="text-gray-300">${['V','H','K','Sze','Cs','P','Szo'][dow]}</div>
+        </div>`;
+    }
+    html += '</div>';
+
+    // Személyek sorai
+    if (!szemelyek.length) {
+        html += `<div class="px-5 py-8 text-center text-sm text-gray-400">Még nincs személy felvéve.</div>`;
+    } else {
+        szemelyek.forEach(s => {
+            // Szabadságok ebben a hónapban
+            const bejHonapban = (window._bejegyzesek||[]).filter(b => {
+                return b.szemelyId===s.id &&
+                    b.vege >= elso.toISOString().slice(0,10) &&
+                    b.kezdes <= utolso.toISOString().slice(0,10);
             });
-    }
-    document.getElementById('loginPassword')?.addEventListener('keydown', e => { if (e.key === 'Enter') bejelentkezes(); });
 
-    function kijelentkezes() {
-        window._fbAuth.signOut(window._auth);
-    }
-
-    // ===== HELPERS =====
-    function generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-    }
-
-    function munkanapokSzama(kezdes, vege) {
-        let count = 0;
-        const d = new Date(kezdes);
-        const v = new Date(vege);
-        while (d <= v) {
-            const dow = d.getDay();
-            if (dow !== 0 && dow !== 6) count++;
-            d.setDate(d.getDate() + 1);
-        }
-        return count;
-    }
-
-    function szemelyById(id) {
-        return szemelyek.find(s => s.id === id);
-    }
-
-    function eviBejegyzesek(szemely, ev) {
-        return bejegyzesek.filter(b => {
-            if (b.szemelyId !== szemely.id) return false;
-            const k = new Date(b.kezdes);
-            const v = new Date(b.vege);
-            return k.getFullYear() === ev || v.getFullYear() === ev;
-        });
-    }
-
-    function eviNapokSzama(szemely, ev) {
-        return eviBejegyzesek(szemely, ev).reduce((sum, b) => {
-            // Csak az adott évre eső napokat számítjuk
-            const k = new Date(Math.max(new Date(b.kezdes), new Date(ev, 0, 1)));
-            const v = new Date(Math.min(new Date(b.vege), new Date(ev, 11, 31)));
-            return sum + munkanapokSzama(k.toISOString().slice(0,10), v.toISOString().slice(0,10));
-        }, 0);
-    }
-
-    function napErintettSzemelyek(datumStr) {
-        return bejegyzesek.filter(b => {
-            return datumStr >= b.kezdes && datumStr <= b.vege;
-        }).map(b => szemelyById(b.szemelyId)).filter(Boolean);
-    }
-
-    // ===== RENDER =====
-    function renderAll() {
-        renderKartyak();
-        renderNaptar();
-        renderLog();
-        renderSzemelySelect();
-        renderJelmagyarazat();
-    }
-
-    function renderKartyak() {
-        const ev = aktualisEv;
-        const el = document.getElementById('szemelyKartyak');
-        if (!el) return;
-
-        if (szemelyek.length === 0) {
-            el.innerHTML = `
-                <div class="col-span-full bg-white rounded-2xl border border-gray-100 p-5 flex items-center justify-between">
-                    <span class="text-sm text-gray-500">Még nincsenek személyek felvéve.</span>
-                    <button onclick="document.getElementById('szemelyekModal').classList.remove('hidden')"
-                        class="text-sm font-medium text-gray-900 hover:underline">+ Személyek kezelése</button>
-                </div>`;
-            return;
-        }
-
-        el.innerHTML = szemelyek.map(s => {
-            const napok = eviNapokSzama(s, ev);
-            const bej = eviBejegyzesek(s, ev);
-            return `
-                <div class="bg-white rounded-2xl border border-gray-100 p-4">
-                    <div class="flex items-center gap-2 mb-3">
-                        <div class="w-3 h-3 rounded-full flex-shrink-0" style="background:${s.szin}"></div>
-                        <span class="text-sm font-semibold text-gray-900">${s.nev}</span>
+            html += `<div class="timeline-row flex items-center" style="min-height:44px">
+                <div style="width:${NEV_W}px;flex-shrink:0" class="px-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full" style="background:${s.szin}"></div>
+                        <span class="text-sm font-medium text-gray-700 truncate">${s.nev}</span>
                     </div>
-                    <div class="text-3xl font-light text-gray-900 mb-0.5">${napok}</div>
-                    <div class="text-xs text-gray-400">${bej.length} időszak · ${ev}</div>
-                </div>`;
-        }).join('') + `
-            <div class="bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-4 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition"
-                onclick="document.getElementById('szemelyekModal').classList.remove('hidden')">
-                <span class="text-xs font-medium text-gray-400">⚙ Személyek</span>
-            </div>`;
-    }
+                </div>
+                <div class="timeline-track flex-1 relative" style="width:${napokSzama*NAP_W}px;min-width:${napokSzama*NAP_W}px">`;
 
-    function renderNaptar() {
-        const el = document.getElementById('calGrid');
-        const fejEl = document.getElementById('honapFelirat');
-        if (!el) return;
-
-        const HONAPOK = ['Január','Február','Március','Április','Május','Június',
-                         'Július','Augusztus','Szeptember','Október','November','December'];
-        fejEl.textContent = `${HONAPOK[aktualisHonap]} ${aktualisEv}`;
-
-        const elsoNap = new Date(aktualisEv, aktualisHonap, 1);
-        const utolsoNap = new Date(aktualisEv, aktualisHonap + 1, 0);
-        // H=1, K=2... V=0 → átforgatjuk H=0-ra
-        let elsoHet = elsoNap.getDay() - 1;
-        if (elsoHet < 0) elsoHet = 6;
-
-        const ma = new Date().toISOString().slice(0, 10);
-        let html = '';
-
-        // Üres cellák az első hét előtt
-        for (let i = 0; i < elsoHet; i++) {
-            html += `<div class="day-cell day-empty"></div>`;
-        }
-
-        // Napok
-        for (let nap = 1; nap <= utolsoNap.getDate(); nap++) {
-            const d = new Date(aktualisEv, aktualisHonap, nap);
-            const datumStr = d.toISOString().slice(0, 10);
-            const dow = d.getDay(); // 0=V, 6=Szo
-            const hevege = dow === 0 || dow === 6;
-            const maE = datumStr === ma;
-            const erintett = napErintettSzemelyek(datumStr);
-
-            let classes = 'day-cell';
-            if (hevege) classes += ' day-weekend';
-            if (maE) classes += ' day-today';
-
-            // Háttér ha van szabadság
-            let bgStyle = '';
-            if (erintett.length === 1) {
-                bgStyle = `background:${erintett[0].szin}22;`;
-            } else if (erintett.length > 1) {
-                bgStyle = `background: linear-gradient(135deg, ${erintett.map((s,i) => `${s.szin}33 ${i*50}% ${(i+1)*50}%`).join(', ')});`;
+            // Mai vonal
+            const maDate2 = new Date(ma);
+            if (maDate2 >= elso && maDate2 <= utolso) {
+                const maNapIdx = maDate2.getDate()-1;
+                const leftPx = maNapIdx*NAP_W + NAP_W/2;
+                html += `<div class="today-line" style="left:${leftPx}px"></div>`;
             }
 
-            // Pontok a személyeknek
-            const pontok = erintett.map((s, i) => 
-                `<div class="person-dot" style="background:${s.szin};left:${4 + i*9}px"></div>`
-            ).join('');
-
-            html += `
-                <div class="${classes}" style="${bgStyle}" 
-                     title="${erintett.map(s => s.nev).join(', ')}"
-                     onclick="napKattint('${datumStr}')">
-                    ${nap}
-                    ${pontok}
-                </div>`;
-        }
-
-        el.innerHTML = html;
-    }
-
-    function renderLog() {
-        const el = document.getElementById('logLista');
-        if (!el) return;
-
-        const szuro = document.getElementById('logSzuroSzemely')?.value || '';
-        let szurt = [...bejegyzesek].sort((a, b) => b.rogzitveKor?.localeCompare(a.rogzitveKor || '') || 0);
-        if (szuro) szurt = szurt.filter(b => b.szemelyId === szuro);
-
-        if (szurt.length === 0) {
-            el.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Még nincs bejegyzés.</p>`;
-            return;
-        }
-
-        el.innerHTML = szurt.map(b => {
-            const s = szemelyById(b.szemelyId);
-            if (!s) return '';
-            const napok = munkanapokSzama(b.kezdes, b.vege);
-            const rogzDatum = b.rogzitveKor ? new Date(b.rogzitveKor).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' }) : '';
-            const rogzKi = b.rogzitette ? b.rogzitette.split('@')[0] : '';
-
-            return `
-                <div class="log-entry bg-gray-50 rounded-xl p-3 relative group">
-                    <div class="flex items-start gap-2">
-                        <div class="w-2 h-2 rounded-full mt-1 flex-shrink-0" style="background:${s.szin}"></div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between gap-1">
-                                <span class="text-xs font-semibold text-gray-900">${s.nev}</span>
-                                <span class="text-xs font-medium text-gray-500">${napok} nap</span>
-                            </div>
-                            <div class="text-xs text-gray-500 mt-0.5">
-                                ${b.kezdes} → ${b.vege}
-                            </div>
-                            ${b.megjegyzes ? `<div class="text-xs text-gray-400 mt-0.5 italic">${b.megjegyzes}</div>` : ''}
-                            <div class="text-xs text-gray-300 mt-1">${rogzKi} · ${rogzDatum}</div>
-                        </div>
-                        <button onclick="torolBejegyzes('${b.id}')"
-                            class="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition text-xs ml-1 flex-shrink-0">✕</button>
-                    </div>
-                </div>`;
-        }).join('');
-    }
-
-    function renderSzemelySelect() {
-        const selects = ['ujSzemely', 'logSzuroSzemely'];
-        selects.forEach(id => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const val = el.value;
-            if (id === 'logSzuroSzemely') {
-                el.innerHTML = `<option value="">Mindenki</option>` +
-                    szemelyek.map(s => `<option value="${s.id}">${s.nev}</option>`).join('');
-            } else {
-                el.innerHTML = szemelyek.map(s => `<option value="${s.id}">${s.nev}</option>`).join('');
+            // Hétvége háttér
+            for (let d=1; d<=napokSzama; d++) {
+                const dow = new Date(ev,ho,d).getDay();
+                if (dow===0||dow===6) {
+                    html += `<div style="position:absolute;left:${(d-1)*NAP_W}px;width:${NAP_W}px;top:0;bottom:0;background:#f9f9f8;z-index:0"></div>`;
+                }
             }
-            if (val) el.value = val;
+
+            // Szabadság blokkok
+            bejHonapban.forEach(b => {
+                const kStart = new Date(Math.max(new Date(b.kezdes), elso));
+                const kEnd = new Date(Math.min(new Date(b.vege), utolso));
+                const startIdx = kStart.getDate()-1;
+                const endIdx = kEnd.getDate()-1;
+                const leftPx = startIdx * NAP_W + 2;
+                const widthPx = (endIdx - startIdx + 1) * NAP_W - 4;
+                const nap = munkanapok(b.kezdes, b.vege);
+                const label = b.megjegyzes || `${nap} nap`;
+
+                html += `<div class="vacation-block" style="left:${leftPx}px;width:${widthPx}px;background:${s.szin};z-index:5"
+                    title="${s.nev}: ${b.kezdes} → ${b.vege}${b.megjegyzes?' ('+b.megjegyzes+')':''}"
+                    onclick="blockKattint('${b.id}')">
+                    ${widthPx > 40 ? label : ''}
+                </div>`;
+            });
+
+            html += `</div></div>`;
         });
-
-        // Személyek modal lista
-        const listaEl = document.getElementById('szemelyLista');
-        if (listaEl) {
-            listaEl.innerHTML = szemelyek.map((s, i) => `
-                <div class="flex items-center gap-3 py-1.5">
-                    <div class="w-3 h-3 rounded-full flex-shrink-0 cursor-pointer" 
-                         style="background:${s.szin}"
-                         onclick="szemelyColorChange('${s.id}')"></div>
-                    <span class="text-sm text-gray-700 flex-1">${s.nev}</span>
-                    <button onclick="szemelyTorol('${s.id}')" class="text-gray-300 hover:text-red-500 transition text-xs">✕</button>
-                </div>`).join('') || `<p class="text-xs text-gray-400">Még nincs személy.</p>`;
-        }
     }
 
-    function renderJelmagyarazat() {
-        const el = document.getElementById('jelmagS');
-        if (!el) return;
-        el.innerHTML = szemelyek.map(s => `
-            <div class="flex items-center gap-1.5">
-                <div class="w-2.5 h-2.5 rounded-full" style="background:${s.szin}"></div>
-                <span class="text-xs text-gray-500">${s.nev}</span>
-            </div>`).join('');
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function blockKattint(id) {
+    const b = (window._bejegyzesek||[]).find(x=>x.id===id);
+    if (!b) return;
+    const s = szemelyById(b.szemelyId);
+    const nap = munkanapok(b.kezdes, b.vege);
+    let msg = `${s?.nev||'?'}\n${b.kezdes} → ${b.vege}\n${nap} munkanap`;
+    if (b.megjegyzes) msg += `\n"${b.megjegyzes}"`;
+    if (window._isAdmin) {
+        if (confirm(msg + '\n\nTöröljük ezt a bejegyzést?')) torolBejegyzes(id);
+    } else {
+        alert(msg);
+    }
+}
+
+// ===== LOG =====
+function renderLog() {
+    const el = document.getElementById('logLista');
+    const szuro = document.getElementById('logSzuro')?.value||'';
+    let lista = [...(window._bejegyzesek||[])].sort((a,b)=>b.rogzitveKor?.localeCompare(a.rogzitveKor||'')||0);
+    if (szuro) lista = lista.filter(b=>b.szemelyId===szuro);
+
+    if (!lista.length) {
+        el.innerHTML = '<p class="text-xs text-gray-400 text-center py-6">Még nincs bejegyzés.</p>';
+        return;
     }
 
-    // ===== NAVIGÁCIÓ =====
-    function navHonap(irany) {
-        aktualisHonap += irany;
-        if (aktualisHonap < 0) { aktualisHonap = 11; aktualisEv--; }
-        if (aktualisHonap > 11) { aktualisHonap = 0; aktualisEv++; }
-        renderNaptar();
+    el.innerHTML = lista.map(b => {
+        const s = szemelyById(b.szemelyId);
+        if (!s) return '';
+        const nap = munkanapok(b.kezdes, b.vege);
+        const rogz = b.rogzitveKor ? new Date(b.rogzitveKor).toLocaleDateString('hu-HU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+        const ki = b.rogzitette ? b.rogzitette.split('@')[0] : '';
+
+        return `<div class="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0 group">
+            <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${s.szin}"></div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-semibold text-gray-900">${s.nev}</span>
+                    <span class="text-sm text-gray-500">${b.kezdes} → ${b.vege}</span>
+                    <span class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">${nap} nap</span>
+                    ${b.megjegyzes?`<span class="text-xs text-gray-400 italic">${b.megjegyzes}</span>`:''}
+                </div>
+                <div class="text-xs text-gray-300 mt-0.5">${ki} · ${rogz}</div>
+            </div>
+            ${window._isAdmin ? `<button onclick="torolBejegyzes('${b.id}')"
+                class="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 text-xs transition ml-2 flex-shrink-0">Törlés</button>` : ''}
+        </div>`;
+    }).join('');
+}
+
+// ===== SZEMÉLYEK SELECT-EK =====
+function renderSzemelySelectek() {
+    const szemelyek = window._szemelyek||[];
+
+    // Új bejegyzés modal select
+    const sel = document.getElementById('ujSzemely');
+    if (sel) {
+        const val = sel.value;
+        sel.innerHTML = szemelyek.map(s=>`<option value="${s.id}">${s.nev}</option>`).join('');
+        if (val) sel.value = val;
     }
 
-    function napKattint(datumStr) {
-        // Ha valakinek van ott szabadsága, ne csináljunk semmit
-        // Ha üres nap, nyissuk meg az új bejegyzés modalt ezzel a dátummal
-        document.getElementById('ujKezdes').value = datumStr;
-        document.getElementById('ujVege').value = datumStr;
-        ujBejegyzes();
+    // Log szűrő
+    const logSel = document.getElementById('logSzuro');
+    if (logSel) {
+        const val = logSel.value;
+        logSel.innerHTML = `<option value="">Mindenki</option>` +
+            szemelyek.map(s=>`<option value="${s.id}">${s.nev}</option>`).join('');
+        if (val) logSel.value = val;
     }
 
-    // ===== MODAL =====
-    function ujBejegyzes() {
-        document.getElementById('ujBejegyzesModal').classList.remove('hidden');
-        document.getElementById('ujMegjegyzes').value = '';
-        frissitNapokSzama();
+    // Személyek modal (csak admin látja)
+    const lista = document.getElementById('szemelyLista');
+    if (lista && window._isAdmin) {
+        lista.innerHTML = szemelyek.map((s,i)=>`
+            <div class="flex items-center gap-3 py-1.5">
+                <div class="w-3 h-3 rounded-full cursor-pointer flex-shrink-0" style="background:${s.szin}" onclick="szinValtas('${s.id}')"></div>
+                <span class="text-sm text-gray-700 flex-1">${s.nev}</span>
+                <button onclick="szemelyTorol('${s.id}')" class="text-gray-300 hover:text-red-500 text-xs transition">Törlés</button>
+            </div>`).join('') || '<p class="text-xs text-gray-400">Még nincs személy.</p>';
     }
+}
 
-    function bezarModal() {
-        document.getElementById('ujBejegyzesModal').classList.add('hidden');
-    }
+// ===== NAVIGÁCIÓ =====
+function navHonap(irany) {
+    aktualisHonap += irany;
+    if (aktualisHonap<0) { aktualisHonap=11; aktualisEv--; }
+    if (aktualisHonap>11) { aktualisHonap=0; aktualisEv++; }
+    renderTimeline();
+}
 
-    function frissitNapokSzama() {
-        const k = document.getElementById('ujKezdes').value;
-        const v = document.getElementById('ujVege').value;
-        const el = document.getElementById('ujNapokSzama');
-        if (k && v && v >= k) {
-            const napok = munkanapokSzama(k, v);
-            el.textContent = `${napok} munkanap`;
-            el.classList.remove('hidden');
-        } else {
-            el.classList.add('hidden');
-        }
-    }
+function maraHonap() {
+    aktualisHonap = new Date().getMonth();
+    aktualisEv = new Date().getFullYear();
+    renderTimeline();
+}
 
-    document.getElementById('ujKezdes')?.addEventListener('change', frissitNapokSzama);
-    document.getElementById('ujVege')?.addEventListener('change', frissitNapokSzama);
+// ===== MENTÉS =====
+function frissitNapok() {
+    const k = document.getElementById('ujKezdes').value;
+    const v = document.getElementById('ujVege').value;
+    const el = document.getElementById('napokInfo');
+    if (k && v && v>=k) {
+        el.textContent = `${munkanapok(k,v)} munkanap`;
+        el.classList.remove('hidden');
+    } else { el.classList.add('hidden'); }
+}
 
-    async function mentBejegyzes() {
-        const szemelyId = document.getElementById('ujSzemely').value;
-        const kezdes = document.getElementById('ujKezdes').value;
-        const vege = document.getElementById('ujVege').value;
-        const megjegyzes = document.getElementById('ujMegjegyzes').value.trim();
-
-        if (!szemelyId || !kezdes || !vege) {
-            alert('Kérlek töltsd ki az összes kötelező mezőt!');
-            return;
-        }
-        if (vege < kezdes) {
-            alert('A vége dátum nem lehet korábbi mint a kezdés!');
-            return;
-        }
-
-        bejegyzesek.push({
-            id: generateId(),
-            szemelyId,
-            kezdes,
-            vege,
-            megjegyzes,
-            rogzitette: window._user?.email || 'ismeretlen',
-            rogzitveKor: new Date().toISOString()
-        });
-
-        await ment();
-        bezarModal();
-    }
-
-    async function torolBejegyzes(id) {
-        if (!confirm('Törli ezt a bejegyzést?')) return;
-        bejegyzesek = bejegyzesek.filter(b => b.id !== id);
-        await ment();
-    }
-
-    // ===== SZEMÉLYEK =====
-    async function szemelyHozzaad() {
-        const nev = document.getElementById('ujSzemelyNev').value.trim();
-        if (!nev) return;
-        const szin = SZINEK[szemelyek.length % SZINEK.length];
-        szemelyek.push({ id: generateId(), nev, szin });
-        document.getElementById('ujSzemelyNev').value = '';
-        await ment();
-    }
-
-    document.getElementById('ujSzemelyNev')?.addEventListener('keydown', e => {
-        if (e.key === 'Enter') szemelyHozzaad();
+async function mentBejegyzes() {
+    const szemelyId = document.getElementById('ujSzemely').value;
+    const kezdes = document.getElementById('ujKezdes').value;
+    const vege = document.getElementById('ujVege').value;
+    const megjegyzes = document.getElementById('ujMegjegyzes').value.trim();
+    if (!szemelyId||!kezdes||!vege) { alert('Kérlek töltsd ki az összes mezőt!'); return; }
+    if (vege<kezdes) { alert('A vége nem lehet korábbi a kezdésnél!'); return; }
+    window._bejegyzesek = window._bejegyzesek||[];
+    window._bejegyzesek.push({
+        id: genId(), szemelyId, kezdes, vege, megjegyzes,
+        rogzitette: window._user?.email||'?',
+        rogzitveKor: new Date().toISOString()
     });
+    await ment();
+    hideModal('ujBejegyzesModal');
+    document.getElementById('ujMegjegyzes').value='';
+}
 
-    async function szemelyTorol(id) {
-        if (!confirm('Töröljük ezt a személyt? A bejegyzései is törlődnek.')) return;
-        szemelyek = szemelyek.filter(s => s.id !== id);
-        bejegyzesek = bejegyzesek.filter(b => b.szemelyId !== id);
-        await ment();
-    }
+async function torolBejegyzes(id) {
+    if (!window._isAdmin) { alert('Csak az admin törölhet!'); return; }
+    if (!confirm('Töröljük ezt a bejegyzést?')) return;
+    window._bejegyzesek = (window._bejegyzesek||[]).filter(b=>b.id!==id);
+    await ment();
+}
 
-    async function szemelyColorChange(id) {
-        const s = szemelyek.find(s => s.id === id);
-        if (!s) return;
-        const idx = (SZINEK.indexOf(s.szin) + 1) % SZINEK.length;
-        s.szin = SZINEK[idx];
-        await ment();
-    }
+async function szemelyHozzaad() {
+    if (!window._isAdmin) return;
+    const nev = document.getElementById('ujSzemelyNev').value.trim();
+    if (!nev) return;
+    window._szemelyek = window._szemelyek||[];
+    const szin = SZINEK[window._szemelyek.length % SZINEK.length];
+    window._szemelyek.push({id:genId(), nev, szin});
+    document.getElementById('ujSzemelyNev').value='';
+    await ment();
+}
 
-    // Global exports
-    window.bejelentkezes = bejelentkezes;
-    window.kijelentkezes = kijelentkezes;
-    window.navHonap = navHonap;
-    window.napKattint = napKattint;
-    window.ujBejegyzes = ujBejegyzes;
-    window.bezarModal = bezarModal;
-    window.mentBejegyzes = mentBejegyzes;
-    window.torolBejegyzes = torolBejegyzes;
-    window.szemelyHozzaad = szemelyHozzaad;
-    window.szemelyTorol = szemelyTorol;
-    window.szemelyColorChange = szemelyColorChange;
-    window.renderLog = renderLog;
+async function szemelyTorol(id) {
+    if (!window._isAdmin) return;
+    if (!confirm('Töröljük ezt a személyt? Minden bejegyzése is törlődik.')) return;
+    window._szemelyek = (window._szemelyek||[]).filter(s=>s.id!==id);
+    window._bejegyzesek = (window._bejegyzesek||[]).filter(b=>b.szemelyId!==id);
+    await ment();
+}
+
+async function szinValtas(id) {
+    if (!window._isAdmin) return;
+    const s = (window._szemelyek||[]).find(x=>x.id===id);
+    if (!s) return;
+    s.szin = SZINEK[(SZINEK.indexOf(s.szin)+1) % SZINEK.length];
+    await ment();
+}
+
+document.getElementById('ujSzemelyNev')?.addEventListener('keydown', e => { if(e.key==='Enter') szemelyHozzaad(); });
+
+// Global
+window.bejelentkezes=bejelentkezes;
+window.kijelentkezes=kijelentkezes;
+window.navHonap=navHonap;
+window.maraHonap=maraHonap;
+window.frissitNapok=frissitNapok;
+window.mentBejegyzes=mentBejegyzes;
+window.torolBejegyzes=torolBejegyzes;
+window.szemelyHozzaad=szemelyHozzaad;
+window.szemelyTorol=szemelyTorol;
+window.szinValtas=szinValtas;
+window.blockKattint=blockKattint;
+window.renderLog=renderLog;
 </script>
-
 </body>
 </html>
