@@ -181,33 +181,61 @@
     </div>
 </div>
 
-<!-- MODAL: Új bejegyzés -->
+<!-- MODAL: Nap kiválasztás -->
 <div id="ujBejegyzesModal" class="modal-overlay hidden">
-    <div class="modal">
-        <h3 class="text-lg font-semibold text-gray-900 mb-5">Szabadság felvétele</h3>
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Személy</label>
-                <select id="ujSzemely"></select>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Kezdés</label>
-                    <input type="date" id="ujKezdes" onchange="frissitNapok()">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Vége</label>
-                    <input type="date" id="ujVege" onchange="frissitNapok()">
-                </div>
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Megjegyzés</label>
-                <input type="text" id="ujMegjegyzes" placeholder="pl. nyaralás, konferencia...">
-            </div>
-            <div id="napokInfo" class="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2 hidden"></div>
+    <div class="modal" style="max-width:480px">
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">Szabadság felvétele</h3>
+        <p class="text-xs text-gray-400 mb-5">Válassz típust, majd kattints a napokra a naptárban.</p>
+
+        <!-- Személy -->
+        <div class="mb-4">
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Személy</label>
+            <select id="ujSzemely"></select>
         </div>
-        <div class="flex gap-3 mt-6">
-            <button class="btn-secondary flex-1" onclick="hideModal('ujBejegyzesModal')">Mégsem</button>
+
+        <!-- Típus választó -->
+        <div class="mb-5">
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Típus</label>
+            <div class="grid grid-cols-3 gap-2" id="tipusGombok">
+                <button onclick="tipusValaszt('szabadsag')" id="tipusBtn_szabadsag"
+                    class="tipus-btn selected flex flex-col items-center gap-1 py-3 rounded-xl border-2 border-amber-400 bg-amber-50 text-amber-700 font-semibold text-sm transition">
+                    🌴<span class="text-xs">Szabadság</span>
+                </button>
+                <button onclick="tipusValaszt('beteg')" id="tipusBtn_beteg"
+                    class="tipus-btn flex flex-col items-center gap-1 py-3 rounded-xl border-2 border-gray-200 text-gray-500 font-semibold text-sm transition hover:border-red-300 hover:bg-red-50">
+                    🤒<span class="text-xs">Beteg</span>
+                </button>
+                <button onclick="tipusValaszt('homeoffice')" id="tipusBtn_homeoffice"
+                    class="tipus-btn flex flex-col items-center gap-1 py-3 rounded-xl border-2 border-gray-200 text-gray-500 font-semibold text-sm transition hover:border-blue-300 hover:bg-blue-50">
+                    🏠<span class="text-xs">Home Office</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mini naptár a napok kiválasztásához -->
+        <div class="mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <button onclick="modalNavHonap(-1)" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500">‹</button>
+                <span id="modalHonapCim" class="text-sm font-semibold text-gray-700"></span>
+                <button onclick="modalNavHonap(1)" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500">›</button>
+            </div>
+            <div class="grid grid-cols-7 gap-1 mb-1">
+                ${['H','K','Sze','Cs','P','Szo','V'].map(n=>`<div class="text-center text-xs text-gray-400 font-medium py-1">${n}</div>`).join('')}
+            </div>
+            <div id="modalNaptar" class="grid grid-cols-7 gap-1"></div>
+        </div>
+
+        <!-- Kijelölt napok -->
+        <div id="kivalasztottNapokInfo" class="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-4 hidden"></div>
+
+        <!-- Megjegyzés -->
+        <div class="mb-5">
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Megjegyzés (opcionális)</label>
+            <input type="text" id="ujMegjegyzes" placeholder="pl. orvoshoz megyek...">
+        </div>
+
+        <div class="flex gap-3">
+            <button class="btn-secondary flex-1" onclick="hideModal('ujBejegyzesModal'); kivalasztottNapok=[];">Mégsem</button>
             <button class="btn-primary flex-1" onclick="mentBejegyzes()">Mentés</button>
         </div>
     </div>
@@ -286,8 +314,20 @@ const ADMIN_EMAIL = 'juraj.german@andyourstories.com';
 const SZINEK = ['#1a1a1a','#ef4444','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
 const HONAPOK = ['Január','Február','Március','Április','Május','Június','Július','Augusztus','Szeptember','Október','November','December'];
 
+const TIPUS_CONFIG = {
+    szabadsag: { label: 'Szabadság', ikon: '🌴', szin: '#f59e0b', halvany: '#fef3c7' },
+    beteg:     { label: 'Beteg',     ikon: '🤒', szin: '#ef4444', halvany: '#fee2e2' },
+    homeoffice:{ label: 'Home Office',ikon: '🏠', szin: '#3b82f6', halvany: '#dbeafe' },
+};
+
 let aktualisHonap = new Date().getMonth();
 let aktualisEv = new Date().getFullYear();
+
+// Modal naptár állapota
+let modalHonap = new Date().getMonth();
+let modalEv = new Date().getFullYear();
+let kivalasztottNapok = []; // ['2026-07-03', '2026-07-04', ...]
+let kivalasztottTipus = 'szabadsag';
 
 // ===== HELPERS =====
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
@@ -304,7 +344,9 @@ function maDate() { return new Date().toISOString().slice(0,10); }
 
 function isSzabin(szemely) {
     const ma = maDate();
-    return (window._bejegyzesek||[]).some(b => b.szemelyId===szemely.id && ma>=b.kezdes && ma<=b.vege);
+    const b = (window._bejegyzesek||[]).find(b => b.szemelyId===szemely.id && ma>=b.kezdes && ma<=b.vege);
+    if (!b) return null;
+    return b.tipus || 'szabadsag';
 }
 
 function kozelgoBejegyzes(szemely, napok=30) {
@@ -334,9 +376,117 @@ document.getElementById('loginPassword').addEventListener('keydown',e=>{if(e.key
 function kijelentkezes() { window._fbAuth.signOut(window._auth||{}); }
 
 // ===== MODAL =====
-function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function showModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+    if (id === 'ujBejegyzesModal') {
+        modalHonap = new Date().getMonth();
+        modalEv = new Date().getFullYear();
+        kivalasztottNapok = [];
+        kivalasztottTipus = 'szabadsag';
+        tipusValaszt('szabadsag');
+        renderModalNaptar();
+        frissitKivalasztottInfo();
+    }
+}
 function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
 window.showModal=showModal; window.hideModal=hideModal;
+
+function tipusValaszt(tipus) {
+    kivalasztottTipus = tipus;
+    ['szabadsag','beteg','homeoffice'].forEach(t => {
+        const btn = document.getElementById(`tipusBtn_${t}`);
+        if (!btn) return;
+        const cfg = TIPUS_CONFIG[t];
+        if (t === tipus) {
+            btn.style.borderColor = cfg.szin;
+            btn.style.background = cfg.halvany;
+            btn.style.color = cfg.szin;
+        } else {
+            btn.style.borderColor = '#e5e7eb';
+            btn.style.background = 'white';
+            btn.style.color = '#9ca3af';
+        }
+    });
+}
+
+function modalNavHonap(irany) {
+    modalHonap += irany;
+    if (modalHonap < 0) { modalHonap = 11; modalEv--; }
+    if (modalHonap > 11) { modalHonap = 0; modalEv++; }
+    renderModalNaptar();
+}
+
+function renderModalNaptar() {
+    const cim = document.getElementById('modalHonapCim');
+    const grid = document.getElementById('modalNaptar');
+    if (!cim || !grid) return;
+
+    cim.textContent = `${HONAPOK[modalHonap]} ${modalEv}`;
+
+    const napokSzama = new Date(modalEv, modalHonap+1, 0).getDate();
+    let elsoHet = new Date(modalEv, modalHonap, 1).getDay() - 1;
+    if (elsoHet < 0) elsoHet = 6;
+
+    const ma = new Date().toISOString().slice(0,10);
+    const cfg = TIPUS_CONFIG[kivalasztottTipus];
+
+    let html = '';
+    for (let i = 0; i < elsoHet; i++) html += '<div></div>';
+
+    for (let nap = 1; nap <= napokSzama; nap++) {
+        const d = new Date(modalEv, modalHonap, nap);
+        const datumStr = d.toISOString().slice(0,10);
+        const dow = d.getDay();
+        const hevege = dow === 0 || dow === 6;
+        const kivalasztott = kivalasztottNapok.includes(datumStr);
+        const maE = datumStr === ma;
+
+        let style = '';
+        let cls = 'w-full aspect-square flex items-center justify-center rounded-lg text-sm font-medium cursor-pointer transition-all select-none';
+
+        if (kivalasztott) {
+            style = `background:${cfg.szin};color:white;`;
+        } else if (hevege) {
+            cls += ' text-gray-300';
+        } else if (maE) {
+            cls += ' ring-2 ring-gray-900 text-gray-900 font-bold';
+        } else {
+            cls += ' text-gray-700 hover:bg-gray-100';
+        }
+
+        html += `<div class="${cls}" style="${style}" onclick="napToggle('${datumStr}')">${nap}</div>`;
+    }
+
+    grid.innerHTML = html;
+}
+
+function napToggle(datumStr) {
+    const d = new Date(datumStr);
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) return; // hétvégét nem jelölünk
+
+    const idx = kivalasztottNapok.indexOf(datumStr);
+    if (idx === -1) {
+        kivalasztottNapok.push(datumStr);
+        kivalasztottNapok.sort();
+    } else {
+        kivalasztottNapok.splice(idx, 1);
+    }
+    renderModalNaptar();
+    frissitKivalasztottInfo();
+}
+
+function frissitKivalasztottInfo() {
+    const el = document.getElementById('kivalasztottNapokInfo');
+    if (!el) return;
+    if (kivalasztottNapok.length === 0) {
+        el.classList.add('hidden');
+    } else {
+        el.classList.remove('hidden');
+        const cfg = TIPUS_CONFIG[kivalasztottTipus];
+        el.innerHTML = `<span style="color:${cfg.szin}">${cfg.ikon} ${cfg.label}</span> — ${kivalasztottNapok.length} nap kijelölve`;
+    }
+}
 
 // ===== RENDER ALL =====
 function renderAll() {
@@ -359,19 +509,20 @@ function renderStatusKartyak() {
     }
 
     el.innerHTML = szemelyek.map(s => {
-        const szabin = isSzabin(s);
+        const tipus = isSzabin(s);
+        const cfg = tipus ? TIPUS_CONFIG[tipus] : null;
         const kov = kozelgoBejegyzes(s, 60);
         const eviNap = (window._bejegyzesek||[])
             .filter(b=>b.szemelyId===s.id && b.kezdes.startsWith(aktualisEv+''))
-            .reduce((sum,b)=>sum+munkanapok(b.kezdes,b.vege),0);
+            .length;
 
-        return `<div class="bg-white rounded-2xl border ${szabin?'border-amber-200 bg-amber-50':'border-gray-100'} p-4">
+        return `<div class="bg-white rounded-2xl border ${tipus?'border-opacity-50':'border-gray-100'} p-4" style="${tipus?'border-color:'+cfg.szin+'40;background:'+cfg.halvany:''}">
             <div class="flex items-center gap-2 mb-3">
-                <span class="status-dot ${szabin?'status-szabin':'status-itthon'}"></span>
+                <div class="w-2 h-2 rounded-full flex-shrink-0" style="background:${s.szin}"></div>
                 <span class="text-sm font-semibold text-gray-900">${s.nev}</span>
             </div>
-            <div class="text-xs text-gray-500 mb-1">
-                ${szabin ? '<span class="font-medium text-amber-600">🌴 Szabadságon</span>' : '<span class="text-emerald-600 font-medium">✓ Elérhető</span>'}
+            <div class="text-sm font-medium mb-1" style="color:${tipus?cfg.szin:'#10b981'}">
+                ${tipus ? cfg.ikon+' '+cfg.label : '✓ Elérhető'}
             </div>
             <div class="text-xs text-gray-400 mt-2">${eviNap} nap idén</div>
             ${kov ? `<div class="text-xs text-gray-400 mt-0.5">Következő: ${kov.kezdes}</div>` : ''}
@@ -482,21 +633,36 @@ function renderTimeline() {
                 }
             }
 
-            // Szabadság blokkok
-            bejHonapban.forEach(b => {
+            // Szabadság blokkok — napokként csoportosítva egymás mellé
+            // Összevonjuk az egymás melletti azonos típusú napokat
+            const rendezett = bejHonapban.sort((a,b)=>a.kezdes.localeCompare(b.kezdes));
+            const csoportok = [];
+            rendezett.forEach(b => {
+                const tipus = b.tipus || 'szabadsag';
+                const utolso = csoportok[csoportok.length-1];
+                // Ha ugyanolyan típus és egymás melletti nap → összevonjuk
+                if (utolso && utolso.tipus===tipus && utolso.vege===b.kezdes) {
+                    utolso.vege = b.vege;
+                    utolso.ids.push(b.id);
+                } else {
+                    csoportok.push({...b, ids:[b.id], tipus});
+                }
+            });
+
+            csoportok.forEach(b => {
                 const kStart = new Date(Math.max(new Date(b.kezdes), elso));
                 const kEnd = new Date(Math.min(new Date(b.vege), utolso));
                 const startIdx = kStart.getDate()-1;
                 const endIdx = kEnd.getDate()-1;
                 const leftPx = startIdx * NAP_W + 2;
                 const widthPx = (endIdx - startIdx + 1) * NAP_W - 4;
-                const nap = munkanapok(b.kezdes, b.vege);
-                const label = b.megjegyzes || `${nap} nap`;
+                const cfg = TIPUS_CONFIG[b.tipus] || TIPUS_CONFIG.szabadsag;
+                const label = b.ids.length > 1 ? `${cfg.ikon} ${b.ids.length} nap` : cfg.ikon;
 
-                html += `<div class="vacation-block" style="left:${leftPx}px;width:${widthPx}px;background:${s.szin};z-index:5"
-                    title="${s.nev}: ${b.kezdes} → ${b.vege}${b.megjegyzes?' ('+b.megjegyzes+')':''}"
-                    onclick="blockKattint('${b.id}')">
-                    ${widthPx > 40 ? label : ''}
+                html += `<div class="vacation-block" style="left:${leftPx}px;width:${widthPx}px;background:${cfg.szin};z-index:5"
+                    title="${s.nev}: ${b.kezdes}${b.vege!==b.kezdes?(' → '+b.vege):''} · ${cfg.label}${b.megjegyzes?' ('+b.megjegyzes+')':''}"
+                    onclick="blockKattint('${b.ids[0]}')">
+                    ${widthPx > 20 ? label : ''}
                 </div>`;
             });
 
@@ -541,15 +707,16 @@ function renderLog() {
         const rogz = b.rogzitveKor ? new Date(b.rogzitveKor).toLocaleDateString('hu-HU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
         const ki = b.rogzitette ? b.rogzitette.split('@')[0] : '';
 
+        const cfg = TIPUS_CONFIG[b.tipus] || TIPUS_CONFIG.szabadsag;
         return `<div class="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0 group">
-            <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${s.szin}"></div>
+            <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${cfg.szin}"></div>
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-sm font-semibold text-gray-900">${s.nev}</span>
-                    <span class="text-sm text-gray-500">${b.kezdes} → ${b.vege}</span>
-                    <span class="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">${nap} nap</span>
-                    ${b.megjegyzes?`<span class="text-xs text-gray-400 italic">${b.megjegyzes}</span>`:''}
+                    <span class="text-xs px-1.5 py-0.5 rounded font-medium" style="background:${cfg.halvany};color:${cfg.szin}">${cfg.ikon} ${cfg.label}</span>
+                    <span class="text-sm text-gray-500">${b.kezdes}${b.vege!==b.kezdes?' → '+b.vege:''}</span>
                 </div>
+                ${b.megjegyzes?`<div class="text-xs text-gray-400 italic mt-0.5">${b.megjegyzes}</div>`:''}
                 <div class="text-xs text-gray-300 mt-0.5">${ki} · ${rogz}</div>
             </div>
             ${window._isAdmin ? `<button onclick="torolBejegyzes('${b.id}')"
@@ -605,33 +772,33 @@ function maraHonap() {
     renderTimeline();
 }
 
-// ===== MENTÉS =====
-function frissitNapok() {
-    const k = document.getElementById('ujKezdes').value;
-    const v = document.getElementById('ujVege').value;
-    const el = document.getElementById('napokInfo');
-    if (k && v && v>=k) {
-        el.textContent = `${munkanapok(k,v)} munkanap`;
-        el.classList.remove('hidden');
-    } else { el.classList.add('hidden'); }
-}
-
 async function mentBejegyzes() {
     const szemelyId = document.getElementById('ujSzemely').value;
-    const kezdes = document.getElementById('ujKezdes').value;
-    const vege = document.getElementById('ujVege').value;
     const megjegyzes = document.getElementById('ujMegjegyzes').value.trim();
-    if (!szemelyId||!kezdes||!vege) { alert('Kérlek töltsd ki az összes mezőt!'); return; }
-    if (vege<kezdes) { alert('A vége nem lehet korábbi a kezdésnél!'); return; }
+
+    if (!szemelyId) { alert('Válassz személyt!'); return; }
+    if (kivalasztottNapok.length === 0) { alert('Jelölj ki legalább egy napot!'); return; }
+
     window._bejegyzesek = window._bejegyzesek||[];
-    window._bejegyzesek.push({
-        id: genId(), szemelyId, kezdes, vege, megjegyzes,
-        rogzitette: window._user?.email||'?',
-        rogzitveKor: new Date().toISOString()
+
+    // Minden kijelölt nap = egy rekord (kezdes=vege=adott nap)
+    kivalasztottNapok.forEach(datum => {
+        window._bejegyzesek.push({
+            id: genId(),
+            szemelyId,
+            kezdes: datum,
+            vege: datum,
+            tipus: kivalasztottTipus,
+            megjegyzes,
+            rogzitette: window._user?.email||'?',
+            rogzitveKor: new Date().toISOString()
+        });
     });
+
     await ment();
     hideModal('ujBejegyzesModal');
-    document.getElementById('ujMegjegyzes').value='';
+    kivalasztottNapok = [];
+    document.getElementById('ujMegjegyzes').value = '';
 }
 
 async function torolBejegyzes(id) {
@@ -675,7 +842,6 @@ window.bejelentkezes=bejelentkezes;
 window.kijelentkezes=kijelentkezes;
 window.navHonap=navHonap;
 window.maraHonap=maraHonap;
-window.frissitNapok=frissitNapok;
 window.mentBejegyzes=mentBejegyzes;
 window.torolBejegyzes=torolBejegyzes;
 window.szemelyHozzaad=szemelyHozzaad;
@@ -683,6 +849,9 @@ window.szemelyTorol=szemelyTorol;
 window.szinValtas=szinValtas;
 window.blockKattint=blockKattint;
 window.renderLog=renderLog;
+window.tipusValaszt=tipusValaszt;
+window.modalNavHonap=modalNavHonap;
+window.napToggle=napToggle;
 </script>
 </body>
 </html>
