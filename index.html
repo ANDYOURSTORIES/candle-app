@@ -575,13 +575,6 @@
                                 <input type="text" id="ujVariansSKU" placeholder="CDL100AJAC" class="w-full px-3 py-2 border rounded-lg text-sm">
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Kanóc</label>
-                            <select id="ujVariansKanoc" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                <option value="">Alapértelmezett (a méret receptje szerint)</option>
-                            </select>
-                            <p class="text-xs text-gray-500 mt-1">Csak akkor válassz mást, ha ennél a konkrét terméknél más kanóc kell, mint a méret alapértelmezettje.</p>
-                        </div>
                         <button onclick="ujVariansHozzaad()" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold text-sm">
                             Hozzáad
                         </button>
@@ -1335,6 +1328,7 @@
         let alapanyagok = []; // Alapanyag készlet (recept alapú levonáshoz — kezelése: app.andyourstories.com/alapanyagok)
         let receptek = []; // Receptek: termekTipus+meret → általános (nem illatfüggő, nem kanóc) alapanyagok listája + alapértelmezett kanóc
         let termekIllatolajok = []; // Titkos: termékVariánsId → illatolaj tétel(ek) listája (csak /alapanyagok admin fülön szerkeszthető, több illatolaj/termék is lehet)
+        let termekKanocok = []; // Nem titkos: termékVariánsId → egyedi kanóc választás (ha nincs, a recept alapértelmezett kanóca érvényes) — kezelése: app.andyourstories.com/alapanyagok, Receptek fül
         
         // Sort state tárolás (lista neve → {column, direction})
         let sortStates = {
@@ -1799,7 +1793,7 @@
         let activeListeners = [];
         let initBetoltesKesz = false;
         let betoltottDokumentumok = 0;
-        const BETOLTENDO_DOKUMENTUMOK = 15;
+        const BETOLTENDO_DOKUMENTUMOK = 16;
 
         function onSnapshotFrissit(kulcs, adat) {
             // Adat frissítése a memóriában
@@ -1822,6 +1816,7 @@
                 case 'alapanyagok': alapanyagok = adat || []; break;
                 case 'receptek': receptek = adat || []; break;
                 case 'termekIllatolajok': termekIllatolajok = adat || []; break;
+                case 'termekKanocok': termekKanocok = adat || []; break;
                 case 'migrationStatus': migrationDone = (adat && adat.done) || false; break;
             }
 
@@ -1880,7 +1875,7 @@
                 'cimkeKeszlet', 'dobozcimkeKeszlet', 'mentettTervezesek',
                 'keszTermekek', 'kiszallitasok', 'partnerek',
                 'aktivDraft', 'termekVariansok', 'alapanyagok', 'receptek',
-                'termekIllatolajok'
+                'termekIllatolajok', 'termekKanocok'
             ];
 
             dokumentumok.forEach(kulcs => {
@@ -6725,12 +6720,6 @@
             const ujVariansTipusSelect = document.getElementById('ujVariansTipus');
             ujVariansTipusSelect.innerHTML = '<option value="">Válassz...</option>' +
                 termekTipusok.map(t => `<option value="${t.id}">${t.nev}</option>`).join('');
-
-            // Kanóc select feltöltése (általános alapanyagok — kezelése: app.andyourstories.com/alapanyagok)
-            const ujVariansKanocSelect = document.getElementById('ujVariansKanoc');
-            const altalanosAlapanyagok = alapanyagok.filter(a => (a.kategoria || 'altalanos') === 'altalanos');
-            ujVariansKanocSelect.innerHTML = '<option value="">Alapértelmezett (a méret receptje szerint)</option>' +
-                altalanosAlapanyagok.map(a => `<option value="${a.id}">${a.nev}</option>`).join('');
             
             // Méret datalist feltöltése korábban használt méretekkel
             updateMeretLista();
@@ -6750,8 +6739,6 @@
             const tipus = document.getElementById('ujVariansTipus').value;
             const meret = document.getElementById('ujVariansMeret').value;
             const sku = document.getElementById('ujVariansSKU').value.trim() || null;
-            const kanocValStr = document.getElementById('ujVariansKanoc').value;
-            const kanocAlapanyagId = kanocValStr ? parseInt(kanocValStr) : null;
             
             if (!tipus || !meret) {
                 alert('Add meg a termék típust és méretet!');
@@ -6780,7 +6767,6 @@
                 termekTipusNev: termekTipusObj.nev,
                 meret: meret,
                 sku: sku,
-                kanocAlapanyagId: kanocAlapanyagId,
                 displayNev: `${illat.nev} - ${termekTipusObj.nev} ${meret}`
             };
             
@@ -6790,7 +6776,6 @@
             document.getElementById('ujVariansTipus').value = '';
             document.getElementById('ujVariansMeret').value = '';
             document.getElementById('ujVariansSKU').value = '';
-            document.getElementById('ujVariansKanoc').value = '';
             
             ment();
             renderVariansLista();
@@ -6819,19 +6804,11 @@
                 return;
             }
             
-            lista.innerHTML = illatVariansok.map(v => {
-                const altalanosAlapanyagok = alapanyagok.filter(a => (a.kategoria || 'altalanos') === 'altalanos');
-                return `
+            lista.innerHTML = illatVariansok.map(v => `
                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
                     <div class="flex-1">
                         <div class="font-medium text-gray-900">${v.termekTipusNev} ${v.meret}</div>
                         <div class="text-sm text-gray-600">SKU: ${v.sku || 'N/A'}</div>
-                        <div class="mt-1">
-                            <select onchange="variansKanocFrissit(${v.id}, this.value)" class="text-xs border rounded px-2 py-1 bg-white">
-                                <option value="" ${!v.kanocAlapanyagId ? 'selected' : ''}>Kanóc: Alapértelmezett (recept szerint)</option>
-                                ${altalanosAlapanyagok.map(a => `<option value="${a.id}" ${v.kanocAlapanyagId === a.id ? 'selected' : ''}>Kanóc: ${a.nev}</option>`).join('')}
-                            </select>
-                        </div>
                     </div>
                     <div class="flex gap-2">
                         <button onclick="szerkesztVarians(${v.id})" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
@@ -6842,14 +6819,7 @@
                         </button>
                     </div>
                 </div>
-            `;}).join('');
-        }
-
-        function variansKanocFrissit(variansId, kanocValStr) {
-            const varianss = termekVariansok.find(v => v.id === variansId);
-            if (!varianss) return;
-            varianss.kanocAlapanyagId = kanocValStr ? parseInt(kanocValStr) : null;
-            ment();
+            `).join('');
         }
         
         function szerkesztVarians(variansId) {
@@ -7079,13 +7049,13 @@
         }
         
         // ===== ALAPANYAG FOGYASZTÁS (recept alapján) =====
-        // Alapanyagok/receptek/illat-hozzárendelés kezelése: app.andyourstories.com/alapanyagok (külön, jelszóval védett oldal)
+        // Alapanyagok/receptek/illat-hozzárendelés/kanóc-hozzárendelés kezelése: app.andyourstories.com/alapanyagok (külön, jelszóval védett oldal)
 
         // Levonja a varianss (termékvariáns) recept szerinti alapanyagait `darab` mennyiségre.
         // Az általános tételeket (jar, kupak, viasz stb.) a típus+méret recept adja.
         // A kanóc külön kezelt: a recept adja meg az alapértelmezett kanócot+mennyiséget, DE ha ennél a
-        // konkrét terméknél (termékVariáns) be van állítva egyedi kanóc — app.andyourstories.com,
-        // Termékek listája, variáns sorában — akkor az helyettesíti az alapanyagot (a mennyiség a recept szerinti marad).
+        // konkrét SKU-hoz be van állítva egyedi kanóc — app.andyourstories.com/alapanyagok, Receptek fül,
+        // "Kanóc termékenként" — akkor az helyettesíti az alapanyagot (a mennyiség a recept szerinti marad).
         // Az illatolaj tétel(eke)t a konkrét SKU-hoz rendelt titkos lista adja (app.andyourstories.com/alapanyagok, admin fül) —
         // egy termékhez több illatolaj is tartozhat.
         // Visszaadja a levont tételek listáját (kiöntés rekordra mentve, törléskor visszaírható legyen).
@@ -7105,9 +7075,10 @@
                 });
             }
 
-            // Kanóc: a termékvariáns egyedi választása, vagy ha nincs, a recept alapértelmezett kanóca
+            // Kanóc: a SKU-hoz rendelt egyedi választás (termekKanocok), vagy ha nincs, a recept alapértelmezett kanóca
             if (recept && recept.kanocAlapanyagId && recept.kanocMennyiseg) {
-                const kanocAlapanyagId = varianss.kanocAlapanyagId || recept.kanocAlapanyagId;
+                const kanocHozzarendeles = termekKanocok.find(k => k.termekVariansId === varianss.id);
+                const kanocAlapanyagId = (kanocHozzarendeles && kanocHozzarendeles.kanocAlapanyagId) || recept.kanocAlapanyagId;
                 const kanocAlapanyag = alapanyagok.find(a => a.id === kanocAlapanyagId);
                 if (kanocAlapanyag) {
                     const mennyisegOsszesen = recept.kanocMennyiseg * darab;
