@@ -62,6 +62,10 @@
         table.data th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #999; font-weight: 600; padding: 8px 10px; border-bottom: 1.5px solid #eee; }
         table.data td { padding: 8px 10px; border-bottom: 1px solid #f2f2f0; vertical-align: middle; }
         table.data tr:last-child td { border-bottom: none; }
+
+        .yield-pill { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; background: #f0fdf4; color: #15803d; margin: 1px 2px 1px 0; }
+        .yield-pill.low { background: #fef2f2; color: #dc2626; }
+        .yield-pill.none { background: #f3f4f6; color: #9ca3af; }
     </style>
 </head>
 <body>
@@ -111,28 +115,41 @@
         <div class="flex gap-2 mb-5">
             <button id="tabBtnKeszlet" class="tab-btn active" onclick="valtTab('keszlet')">📦 Készlet</button>
             <button id="tabBtnReceptek" class="tab-btn" onclick="valtTab('receptek')">📖 Receptek</button>
-            <button id="tabBtnHozzarendeles" class="tab-btn hidden" onclick="valtTab('hozzarendeles')">🔒 Illat → illatolaj</button>
+            <button id="tabBtnTermekek" class="tab-btn hidden" onclick="valtTab('termekek')">🔒 Termékek &amp; illatolaj</button>
         </div>
 
         <!-- KÉSZLET TAB -->
         <div id="tabKeszlet">
-            <p class="text-sm text-gray-500 mb-4">Minden fizikai alapanyag itt szerepel — üveg, kupak, viasz, kanóc, és maguk a beszerzett illatolajok is (tetszőleges néven). Ez a lista bárkinek látható, aki eléri ezt az oldalt.</p>
+            <p class="text-sm text-gray-500 mb-4">Ez a lista bárkinek látható, aki eléri ezt az oldalt. Az illatolajok itt csak alapanyagként szerepelnek (készlet+név) — hogy melyik termékhez tartoznak, az csak a 🔒 admin fülön látszik.</p>
+
             <div class="flex items-center justify-between mb-3">
-                <h2 class="text-base font-semibold text-gray-900">Alapanyagok</h2>
-                <button class="btn-secondary btn-sm" onclick="ujAlapanyagModalMegnyit()">+ Új alapanyag</button>
+                <h2 class="text-base font-semibold text-gray-900">Általános alapanyagok</h2>
+                <button class="btn-secondary btn-sm" onclick="ujAlapanyagModalMegnyit('altalanos')">+ Új általános alapanyag</button>
+            </div>
+            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-8">
+                <table class="data">
+                    <thead><tr><th>Név</th><th>Készlet</th><th>Riasztási szint</th><th>Ebből még készíthető</th><th></th></tr></thead>
+                    <tbody id="altalanosTest"></tbody>
+                </table>
+                <div id="altalanosUres" class="hidden text-center text-sm text-gray-400 py-8">Még nincs alapanyag hozzáadva.</div>
+            </div>
+
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-base font-semibold text-gray-900">Illatolajok</h2>
+                <button class="btn-secondary btn-sm" onclick="ujAlapanyagModalMegnyit('illatolaj')">+ Új illatolaj</button>
             </div>
             <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 <table class="data">
                     <thead><tr><th>Név</th><th>Készlet</th><th>Riasztási szint</th><th></th></tr></thead>
-                    <tbody id="alapanyagTest"></tbody>
+                    <tbody id="illatolajTest"></tbody>
                 </table>
-                <div id="alapanyagUres" class="hidden text-center text-sm text-gray-400 py-8">Még nincs alapanyag hozzáadva.</div>
+                <div id="illatolajUres" class="hidden text-center text-sm text-gray-400 py-8">Még nincs illatolaj hozzáadva.</div>
             </div>
         </div>
 
         <!-- RECEPTEK TAB -->
         <div id="tabReceptek" class="hidden">
-            <p class="text-sm text-gray-500 mb-4">Egy recept egy termék típus + méret kombinációhoz tartozik (pl. Gyertya — Kis (120g)). Amikor ilyen terméket öntenek ki az appban, a recept alapján automatikusan levonódik a felhasznált alapanyag. Az "illatolaj" tétel mennyisége itt kerül megadásra — hogy melyik illathoz fizikailag melyik illatolaj tartozik, az a 🔒 Illat → illatolaj fülön (csak admin) van beállítva.</p>
+            <p class="text-sm text-gray-500 mb-4">Egy recept egy termék típus + méret kombinációhoz tartozik (pl. Gyertya — Kis (120g)), és csak az általános (nem illatfüggő) alapanyagokat tartalmazza — üveg, kupak, viasz, kanóc. Az illatolajok termékenként (SKU-nként) vannak hozzárendelve a 🔒 Termékek &amp; illatolaj fülön.</p>
             <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 <table class="data">
                     <thead><tr><th>Termék típus</th><th>Méret</th><th>Recept</th><th></th></tr></thead>
@@ -142,16 +159,12 @@
             </div>
         </div>
 
-        <!-- HOZZÁRENDELÉS TAB (csak admin) -->
-        <div id="tabHozzarendeles" class="hidden">
-            <p class="text-sm text-gray-500 mb-4">Itt add meg, hogy egy adott illathoz (típusonként) fizikailag melyik alapanyag (illatolaj) tartozik. Ez az összerendelés csak számodra látható.</p>
-            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <table class="data">
-                    <thead><tr><th>Illat</th><th>Termék típus</th><th>Hozzárendelt alapanyag</th><th></th></tr></thead>
-                    <tbody id="hozzarendelesTest"></tbody>
-                </table>
-                <div id="hozzarendelesUres" class="hidden text-center text-sm text-gray-400 py-8">Nincs még termék variáns az appban.</div>
-            </div>
+        <!-- TERMÉKEK & ILLATOLAJ TAB (csak admin) -->
+        <div id="tabTermekek" class="hidden">
+            <p class="text-sm text-gray-500 mb-4">Illatonként csoportosítva, minden valódi termék (SKU-val), amihez egy vagy több illatolajat rendelhetsz — egy gyertyában akár többféle is lehet. Ez a fül és minden tartalma csak neked látható.</p>
+            <input type="text" id="termekekSzuro" placeholder="Keresés illat, SKU vagy méret szerint…" class="mb-4" oninput="renderTermekek()">
+            <div id="termekekContainer" class="space-y-6"></div>
+            <div id="termekekUres" class="hidden text-center text-sm text-gray-400 py-8 bg-white rounded-2xl border border-gray-100">Nincs még termék variáns az appban.</div>
         </div>
 
     </main>
@@ -160,11 +173,11 @@
 <!-- MODAL: Új alapanyag -->
 <div id="ujAlapanyagModal" class="modal-overlay hidden">
     <div class="modal">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Új alapanyag</h3>
+        <h3 id="ujAlapanyagCim" class="text-lg font-semibold text-gray-900 mb-4">Új alapanyag</h3>
         <div class="space-y-3">
             <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Név</label>
-                <input type="text" id="ujAlapanyagNev" placeholder="pl. Szójaviasz, Kanóc, Maple Chai illatolaj">
+                <input type="text" id="ujAlapanyagNev" placeholder="pl. Szójaviasz, Kanóc, Maple Chai FO">
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Mértékegység</label>
@@ -192,7 +205,7 @@
     </div>
 </div>
 
-<!-- MODAL: Recept szerkesztő -->
+<!-- MODAL: Recept szerkesztő (általános alapanyagok) -->
 <div id="receptModal" class="modal-overlay hidden">
     <div class="modal max-w-lg">
         <h3 id="receptModalCim" class="text-lg font-semibold text-gray-900 mb-1">Recept</h3>
@@ -202,11 +215,7 @@
 
         <div class="p-3 bg-gray-50 rounded-xl space-y-2">
             <div class="text-xs font-medium text-gray-500">Új tétel hozzáadása</div>
-            <select id="receptUjTetelFajta" onchange="receptUjTetelFajtaValt()">
-                <option value="altalanos">Általános alapanyag (nem illatfüggő)</option>
-                <option value="illatspecifikus">Illatolaj (illat-specifikus — a konkrét párosítást a 🔒 fülön állítod be)</option>
-            </select>
-            <select id="receptUjTetelAlapanyagSor"></select>
+            <select id="receptUjTetelAlapanyag" onchange="receptUjTetelAlapanyagValt()"></select>
             <div class="flex gap-2 items-center">
                 <input type="number" id="receptUjTetelMennyiseg" placeholder="Mennyiség" min="0" step="any" class="flex-1">
                 <select id="receptUjTetelMertekegyseg" class="w-28 flex-none"></select>
@@ -218,6 +227,31 @@
         <div class="flex gap-2 mt-5">
             <button class="btn-secondary flex-1" onclick="hideModal('receptModal')">Bezár</button>
             <button class="btn-primary flex-1" onclick="receptMentes()">Recept mentése</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Termék illatolaj szerkesztő (SKU szinten, csak admin) -->
+<div id="termekOlajModal" class="modal-overlay hidden">
+    <div class="modal max-w-lg">
+        <h3 id="termekOlajModalCim" class="text-lg font-semibold text-gray-900 mb-1">Illatolaj hozzárendelés</h3>
+        <p id="termekOlajModalAlcim" class="text-xs text-gray-400 mb-4"></p>
+
+        <div id="termekOlajTetelLista" class="space-y-2 mb-4"></div>
+
+        <div class="p-3 bg-gray-50 rounded-xl space-y-2">
+            <div class="text-xs font-medium text-gray-500">Illatolaj hozzáadása (több is lehet)</div>
+            <select id="termekOlajUjTetelAlapanyag" onchange="termekOlajUjTetelAlapanyagValt()"></select>
+            <div class="flex gap-2 items-center">
+                <input type="number" id="termekOlajUjTetelMennyiseg" placeholder="Mennyiség" min="0" step="any" class="flex-1">
+                <select id="termekOlajUjTetelMertekegyseg" class="w-28 flex-none"></select>
+            </div>
+            <button class="btn-secondary btn-sm w-full" onclick="termekOlajTetelHozzaad()">+ Hozzáad</button>
+        </div>
+
+        <div class="flex gap-2 mt-5">
+            <button class="btn-secondary flex-1" onclick="hideModal('termekOlajModal')">Bezár</button>
+            <button class="btn-primary flex-1" onclick="termekOlajMentes()">Mentés</button>
         </div>
     </div>
 </div>
@@ -255,7 +289,7 @@ window._fbAuth.onAuthStateChanged(auth, user => {
         window._isAdmin = ADMIN_EMAILS.includes(user.email);
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('app').style.display = 'block';
-        document.getElementById('tabBtnHozzarendeles').classList.toggle('hidden', !window._isAdmin);
+        document.getElementById('tabBtnTermekek').classList.toggle('hidden', !window._isAdmin);
         startListeners(db, doc, onSnapshot);
     } else {
         window._user = null;
@@ -281,10 +315,10 @@ function startListeners(db, doc, onSnapshot) {
         window._termekVariansok = snap.exists() ? (snap.data().data || []) : [];
         renderAll();
     });
-    // Titkos összerendelés: illat + termék típus → melyik alapanyag (illatolaj) fogy belőle.
+    // Titkos: melyik konkrét termék (SKU) melyik illatolaj(ak)ból mennyit fogyaszt.
     // Csak admin írja/olvassa a felületen (a fő app is olvassa, a kiöntéskori levonáshoz).
-    onSnapshot(doc(db, 'appData', 'illatOlajHozzarendeles'), snap => {
-        window._hozzarendeles = snap.exists() ? (snap.data().data || []) : [];
+    onSnapshot(doc(db, 'appData', 'termekIllatolajok'), snap => {
+        window._termekIllatolajok = snap.exists() ? (snap.data().data || []) : [];
         renderAll();
     });
 }
@@ -296,25 +330,21 @@ window._alapanyagok = [];
 window._receptek = [];
 window._illatok = [];
 window._termekVariansok = [];
-window._hozzarendeles = [];
+window._termekIllatolajok = [];
 window._isAdmin = false;
 let aktivTab = 'keszlet';
 let idCounter = 0;
 function generateId() { return Date.now() + (idCounter++); }
 
 // ===== MÉRTÉKEGYSÉG ÁTVÁLTÁS =====
-// Csoportok: azonos csoporton belül lehet átváltani (súly <-> súly, térfogat <-> térfogat). db önmagában.
 const MERTEKEGYSEG_CSOPORT = { g: 'suly', kg: 'suly', ml: 'terfogat', l: 'terfogat', db: 'darab' };
 const MERTEKEGYSEG_LABEL = { g: 'gramm (g)', kg: 'kilogramm (kg)', ml: 'milliliter (ml)', l: 'liter (l)', db: 'darab (db)' };
-// Váltószám az adott mértékegység "alap" (kisebb) egységére: g és ml az alap, kg=1000g, l=1000ml, db=1db
 const ATVALTAS_ALAPRA = { g: 1, kg: 1000, ml: 1, l: 1000, db: 1 };
 
 function csoportEgysegei(mertekegyseg) {
     const csoport = MERTEKEGYSEG_CSOPORT[mertekegyseg];
     return Object.keys(MERTEKEGYSEG_CSOPORT).filter(me => MERTEKEGYSEG_CSOPORT[me] === csoport);
 }
-
-// Átvált egy mennyiséget `honnan` mértékegységből `hova` mértékegységbe (azonos csoporton belül).
 function egysegAtvalt(ertek, honnan, hova) {
     if (honnan === hova) return ertek;
     if (MERTEKEGYSEG_CSOPORT[honnan] !== MERTEKEGYSEG_CSOPORT[hova]) return null;
@@ -343,33 +373,39 @@ async function mentAlapanyagok() {
 async function mentReceptek() {
     await window._setDoc(window._doc(window._db, 'appData', 'receptek'), { data: window._receptek });
 }
-async function mentHozzarendeles() {
-    await window._setDoc(window._doc(window._db, 'appData', 'illatOlajHozzarendeles'), { data: window._hozzarendeles });
+async function mentTermekIllatolajok() {
+    await window._setDoc(window._doc(window._db, 'appData', 'termekIllatolajok'), { data: window._termekIllatolajok });
 }
 
 // ===== TAB =====
 function valtTab(tab) {
-    if (tab === 'hozzarendeles' && !window._isAdmin) return;
+    if (tab === 'termekek' && !window._isAdmin) return;
     aktivTab = tab;
     document.getElementById('tabKeszlet').classList.toggle('hidden', tab !== 'keszlet');
     document.getElementById('tabReceptek').classList.toggle('hidden', tab !== 'receptek');
-    document.getElementById('tabHozzarendeles').classList.toggle('hidden', tab !== 'hozzarendeles');
+    document.getElementById('tabTermekek').classList.toggle('hidden', tab !== 'termekek');
     document.getElementById('tabBtnKeszlet').classList.toggle('active', tab === 'keszlet');
     document.getElementById('tabBtnReceptek').classList.toggle('active', tab === 'receptek');
-    document.getElementById('tabBtnHozzarendeles').classList.toggle('active', tab === 'hozzarendeles');
+    document.getElementById('tabBtnTermekek').classList.toggle('active', tab === 'termekek');
 }
 
 // ===== RENDER ROOT =====
 function renderAll() {
     renderFogyoban();
-    renderAlapanyagok();
+    renderAltalanos();
+    renderIllatolajok();
     renderReceptek();
-    if (window._isAdmin) renderHozzarendeles();
+    if (window._isAdmin) renderTermekek();
 }
 
 function alacsonyKeszletu(a) {
     return a.minKeszlet != null && a.minKeszlet > 0 && (a.keszlet || 0) <= a.minKeszlet;
 }
+function formatSzam(n) {
+    n = n || 0;
+    return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, '');
+}
+function kategoriaja(a) { return a.kategoria === 'illatolaj' ? 'illatolaj' : 'altalanos'; }
 
 function renderFogyoban() {
     const fogyok = window._alapanyagok.filter(alacsonyKeszletu);
@@ -384,16 +420,69 @@ function renderFogyoban() {
     `).join('');
 }
 
-function formatSzam(n) {
-    n = n || 0;
-    return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, '');
+// ===== RECEPT KOMBÓK (típus+méret, a valódi termékVariánsokból) =====
+function receptKombok() {
+    const map = new Map();
+    window._termekVariansok.forEach(v => {
+        const kulcs = `${v.termekTipus}||${v.meret}`;
+        if (!map.has(kulcs)) map.set(kulcs, { termekTipus: v.termekTipus, meret: v.meret, termekTipusNev: v.termekTipusNev });
+    });
+    return [...map.values()].sort((a, b) =>
+        a.termekTipusNev.localeCompare(b.termekTipusNev, 'hu') || a.meret.localeCompare(b.meret, 'hu')
+    );
 }
 
-// ===== ALAPANYAGOK (ÁLTALÁNOS KÉSZLET — MINDENKI LÁTJA) =====
-function renderAlapanyagok() {
-    const lista = [...window._alapanyagok].sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
-    const tbody = document.getElementById('alapanyagTest');
-    document.getElementById('alapanyagUres').classList.toggle('hidden', lista.length > 0);
+// Egy általános alapanyagból, a receptek alapján, típus+méretenként hány db készíthető még.
+function altalanosYield(alapanyag) {
+    const eredmenyek = [];
+    receptKombok().forEach(k => {
+        const recept = window._receptek.find(r => r.termekTipus === k.termekTipus && r.meret === k.meret);
+        if (!recept) return;
+        const tetel = (recept.tetelek || []).find(t => t.alapanyagId === alapanyag.id);
+        if (!tetel || !tetel.mennyiseg) return;
+        const db = Math.floor((alapanyag.keszlet || 0) / tetel.mennyiseg);
+        eredmenyek.push({ label: `${k.termekTipusNev} ${k.meret}`, db });
+    });
+    return eredmenyek;
+}
+
+function yieldPillekHtml(eredmenyek) {
+    if (!eredmenyek.length) return '<span class="text-gray-300 text-xs">—</span>';
+    return eredmenyek.map(e => `<span class="yield-pill ${e.db <= 0 ? 'low' : ''}">${e.label}: ${e.db} db</span>`).join('');
+}
+
+// ===== ÁLTALÁNOS ALAPANYAGOK (Készlet tab) =====
+function renderAltalanos() {
+    const lista = window._alapanyagok.filter(a => kategoriaja(a) === 'altalanos').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+    const tbody = document.getElementById('altalanosTest');
+    document.getElementById('altalanosUres').classList.toggle('hidden', lista.length > 0);
+    tbody.innerHTML = lista.map(a => `
+        <tr class="${alacsonyKeszletu(a) ? 'low-stock' : ''}">
+            <td class="font-medium text-gray-800">${a.nev}</td>
+            <td>
+                <div class="flex items-center gap-1.5">
+                    <input type="number" class="row-input stock-val" value="${a.keszlet ?? 0}" step="any"
+                        onchange="alapanyagKeszletFrissit(${a.id}, this.value)">
+                    <span class="text-gray-400 text-xs">${a.mertekegyseg}</span>
+                </div>
+            </td>
+            <td>
+                <input type="number" class="row-input" value="${a.minKeszlet ?? ''}" step="any" placeholder="—"
+                    onchange="alapanyagMinFrissit(${a.id}, this.value)">
+            </td>
+            <td>${yieldPillekHtml(altalanosYield(a))}</td>
+            <td class="text-right">
+                <button class="text-gray-300 hover:text-red-600 text-sm" onclick="alapanyagTorol(${a.id})">🗑️</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// ===== ILLATOLAJOK (Készlet tab — NINCS yield infó, hogy ne derüljön ki melyik termékhez tartozik) =====
+function renderIllatolajok() {
+    const lista = window._alapanyagok.filter(a => kategoriaja(a) === 'illatolaj').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+    const tbody = document.getElementById('illatolajTest');
+    document.getElementById('illatolajUres').classList.toggle('hidden', lista.length > 0);
     tbody.innerHTML = lista.map(a => `
         <tr class="${alacsonyKeszletu(a) ? 'low-stock' : ''}">
             <td class="font-medium text-gray-800">${a.nev}</td>
@@ -430,10 +519,10 @@ function alapanyagMinFrissit(id, ertek) {
     renderAll();
 }
 function alapanyagTorol(id) {
-    const hasznaltReceptben = window._receptek.some(r => (r.tetelek || []).some(t => t.fajta === 'altalanos' && t.alapanyagId === id));
-    const hasznaltHozzarendelesben = window._hozzarendeles.some(h => h.alapanyagId === id);
+    const hasznaltReceptben = window._receptek.some(r => (r.tetelek || []).some(t => t.alapanyagId === id));
+    const hasznaltTermekben = window._termekIllatolajok.some(h => (h.tetelek || []).some(t => t.alapanyagId === id));
     if (hasznaltReceptben) { alert('Nem törölhető — recept hivatkozik rá. Előbb vedd ki a receptekből.'); return; }
-    if (hasznaltHozzarendelesben) { alert('Nem törölhető — egy illat-hozzárendelés hivatkozik rá. Előbb vedd ki onnan.'); return; }
+    if (hasznaltTermekben) { alert('Nem törölhető — egy termékhez hozzá van rendelve. Előbb vedd ki onnan (🔒 fül).'); return; }
     if (!confirm('Biztosan törlöd?')) return;
     window._alapanyagok = window._alapanyagok.filter(a => a.id !== id);
     mentAlapanyagok();
@@ -441,9 +530,12 @@ function alapanyagTorol(id) {
 }
 
 // ===== ÚJ ALAPANYAG MODAL =====
-function ujAlapanyagModalMegnyit() {
+let ujAlapanyagKategoria = 'altalanos';
+function ujAlapanyagModalMegnyit(kategoria) {
+    ujAlapanyagKategoria = kategoria;
+    document.getElementById('ujAlapanyagCim').textContent = kategoria === 'illatolaj' ? 'Új illatolaj' : 'Új általános alapanyag';
     document.getElementById('ujAlapanyagNev').value = '';
-    document.getElementById('ujAlapanyagMertekegyseg').value = 'g';
+    document.getElementById('ujAlapanyagMertekegyseg').value = kategoria === 'illatolaj' ? 'ml' : 'g';
     document.getElementById('ujAlapanyagKeszlet').value = 0;
     document.getElementById('ujAlapanyagMin').value = '';
     showModal('ujAlapanyagModal');
@@ -456,7 +548,7 @@ function ujAlapanyagMentes() {
     const minVal = document.getElementById('ujAlapanyagMin').value;
 
     window._alapanyagok.push({
-        id: generateId(), nev, mertekegyseg,
+        id: generateId(), nev, mertekegyseg, kategoria: ujAlapanyagKategoria,
         keszlet, minKeszlet: minVal === '' ? null : (parseFloat(minVal) || 0)
     });
     mentAlapanyagok();
@@ -464,24 +556,10 @@ function ujAlapanyagMentes() {
     renderAll();
 }
 
-// ===== RECEPTEK =====
-function receptKombok() {
-    const map = new Map();
-    window._termekVariansok.forEach(v => {
-        const kulcs = `${v.termekTipus}||${v.meret}`;
-        if (!map.has(kulcs)) map.set(kulcs, { termekTipus: v.termekTipus, meret: v.meret, termekTipusNev: v.termekTipusNev });
-    });
-    return [...map.values()].sort((a, b) =>
-        a.termekTipusNev.localeCompare(b.termekTipusNev, 'hu') || a.meret.localeCompare(b.meret, 'hu')
-    );
-}
-
+// ===== RECEPTEK (általános alapanyagok, típus+méret szinten) =====
 function receptLeiras(recept) {
     if (!recept || !recept.tetelek || recept.tetelek.length === 0) return null;
     return recept.tetelek.map(t => {
-        if (t.fajta === 'illatspecifikus') {
-            return `${formatSzam(t.mennyiseg)} ${t.mertekegyseg} illatolaj (illat-specifikus)`;
-        }
         const a = window._alapanyagok.find(x => x.id === t.alapanyagId);
         return `${formatSzam(t.mennyiseg)}${a ? ' ' + a.mertekegyseg : ''} ${a ? a.nev : '(törölt alapanyag)'}`;
     }).join(' + ');
@@ -507,7 +585,7 @@ function renderReceptek() {
     }).join('');
 }
 
-let receptSzerkesztesAlatt = null; // { termekTipus, meret, tetelek: [...] }
+let receptSzerkesztesAlatt = null;
 
 function receptModalMegnyit(termekTipus, meret, termekTipusNev) {
     const letezo = window._receptek.find(r => r.termekTipus === termekTipus && r.meret === meret);
@@ -516,58 +594,29 @@ function receptModalMegnyit(termekTipus, meret, termekTipusNev) {
         tetelek: letezo ? JSON.parse(JSON.stringify(letezo.tetelek || [])) : []
     };
     document.getElementById('receptModalCim').textContent = `Recept — ${termekTipusNev}`;
-    document.getElementById('receptModalAlcim').textContent = `Méret: ${meret} (mennyiségek 1 db termékre értendők)`;
-    receptUjTetelFajtaValt();
+    document.getElementById('receptModalAlcim').textContent = `Méret: ${meret} (mennyiségek 1 db termékre értendők, csak általános alapanyagok)`;
+
+    const select = document.getElementById('receptUjTetelAlapanyag');
+    const altalanosok = window._alapanyagok.filter(a => kategoriaja(a) === 'altalanos').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+    select.innerHTML = altalanosok.length
+        ? altalanosok.map(a => `<option value="${a.id}">${a.nev}</option>`).join('')
+        : '<option value="">Nincs általános alapanyag felvéve</option>';
+    receptUjTetelAlapanyagValt();
     renderReceptTetelLista();
     showModal('receptModal');
 }
 
-function receptUjTetelFajtaValt() {
-    const fajta = document.getElementById('receptUjTetelFajta').value;
-    const sorSelect = document.getElementById('receptUjTetelAlapanyagSor');
-    const mertekegysegSelect = document.getElementById('receptUjTetelMertekegyseg');
-    const hint = document.getElementById('receptUjTetelAtvaltasHint');
-
-    if (fajta === 'illatspecifikus') {
-        // Nincs konkrét alapanyag választás — az a 🔒 fülön dől el illatonként.
-        sorSelect.classList.add('hidden');
-        sorSelect.innerHTML = '';
-        mertekegysegSelect.innerHTML = Object.keys(MERTEKEGYSEG_LABEL).map(me =>
-            `<option value="${me}">${MERTEKEGYSEG_LABEL[me]}</option>`
-        ).join('');
-        hint.textContent = 'A tényleges illatolaj-párosítás illatonként a 🔒 Illat → illatolaj fülön van beállítva.';
-    } else {
-        sorSelect.classList.remove('hidden');
-        const altalanosok = window._alapanyagok.slice().sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
-        sorSelect.innerHTML = altalanosok.length
-            ? altalanosok.map(a => `<option value="${a.id}">${a.nev}</option>`).join('')
-            : '<option value="">Nincs alapanyag felvéve</option>';
-        receptUjTetelAlapanyagValt();
-    }
-}
-
-// A kiválasztott alapanyag készlet-mértékegysége alapján feltölti a mértékegység választót
-// (pl. ha a készlet kg-ban van, itt választhatsz g-ot vagy kg-ot, és a rendszer átszámolja).
 function receptUjTetelAlapanyagValt() {
-    const alapanyagId = parseInt(document.getElementById('receptUjTetelAlapanyagSor').value);
+    const alapanyagId = parseInt(document.getElementById('receptUjTetelAlapanyag').value);
     const alapanyag = window._alapanyagok.find(a => a.id === alapanyagId);
     const mertekegysegSelect = document.getElementById('receptUjTetelMertekegyseg');
     const hint = document.getElementById('receptUjTetelAtvaltasHint');
-
-    if (!alapanyag) {
-        mertekegysegSelect.innerHTML = '';
-        hint.textContent = '';
-        return;
-    }
-
+    if (!alapanyag) { mertekegysegSelect.innerHTML = ''; hint.textContent = ''; return; }
     const egysegek = csoportEgysegei(alapanyag.mertekegyseg);
     mertekegysegSelect.innerHTML = egysegek.map(me =>
         `<option value="${me}" ${me === alapanyag.mertekegyseg ? 'selected' : ''}>${MERTEKEGYSEG_LABEL[me]}</option>`
     ).join('');
-
-    hint.textContent = alapanyag.mertekegyseg === 'db'
-        ? ''
-        : `A készlet mértékegysége: ${MERTEKEGYSEG_LABEL[alapanyag.mertekegyseg]} — a rendszer automatikusan átszámolja.`;
+    hint.textContent = alapanyag.mertekegyseg === 'db' ? '' : `A készlet mértékegysége: ${MERTEKEGYSEG_LABEL[alapanyag.mertekegyseg]} — automatikusan átszámolva.`;
 }
 
 function renderReceptTetelLista() {
@@ -577,16 +626,10 @@ function renderReceptTetelLista() {
         return;
     }
     container.innerHTML = receptSzerkesztesAlatt.tetelek.map((t, idx) => {
-        let szoveg;
-        if (t.fajta === 'illatspecifikus') {
-            szoveg = `<span class="font-medium">${formatSzam(t.mennyiseg)} ${t.mertekegyseg}</span> · Illatolaj <span class="text-xs text-amber-600">(illat-specifikus)</span>`;
-        } else {
-            const a = window._alapanyagok.find(x => x.id === t.alapanyagId);
-            szoveg = `<span class="font-medium">${formatSzam(t.mennyiseg)} ${a ? a.mertekegyseg : ''}</span> · ${a ? a.nev : '(törölt alapanyag)'}`;
-        }
+        const a = window._alapanyagok.find(x => x.id === t.alapanyagId);
         return `
             <div class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg">
-                <div class="text-sm text-gray-700">${szoveg}</div>
+                <div class="text-sm text-gray-700"><span class="font-medium">${formatSzam(t.mennyiseg)} ${a ? a.mertekegyseg : ''}</span> · ${a ? a.nev : '(törölt alapanyag)'}</div>
                 <button class="text-gray-300 hover:text-red-600 text-sm" onclick="receptTetelTorol(${idx})">🗑️</button>
             </div>
         `;
@@ -594,26 +637,16 @@ function renderReceptTetelLista() {
 }
 
 function receptTetelHozzaad() {
-    const fajta = document.getElementById('receptUjTetelFajta').value;
     const beirtMennyiseg = parseFloat(document.getElementById('receptUjTetelMennyiseg').value);
     const beirtEgyseg = document.getElementById('receptUjTetelMertekegyseg').value;
-
+    const alapanyagId = parseInt(document.getElementById('receptUjTetelAlapanyag').value);
+    const alapanyag = window._alapanyagok.find(a => a.id === alapanyagId);
     if (!beirtMennyiseg || beirtMennyiseg <= 0) { alert('Adj meg egy mennyiséget!'); return; }
+    if (!alapanyagId || !alapanyag) { alert('Válassz alapanyagot!'); return; }
 
-    if (fajta === 'illatspecifikus') {
-        receptSzerkesztesAlatt.tetelek.push({ fajta: 'illatspecifikus', mennyiseg: beirtMennyiseg, mertekegyseg: beirtEgyseg });
-    } else {
-        const alapanyagId = parseInt(document.getElementById('receptUjTetelAlapanyagSor').value);
-        const alapanyag = window._alapanyagok.find(a => a.id === alapanyagId);
-        if (!alapanyagId || !alapanyag) { alert('Válassz alapanyagot!'); return; }
-
-        // A beírt mennyiséget mindig átváltjuk a készlet saját mértékegységére, hogy a
-        // fő appban a levonás (index.html) egyszerű maradjon — nem kell ott átváltani.
-        const mennyiseg = egysegAtvalt(beirtMennyiseg, beirtEgyseg, alapanyag.mertekegyseg);
-        if (mennyiseg == null) { alert('Ez a mértékegység nem váltható át erre az alapanyagra!'); return; }
-        receptSzerkesztesAlatt.tetelek.push({ fajta: 'altalanos', alapanyagId: alapanyagId, mennyiseg });
-    }
-
+    const mennyiseg = egysegAtvalt(beirtMennyiseg, beirtEgyseg, alapanyag.mertekegyseg);
+    if (mennyiseg == null) { alert('Ez a mértékegység nem váltható át erre az alapanyagra!'); return; }
+    receptSzerkesztesAlatt.tetelek.push({ fajta: 'altalanos', alapanyagId: alapanyagId, mennyiseg });
     document.getElementById('receptUjTetelMennyiseg').value = '';
     renderReceptTetelLista();
 }
@@ -633,54 +666,180 @@ function receptMentes() {
     };
     if (meglevoIdx >= 0) window._receptek[meglevoIdx] = rekord;
     else window._receptek.push(rekord);
-
     mentReceptek();
     hideModal('receptModal');
     renderAll();
 }
 
-// ===== ILLAT → ILLATOLAJ HOZZÁRENDELÉS (CSAK ADMIN) =====
-function hozzarendelesKombok() {
-    const map = new Map();
-    window._termekVariansok.forEach(v => {
-        const kulcs = `${v.illatId}||${v.termekTipus}`;
-        if (!map.has(kulcs)) map.set(kulcs, { illatId: v.illatId, illatNev: v.illatNev, termekTipus: v.termekTipus, termekTipusNev: v.termekTipusNev });
-    });
-    return [...map.values()].sort((a, b) =>
-        a.illatNev.localeCompare(b.illatNev, 'hu') || a.termekTipusNev.localeCompare(b.termekTipusNev, 'hu')
-    );
+// ===== TERMÉKEK & ILLATOLAJ (csak admin, SKU szinten, illatonként csoportosítva) =====
+function skuOlajTetelek(termekVariansId) {
+    const rekord = window._termekIllatolajok.find(h => h.termekVariansId === termekVariansId);
+    return rekord ? (rekord.tetelek || []) : [];
 }
 
-function renderHozzarendeles() {
-    const kombok = hozzarendelesKombok();
-    const tbody = document.getElementById('hozzarendelesTest');
-    document.getElementById('hozzarendelesUres').classList.toggle('hidden', kombok.length > 0);
-    const alapanyagOptions = window._alapanyagok.slice().sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+// A hozzárendelt illatolaj-készletek alapján hány db készíthető még ebből a konkrét SKU-ból.
+function skuYield(termekVariansId) {
+    const tetelek = skuOlajTetelek(termekVariansId);
+    if (!tetelek.length) return null;
+    let min = Infinity;
+    tetelek.forEach(t => {
+        const a = window._alapanyagok.find(x => x.id === t.alapanyagId);
+        const db = a ? Math.floor((a.keszlet || 0) / t.mennyiseg) : 0;
+        if (db < min) min = db;
+    });
+    return min === Infinity ? null : min;
+}
 
-    tbody.innerHTML = kombok.map(k => {
-        const meglevo = window._hozzarendeles.find(h => h.illatId === k.illatId && h.termekTipus === k.termekTipus);
+function skuOlajOsszefoglalo(termekVariansId) {
+    const tetelek = skuOlajTetelek(termekVariansId);
+    if (!tetelek.length) return null;
+    return tetelek.map(t => {
+        const a = window._alapanyagok.find(x => x.id === t.alapanyagId);
+        return `${formatSzam(t.mennyiseg)}${a ? ' ' + a.mertekegyseg : ''} ${a ? a.nev : '(törölt)'}`;
+    }).join(' + ');
+}
+
+function renderTermekek() {
+    const szuroSzoveg = (document.getElementById('termekekSzuro').value || '').toLowerCase().trim();
+
+    const illatCsoportok = new Map(); // illatId -> { illatNev, variansok: [] }
+    window._termekVariansok.forEach(v => {
+        if (!illatCsoportok.has(v.illatId)) illatCsoportok.set(v.illatId, { illatNev: v.illatNev, variansok: [] });
+        illatCsoportok.get(v.illatId).variansok.push(v);
+    });
+
+    let csoportok = [...illatCsoportok.values()].sort((a, b) => a.illatNev.localeCompare(b.illatNev, 'hu'));
+    csoportok.forEach(cs => cs.variansok.sort((a, b) => a.termekTipusNev.localeCompare(b.termekTipusNev, 'hu') || a.meret.localeCompare(b.meret, 'hu')));
+
+    if (szuroSzoveg) {
+        csoportok = csoportok
+            .map(cs => ({ ...cs, variansok: cs.variansok.filter(v =>
+                cs.illatNev.toLowerCase().includes(szuroSzoveg) ||
+                (v.sku || '').toLowerCase().includes(szuroSzoveg) ||
+                v.meret.toLowerCase().includes(szuroSzoveg) ||
+                v.termekTipusNev.toLowerCase().includes(szuroSzoveg)
+            ) }))
+            .filter(cs => cs.variansok.length > 0);
+    }
+
+    const container = document.getElementById('termekekContainer');
+    document.getElementById('termekekUres').classList.toggle('hidden', csoportok.length > 0);
+
+    container.innerHTML = csoportok.map(cs => `
+        <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-100 bg-gray-50 font-semibold text-gray-900 text-sm">${cs.illatNev}</div>
+            <table class="data">
+                <thead><tr><th>SKU</th><th>Típus</th><th>Méret</th><th>Hozzárendelt illatolaj(ok)</th><th>Készíthető még</th><th></th></tr></thead>
+                <tbody>
+                ${cs.variansok.map(v => {
+                    const osszefoglalo = skuOlajOsszefoglalo(v.id);
+                    const yield_ = skuYield(v.id);
+                    return `
+                    <tr>
+                        <td class="font-mono text-xs text-gray-500">${v.sku || '—'}</td>
+                        <td>${v.termekTipusNev}</td>
+                        <td>${v.meret}</td>
+                        <td class="${osszefoglalo ? 'text-gray-600' : 'text-gray-400 italic'}">${osszefoglalo || 'Nincs beállítva'}</td>
+                        <td>${yield_ === null ? '<span class="text-gray-300 text-xs">—</span>' : `<span class="yield-pill ${yield_ <= 0 ? 'low' : ''}">${yield_} db</span>`}</td>
+                        <td class="text-right">
+                            <button class="btn-secondary btn-sm" onclick="termekOlajModalMegnyit(${v.id}, '${(v.displayNev || '').replace(/'/g, "\\'")}')">Szerkesztés</button>
+                        </td>
+                    </tr>
+                `;}).join('')}
+                </tbody>
+            </table>
+        </div>
+    `).join('');
+}
+
+let termekOlajSzerkesztesAlatt = null; // { termekVariansId, tetelek: [...] }
+
+function termekOlajModalMegnyit(termekVariansId, displayNev) {
+    const letezo = window._termekIllatolajok.find(h => h.termekVariansId === termekVariansId);
+    termekOlajSzerkesztesAlatt = {
+        termekVariansId,
+        tetelek: letezo ? JSON.parse(JSON.stringify(letezo.tetelek || [])) : []
+    };
+    document.getElementById('termekOlajModalCim').textContent = 'Illatolaj hozzárendelés';
+    document.getElementById('termekOlajModalAlcim').textContent = displayNev;
+
+    const select = document.getElementById('termekOlajUjTetelAlapanyag');
+    const illatolajok = window._alapanyagok.filter(a => kategoriaja(a) === 'illatolaj').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+    select.innerHTML = illatolajok.length
+        ? illatolajok.map(a => `<option value="${a.id}">${a.nev}</option>`).join('')
+        : '<option value="">Nincs illatolaj felvéve a Készlet fülön</option>';
+    termekOlajUjTetelAlapanyagValt();
+    renderTermekOlajTetelLista();
+    showModal('termekOlajModal');
+}
+
+function termekOlajUjTetelAlapanyagValt() {
+    const alapanyagId = parseInt(document.getElementById('termekOlajUjTetelAlapanyag').value);
+    const alapanyag = window._alapanyagok.find(a => a.id === alapanyagId);
+    const mertekegysegSelect = document.getElementById('termekOlajUjTetelMertekegyseg');
+    if (!alapanyag) { mertekegysegSelect.innerHTML = ''; return; }
+    const egysegek = csoportEgysegei(alapanyag.mertekegyseg);
+    mertekegysegSelect.innerHTML = egysegek.map(me =>
+        `<option value="${me}" ${me === alapanyag.mertekegyseg ? 'selected' : ''}>${MERTEKEGYSEG_LABEL[me]}</option>`
+    ).join('');
+}
+
+function renderTermekOlajTetelLista() {
+    const container = document.getElementById('termekOlajTetelLista');
+    if (!termekOlajSzerkesztesAlatt.tetelek.length) {
+        container.innerHTML = '<p class="text-sm text-gray-400 italic">Még nincs illatolaj hozzárendelve.</p>';
+        return;
+    }
+    container.innerHTML = termekOlajSzerkesztesAlatt.tetelek.map((t, idx) => {
+        const a = window._alapanyagok.find(x => x.id === t.alapanyagId);
         return `
-            <tr>
-                <td class="font-medium text-gray-800">${k.illatNev}</td>
-                <td>${k.termekTipusNev}</td>
-                <td>
-                    <select onchange="hozzarendelesFrissit(${k.illatId}, '${k.termekTipus.replace(/'/g, "\\'")}', this.value)">
-                        <option value="">— nincs kiválasztva —</option>
-                        ${alapanyagOptions.map(a => `<option value="${a.id}" ${meglevo && meglevo.alapanyagId === a.id ? 'selected' : ''}>${a.nev}</option>`).join('')}
-                    </select>
-                </td>
-                <td></td>
-            </tr>
+            <div class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg">
+                <div class="text-sm text-gray-700"><span class="font-medium">${formatSzam(t.mennyiseg)} ${a ? a.mertekegyseg : ''}</span> · ${a ? a.nev : '(törölt alapanyag)'}</div>
+                <button class="text-gray-300 hover:text-red-600 text-sm" onclick="termekOlajTetelTorol(${idx})">🗑️</button>
+            </div>
         `;
     }).join('');
 }
 
-function hozzarendelesFrissit(illatId, termekTipus, alapanyagIdStr) {
-    window._hozzarendeles = window._hozzarendeles.filter(h => !(h.illatId === illatId && h.termekTipus === termekTipus));
-    if (alapanyagIdStr) {
-        window._hozzarendeles.push({ id: generateId(), illatId, termekTipus, alapanyagId: parseInt(alapanyagIdStr) });
+function termekOlajTetelHozzaad() {
+    const beirtMennyiseg = parseFloat(document.getElementById('termekOlajUjTetelMennyiseg').value);
+    const beirtEgyseg = document.getElementById('termekOlajUjTetelMertekegyseg').value;
+    const alapanyagId = parseInt(document.getElementById('termekOlajUjTetelAlapanyag').value);
+    const alapanyag = window._alapanyagok.find(a => a.id === alapanyagId);
+    if (!beirtMennyiseg || beirtMennyiseg <= 0) { alert('Adj meg egy mennyiséget!'); return; }
+    if (!alapanyagId || !alapanyag) { alert('Válassz illatolajat!'); return; }
+
+    const mar_hozzaadva = termekOlajSzerkesztesAlatt.tetelek.some(t => t.alapanyagId === alapanyagId);
+    if (mar_hozzaadva) { alert('Ez az illatolaj már hozzá van adva. Töröld ki, ha módosítani akarod.'); return; }
+
+    const mennyiseg = egysegAtvalt(beirtMennyiseg, beirtEgyseg, alapanyag.mertekegyseg);
+    if (mennyiseg == null) { alert('Ez a mértékegység nem váltható át erre az alapanyagra!'); return; }
+    termekOlajSzerkesztesAlatt.tetelek.push({ alapanyagId, mennyiseg });
+    document.getElementById('termekOlajUjTetelMennyiseg').value = '';
+    renderTermekOlajTetelLista();
+}
+
+function termekOlajTetelTorol(idx) {
+    termekOlajSzerkesztesAlatt.tetelek.splice(idx, 1);
+    renderTermekOlajTetelLista();
+}
+
+function termekOlajMentes() {
+    const meglevoIdx = window._termekIllatolajok.findIndex(h => h.termekVariansId === termekOlajSzerkesztesAlatt.termekVariansId);
+    const rekord = {
+        id: meglevoIdx >= 0 ? window._termekIllatolajok[meglevoIdx].id : generateId(),
+        termekVariansId: termekOlajSzerkesztesAlatt.termekVariansId,
+        tetelek: termekOlajSzerkesztesAlatt.tetelek
+    };
+    if (termekOlajSzerkesztesAlatt.tetelek.length === 0 && meglevoIdx >= 0) {
+        window._termekIllatolajok.splice(meglevoIdx, 1);
+    } else if (meglevoIdx >= 0) {
+        window._termekIllatolajok[meglevoIdx] = rekord;
+    } else if (termekOlajSzerkesztesAlatt.tetelek.length > 0) {
+        window._termekIllatolajok.push(rekord);
     }
-    mentHozzarendeles();
+    mentTermekIllatolajok();
+    hideModal('termekOlajModal');
     renderAll();
 }
 
@@ -695,12 +854,16 @@ window.alapanyagTorol = alapanyagTorol;
 window.ujAlapanyagModalMegnyit = ujAlapanyagModalMegnyit;
 window.ujAlapanyagMentes = ujAlapanyagMentes;
 window.receptModalMegnyit = receptModalMegnyit;
-window.receptUjTetelFajtaValt = receptUjTetelFajtaValt;
 window.receptUjTetelAlapanyagValt = receptUjTetelAlapanyagValt;
 window.receptTetelHozzaad = receptTetelHozzaad;
 window.receptTetelTorol = receptTetelTorol;
 window.receptMentes = receptMentes;
-window.hozzarendelesFrissit = hozzarendelesFrissit;
+window.renderTermekek = renderTermekek;
+window.termekOlajModalMegnyit = termekOlajModalMegnyit;
+window.termekOlajUjTetelAlapanyagValt = termekOlajUjTetelAlapanyagValt;
+window.termekOlajTetelHozzaad = termekOlajTetelHozzaad;
+window.termekOlajTetelTorol = termekOlajTetelTorol;
+window.termekOlajMentes = termekOlajMentes;
 </script>
 </body>
 </html>
