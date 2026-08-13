@@ -1328,6 +1328,7 @@
         let alapanyagok = []; // Alapanyag készlet (recept alapú levonáshoz — kezelése: app.andyourstories.com/alapanyagok)
         let receptek = []; // Receptek: termekTipus+meret → általános (nem illatfüggő) alapanyagok listája
         let termekIllatolajok = []; // Titkos: termékVariánsId → illatolaj tétel(ek) listája (csak /alapanyagok admin fülön szerkeszthető, több illatolaj/termék is lehet)
+        let termekReceptFelulbiralasok = []; // Nem titkos: termékVariánsId → SKU-szintű felülírt általános recept (pl. eltérő kanóc), ha nincs, a típus+méret recept az alapértelmezett
         
         // Sort state tárolás (lista neve → {column, direction})
         let sortStates = {
@@ -1792,7 +1793,7 @@
         let activeListeners = [];
         let initBetoltesKesz = false;
         let betoltottDokumentumok = 0;
-        const BETOLTENDO_DOKUMENTUMOK = 15;
+        const BETOLTENDO_DOKUMENTUMOK = 16;
 
         function onSnapshotFrissit(kulcs, adat) {
             // Adat frissítése a memóriában
@@ -1815,6 +1816,7 @@
                 case 'alapanyagok': alapanyagok = adat || []; break;
                 case 'receptek': receptek = adat || []; break;
                 case 'termekIllatolajok': termekIllatolajok = adat || []; break;
+                case 'termekReceptFelulbiralasok': termekReceptFelulbiralasok = adat || []; break;
                 case 'migrationStatus': migrationDone = (adat && adat.done) || false; break;
             }
 
@@ -1873,7 +1875,7 @@
                 'cimkeKeszlet', 'dobozcimkeKeszlet', 'mentettTervezesek',
                 'keszTermekek', 'kiszallitasok', 'partnerek',
                 'aktivDraft', 'termekVariansok', 'alapanyagok', 'receptek',
-                'termekIllatolajok'
+                'termekIllatolajok', 'termekReceptFelulbiralasok'
             ];
 
             dokumentumok.forEach(kulcs => {
@@ -7050,25 +7052,29 @@
         // Alapanyagok/receptek/illat-hozzárendelés kezelése: app.andyourstories.com/alapanyagok (külön, jelszóval védett oldal)
 
         // Levonja a varianss (termékvariáns) recept szerinti alapanyagait `darab` mennyiségre.
-        // Az általános (nem illatfüggő) tételeket a típus+méret recept adja (jar, kupak, viasz, kanóc stb.),
-        // az illatolaj tétel(eke)t pedig a konkrét SKU-hoz rendelt titkos lista (app.andyourstories.com/alapanyagok, admin fül) —
+        // Az általános (nem illatfüggő) tételeket alapból a típus+méret recept adja (jar, kupak, viasz, kanóc stb.),
+        // DE ha ehhez a konkrét SKU-hoz van egyedi felülírás (pl. eltérő kanóc egy adott illatnál —
+        // app.andyourstories.com/alapanyagok, "SKU-szintű eltérések"), akkor az teljesen helyettesíti az alapértelmezettet.
+        // Az illatolaj tétel(eke)t a konkrét SKU-hoz rendelt titkos lista adja (app.andyourstories.com/alapanyagok, admin fül) —
         // egy termékhez több illatolaj is tartozhat.
         // Visszaadja a levont tételek listáját (kiöntés rekordra mentve, törléskor visszaírható legyen).
         function alapanyagFogyasztas(varianss, darab) {
             const felhasznalasok = [];
 
-            // Általános alapanyagok (típus+méret recept)
-            const recept = receptek.find(r => r.termekTipus === varianss.termekTipus && r.meret === varianss.meret);
-            if (recept && recept.tetelek) {
-                recept.tetelek.forEach(tetel => {
-                    const celAlapanyag = alapanyagok.find(a => a.id === tetel.alapanyagId);
-                    if (!celAlapanyag) return;
-                    const mennyisegOsszesen = (tetel.mennyiseg || 0) * darab;
-                    if (mennyisegOsszesen <= 0) return;
-                    celAlapanyag.keszlet = (celAlapanyag.keszlet || 0) - mennyisegOsszesen;
-                    felhasznalasok.push({ alapanyagId: celAlapanyag.id, mennyiseg: mennyisegOsszesen });
-                });
-            }
+            // Általános alapanyagok: SKU-szintű felülírás, ha van, egyébként a típus+méret recept
+            const felulirasRekord = termekReceptFelulbiralasok.find(f => f.termekVariansId === varianss.id);
+            const altalanosTetelek = felulirasRekord
+                ? (felulirasRekord.tetelek || [])
+                : ((receptek.find(r => r.termekTipus === varianss.termekTipus && r.meret === varianss.meret) || {}).tetelek || []);
+
+            altalanosTetelek.forEach(tetel => {
+                const celAlapanyag = alapanyagok.find(a => a.id === tetel.alapanyagId);
+                if (!celAlapanyag) return;
+                const mennyisegOsszesen = (tetel.mennyiseg || 0) * darab;
+                if (mennyisegOsszesen <= 0) return;
+                celAlapanyag.keszlet = (celAlapanyag.keszlet || 0) - mennyisegOsszesen;
+                felhasznalasok.push({ alapanyagId: celAlapanyag.id, mennyiseg: mennyisegOsszesen });
+            });
 
             // Illatolaj(ak) — a konkrét SKU-hoz (termékVariánsId) rendelt tétel(ek)
             const olajRekord = termekIllatolajok.find(h => h.termekVariansId === varianss.id);
