@@ -1327,6 +1327,7 @@
         let aktivDraft = null; // Aktív kiszállítás draft
         let alapanyagok = []; // Alapanyag készlet (recept alapú levonáshoz — kezelése: app.andyourstories.com/alapanyagok)
         let receptek = []; // Receptek: termekTipus+meret → felhasznált alapanyagok listája
+        let illatOlajHozzarendeles = []; // Titkos: illat+termekTipus → melyik alapanyag (illatolaj) fogy belőle (csak /alapanyagok admin fülön szerkeszthető)
         
         // Sort state tárolás (lista neve → {column, direction})
         let sortStates = {
@@ -1791,7 +1792,7 @@
         let activeListeners = [];
         let initBetoltesKesz = false;
         let betoltottDokumentumok = 0;
-        const BETOLTENDO_DOKUMENTUMOK = 14;
+        const BETOLTENDO_DOKUMENTUMOK = 15;
 
         function onSnapshotFrissit(kulcs, adat) {
             // Adat frissítése a memóriában
@@ -1813,6 +1814,7 @@
                 case 'termekVariansok': termekVariansok = adat || []; break;
                 case 'alapanyagok': alapanyagok = adat || []; break;
                 case 'receptek': receptek = adat || []; break;
+                case 'illatOlajHozzarendeles': illatOlajHozzarendeles = adat || []; break;
                 case 'migrationStatus': migrationDone = (adat && adat.done) || false; break;
             }
 
@@ -1870,7 +1872,8 @@
                 'illatok', 'kiontesek', 'kiontesNaplo', 'meretek',
                 'cimkeKeszlet', 'dobozcimkeKeszlet', 'mentettTervezesek',
                 'keszTermekek', 'kiszallitasok', 'partnerek',
-                'aktivDraft', 'termekVariansok', 'alapanyagok', 'receptek'
+                'aktivDraft', 'termekVariansok', 'alapanyagok', 'receptek',
+                'illatOlajHozzarendeles'
             ];
 
             dokumentumok.forEach(kulcs => {
@@ -7044,27 +7047,16 @@
         }
         
         // ===== ALAPANYAG FOGYASZTÁS (recept alapján) =====
-        // Alapanyagok/receptek kezelése: app.andyourstories.com/alapanyagok (külön, jelszóval védett oldal)
+        // Alapanyagok/receptek/illat-hozzárendelés kezelése: app.andyourstories.com/alapanyagok (külön, jelszóval védett oldal)
 
-        function ensureIllatSpecifikusSor(sablonId, illatId) {
-            if (!sablonId || !illatId) return null;
-            let sor = alapanyagok.find(a => a.sablonId === sablonId && a.illatId === illatId);
-            if (sor) return sor;
-            const sablon = alapanyagok.find(a => a.id === sablonId && a.illatFuggo);
-            if (!sablon) return null;
-            const illat = illatok.find(i => i.id === illatId);
-            sor = {
-                id: generateId(),
-                nev: `${illat ? illat.nev : 'Ismeretlen'} - ${sablon.nev}`,
-                mertekegyseg: sablon.mertekegyseg,
-                illatFuggo: false,
-                sablonId: sablonId,
-                illatId: illatId,
-                keszlet: 0,
-                minKeszlet: sablon.minKeszlet ?? null
-            };
-            alapanyagok.push(sor);
-            return sor;
+        // Mértékegység átváltás (ugyanaz a logika, mint az /alapanyagok oldalon).
+        const MERTEKEGYSEG_CSOPORT = { g: 'suly', kg: 'suly', ml: 'terfogat', l: 'terfogat', db: 'darab' };
+        const ATVALTAS_ALAPRA = { g: 1, kg: 1000, ml: 1, l: 1000, db: 1 };
+        function egysegAtvalt(ertek, honnan, hova) {
+            if (honnan === hova) return ertek;
+            if (MERTEKEGYSEG_CSOPORT[honnan] !== MERTEKEGYSEG_CSOPORT[hova]) return null;
+            const alapErtek = ertek * ATVALTAS_ALAPRA[honnan];
+            return alapErtek / ATVALTAS_ALAPRA[hova];
         }
 
         // Levonja a varianss (termékvariáns) recept szerinti alapanyagait `darab` mennyiségre.
@@ -7075,14 +7067,28 @@
 
             const felhasznalasok = [];
             recept.tetelek.forEach(tetel => {
-                const mennyisegOsszesen = (tetel.mennyiseg || 0) * darab;
+                let celAlapanyag, mennyisegOsszesen;
+
+                if (tetel.fajta === 'illatspecifikus') {
+                    // A konkrét fizikai alapanyagot az illat + termékTípus alapján, a titkos
+                    // hozzárendelés-táblából oldjuk fel (app.andyourstories.com/alapanyagok, admin fül).
+                    const hozzarendeles = illatOlajHozzarendeles.find(h =>
+                        h.illatId === varianss.illatId && h.termekTipus === varianss.termekTipus
+                    );
+                    if (!hozzarendeles) return; // Nincs beállítva párosítás — csendben kihagyjuk.
+                    celAlapanyag = alapanyagok.find(a => a.id === hozzarendeles.alapanyagId);
+                    if (!celAlapanyag) return;
+
+                    const atvaltott = egysegAtvalt(tetel.mennyiseg || 0, tetel.mertekegyseg, celAlapanyag.mertekegyseg);
+                    if (atvaltott == null) return; // Nem kompatibilis mértékegység — kihagyjuk.
+                    mennyisegOsszesen = atvaltott * darab;
+                } else {
+                    celAlapanyag = alapanyagok.find(a => a.id === tetel.alapanyagId);
+                    if (!celAlapanyag) return;
+                    mennyisegOsszesen = (tetel.mennyiseg || 0) * darab;
+                }
+
                 if (mennyisegOsszesen <= 0) return;
-
-                const celAlapanyag = tetel.fajta === 'illatspecifikus'
-                    ? ensureIllatSpecifikusSor(tetel.sablonId, varianss.illatId)
-                    : alapanyagok.find(a => a.id === tetel.alapanyagId);
-
-                if (!celAlapanyag) return;
                 celAlapanyag.keszlet = (celAlapanyag.keszlet || 0) - mennyisegOsszesen;
                 felhasznalasok.push({ alapanyagId: celAlapanyag.id, mennyiseg: mennyisegOsszesen });
             });
