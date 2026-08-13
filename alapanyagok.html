@@ -188,7 +188,7 @@
                 <button class="text-xs text-gray-500 hover:text-gray-700" onclick="termekekKijelolesTorol()">Kijelölés törlése</button>
             </div>
             <div class="bg-white rounded-2xl border border-gray-100 overflow-x-auto" style="width: 100vw; position: relative; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; padding: 0 24px; box-sizing: border-box;">
-                <table class="data" id="termekekTabla" style="min-width: 1500px; table-layout: fixed;">
+                <table class="data" id="termekekTabla" style="table-layout: fixed;">
                     <thead id="termekekTablaFejlec"></thead>
                     <tbody id="termekekTest"></tbody>
                 </table>
@@ -1079,7 +1079,7 @@ function renderTermekek() {
             (lista.length > 0 && lista.every(v => kijeloltVariansIdk.has(v.id)) ? ' checked' : '') + '></th>';
     }
     fejlecHtml += '<th style="width:130px">SKU</th><th style="width:170px">Illat</th><th style="width:160px">Típus</th><th style="width:110px">Méret</th><th style="width:180px">Kanóc</th>';
-    for (let i = 0; i < slotSzam; i++) fejlecHtml += `<th style="width:180px">Illat ${i + 1}</th><th style="width:100px">Menny. ${i + 1}</th>`;
+    for (let i = 0; i < slotSzam; i++) fejlecHtml += `<th style="width:180px">Illat ${i + 1}</th><th style="width:115px">Menny. ${i + 1}</th>`;
     fejlecHtml += '<th style="width:110px">Készíthető még</th></tr>';
     document.getElementById('termekekTablaFejlec').innerHTML = fejlecHtml;
 
@@ -1097,7 +1097,7 @@ function renderTermekek() {
         }
         sor += `<td class="font-mono text-xs text-gray-500" style="white-space:nowrap;">${v.sku || '—'}</td>`;
         sor += `<td style="white-space:nowrap;">${v.illatNev}</td><td style="white-space:nowrap;">${v.termekTipusNev}</td><td style="white-space:nowrap;">${v.meret}</td>`;
-        sor += `<td><select onchange="kanocHozzarendelesFrissit(${v.id}, this.value)" style="width:100%">
+        sor += `<td><select onchange="kanocHozzarendelesFrissit(${v.id}, this.value)" style="width:100%; height:36px; box-sizing:border-box; padding:0 10px;">
             <option value="">Alapértelmezett</option>
             ${kanocok.map(a => `<option value="${a.id}" ${kanocRek && kanocRek.kanocAlapanyagId === a.id ? 'selected' : ''}>${a.nev}</option>`).join('')}
         </select></td>`;
@@ -1106,12 +1106,13 @@ function renderTermekek() {
             const t = tetelek[i];
             const kivalasztott = t ? t.alapanyagId : '';
             const alapanyagObj = t ? window._alapanyagok.find(a => a.id === t.alapanyagId) : null;
-            sor += `<td><select onchange="termekOlajSlotFrissit(${v.id}, ${i}, this.value)" style="width:100%">
+            sor += `<td><select onchange="termekOlajSlotFrissit(${v.id}, ${i}, this.value)" style="width:100%; height:36px; box-sizing:border-box; padding:0 10px;">
                 <option value="">— nincs —</option>
                 ${illatolajok.map(a => `<option value="${a.id}" ${kivalasztott === a.id ? 'selected' : ''}>${a.nev}</option>`).join('')}
             </select></td>`;
             sor += `<td><div class="flex items-center gap-1">
-                <input type="number" class="row-input" style="width:56px" value="${t ? formatSzam(t.mennyiseg) : ''}" step="any" ${!kivalasztott ? 'disabled' : ''}
+                <input type="number" value="${t ? formatSzam(t.mennyiseg) : ''}" step="any" ${!kivalasztott ? 'disabled' : ''}
+                    style="width:72px; height:36px; box-sizing:border-box; padding:0 8px; border:1.5px solid #e5e5e3; border-radius:8px; font-size:13px; text-align:right;"
                     onchange="termekOlajMennyisegFrissit(${v.id}, ${i}, this.value)">
                 <span class="text-gray-400 text-xs">${alapanyagObj ? alapanyagObj.mertekegyseg : ''}</span>
             </div></td>`;
