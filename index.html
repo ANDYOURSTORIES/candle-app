@@ -318,6 +318,16 @@
                                 <button onclick="termekTipusHozzaad()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 whitespace-nowrap text-sm md:text-base">+ Hozzáad</button>
                             </div>
                         </div>
+                        <!-- Alapanyagok / receptek -->
+                        <div class="border-2 border-gray-200 rounded-lg p-3 md:p-4 flex items-center justify-between gap-3 flex-wrap">
+                            <div>
+                                <h3 class="font-bold text-base md:text-lg text-gray-900">🧪 Alapanyagok &amp; receptek</h3>
+                                <p class="text-xs md:text-sm text-gray-500 mt-1">Alapanyag készlet és receptek kezelése — külön, jelszóval védett oldalon.</p>
+                            </div>
+                            <a href="https://app.andyourstories.com/alapanyagok" target="_blank" class="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 whitespace-nowrap text-sm md:text-base">
+                                Megnyitás →
+                            </a>
+                        </div>
                     </div>
 
                     <div class="mt-6 flex justify-end">
@@ -1315,6 +1325,8 @@
         let kiszallitasok = []; // Kiszállítások
         let partnerek = []; // Partnerek listája
         let aktivDraft = null; // Aktív kiszállítás draft
+        let alapanyagok = []; // Alapanyag készlet (recept alapú levonáshoz — kezelése: app.andyourstories.com/alapanyagok)
+        let receptek = []; // Receptek: termekTipus+meret → felhasznált alapanyagok listája
         
         // Sort state tárolás (lista neve → {column, direction})
         let sortStates = {
@@ -1779,7 +1791,7 @@
         let activeListeners = [];
         let initBetoltesKesz = false;
         let betoltottDokumentumok = 0;
-        const BETOLTENDO_DOKUMENTUMOK = 12;
+        const BETOLTENDO_DOKUMENTUMOK = 14;
 
         function onSnapshotFrissit(kulcs, adat) {
             // Adat frissítése a memóriában
@@ -1799,6 +1811,8 @@
                 case 'partnerek': partnerek = adat || []; break;
                 case 'aktivDraft': aktivDraft = adat || null; break;
                 case 'termekVariansok': termekVariansok = adat || []; break;
+                case 'alapanyagok': alapanyagok = adat || []; break;
+                case 'receptek': receptek = adat || []; break;
                 case 'migrationStatus': migrationDone = (adat && adat.done) || false; break;
             }
 
@@ -1856,7 +1870,7 @@
                 'illatok', 'kiontesek', 'kiontesNaplo', 'meretek',
                 'cimkeKeszlet', 'dobozcimkeKeszlet', 'mentettTervezesek',
                 'keszTermekek', 'kiszallitasok', 'partnerek',
-                'aktivDraft', 'termekVariansok'
+                'aktivDraft', 'termekVariansok', 'alapanyagok', 'receptek'
             ];
 
             dokumentumok.forEach(kulcs => {
@@ -4989,7 +5003,9 @@
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'keszTermekek'), { data: keszTermekek }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'kiszallitasok'), { data: kiszallitasok }),
                     window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'partnerek'), { data: partnerek }),
-                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'aktivDraft'), { data: aktivDraft })
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'aktivDraft'), { data: aktivDraft }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'alapanyagok'), { data: alapanyagok }),
+                    window.firestore.setDoc(window.firestore.doc(window.db, 'appData', 'receptek'), { data: receptek })
                 ]);
 
                 // Mindig frissítjük a címke oldalakat — hogy a készlet változások azonnal látszódjanak
@@ -7027,6 +7043,61 @@
             if (modal) modal.remove();
         }
         
+        // ===== ALAPANYAG FOGYASZTÁS (recept alapján) =====
+        // Alapanyagok/receptek kezelése: app.andyourstories.com/alapanyagok (külön, jelszóval védett oldal)
+
+        function ensureIllatSpecifikusSor(sablonId, illatId) {
+            if (!sablonId || !illatId) return null;
+            let sor = alapanyagok.find(a => a.sablonId === sablonId && a.illatId === illatId);
+            if (sor) return sor;
+            const sablon = alapanyagok.find(a => a.id === sablonId && a.illatFuggo);
+            if (!sablon) return null;
+            const illat = illatok.find(i => i.id === illatId);
+            sor = {
+                id: generateId(),
+                nev: `${illat ? illat.nev : 'Ismeretlen'} - ${sablon.nev}`,
+                mertekegyseg: sablon.mertekegyseg,
+                illatFuggo: false,
+                sablonId: sablonId,
+                illatId: illatId,
+                keszlet: 0,
+                minKeszlet: sablon.minKeszlet ?? null
+            };
+            alapanyagok.push(sor);
+            return sor;
+        }
+
+        // Levonja a varianss (termékvariáns) recept szerinti alapanyagait `darab` mennyiségre.
+        // Visszaadja a levont tételek listáját (kiöntés rekordra mentve, törléskor visszaírható legyen).
+        function alapanyagFogyasztas(varianss, darab) {
+            const recept = receptek.find(r => r.termekTipus === varianss.termekTipus && r.meret === varianss.meret);
+            if (!recept || !recept.tetelek || recept.tetelek.length === 0) return [];
+
+            const felhasznalasok = [];
+            recept.tetelek.forEach(tetel => {
+                const mennyisegOsszesen = (tetel.mennyiseg || 0) * darab;
+                if (mennyisegOsszesen <= 0) return;
+
+                const celAlapanyag = tetel.fajta === 'illatspecifikus'
+                    ? ensureIllatSpecifikusSor(tetel.sablonId, varianss.illatId)
+                    : alapanyagok.find(a => a.id === tetel.alapanyagId);
+
+                if (!celAlapanyag) return;
+                celAlapanyag.keszlet = (celAlapanyag.keszlet || 0) - mennyisegOsszesen;
+                felhasznalasok.push({ alapanyagId: celAlapanyag.id, mennyiseg: mennyisegOsszesen });
+            });
+            return felhasznalasok;
+        }
+
+        // Kiöntés törlésekor a korábban levont mennyiségeket visszaírja a készletbe.
+        function alapanyagVisszaallitas(felhasznaltAlapanyagok) {
+            if (!felhasznaltAlapanyagok || !felhasznaltAlapanyagok.length) return;
+            felhasznaltAlapanyagok.forEach(f => {
+                const sor = alapanyagok.find(a => a.id === f.alapanyagId);
+                if (sor) sor.keszlet = (sor.keszlet || 0) + f.mennyiseg;
+            });
+        }
+
         function kiontesHozzaad() {
             const termekVariansId = parseInt(document.getElementById('termekValasztas').value);
             const darab = parseInt(document.getElementById('darabszam').value);
@@ -7043,6 +7114,9 @@
                 return;
             }
             
+            // Alapanyag levonás recept alapján (ha van beállítva recept ehhez a típus+méret kombóhoz)
+            const felhasznaltAlapanyagok = alapanyagFogyasztas(varianss, darab);
+
             // Kiöntés rögzítése
             kiontesek.unshift({
                 id: generateId(),
@@ -7056,7 +7130,8 @@
                 sku: varianss.sku,
                 darabszam: darab,
                 datum: new Date().toISOString(),
-                cimkeGyartva: false
+                cimkeGyartva: false,
+                felhasznaltAlapanyagok: felhasznaltAlapanyagok
             });
 
             // Kiöntés napló bejegyzés (statisztikához)
@@ -7108,6 +7183,7 @@
                 cancelText: 'Mégsem',
                 danger: true,
                 onConfirm: async () => {
+                    alapanyagVisszaallitas(kiontes.felhasznaltAlapanyagok);
                     kiontesek = kiontesek.filter(k => k.id !== id);
                     await ment();
                     render();
