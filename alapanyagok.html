@@ -149,26 +149,13 @@
 
         <!-- RECEPTEK TAB -->
         <div id="tabReceptek" class="hidden">
-            <p class="text-sm text-gray-500 mb-4">Egy recept egy termék típus + méret kombinációhoz tartozik (pl. Gyertya — Kis (120g)), és csak az általános (nem illatfüggő) alapanyagokat tartalmazza — üveg, kupak, viasz, kanóc. Az illatolajok termékenként (SKU-nként) vannak hozzárendelve a 🔒 Termékek &amp; illatolaj fülön.</p>
+            <p class="text-sm text-gray-500 mb-4">Egy recept egy termék típus + méret kombinációhoz tartozik (pl. Gyertya — Kis (120g)), és az általános (nem illatfüggő) alapanyagokat tartalmazza — üveg, kupak, viasz — plusz az alapértelmezett kanócot. A kanóc egyedi választása (ha egy adott terméknél más kell) magán a terméken állítható be az app.andyourstories.com "Termékek listája" oldalán, a variáns sorában. Az illatolajok termékenként (SKU-nként) vannak hozzárendelve a 🔒 Termékek &amp; illatolaj fülön.</p>
             <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 <table class="data">
                     <thead><tr><th>Termék típus</th><th>Méret</th><th>Recept</th><th></th></tr></thead>
                     <tbody id="receptekTest"></tbody>
                 </table>
                 <div id="receptekUres" class="hidden text-center text-sm text-gray-400 py-8">Nincs még termék variáns az appban.</div>
-            </div>
-
-            <div class="mt-8">
-                <h2 class="text-base font-semibold text-gray-900 mb-1">SKU-szintű eltérések</h2>
-                <p class="text-sm text-gray-500 mb-3">Ha egy adott terméknél (pl. egy bizonyos illatnál) más kanócot vagy más mennyiséget kell használni, mint a fenti alapértelmezett recept, itt írhatod felül csak azt az egy SKU-t. A szerkesztő az alapértelmezett recepttel indul, hogy csak a különbséget kelljen módosítani.</p>
-                <input type="text" id="receptFelulirasSzuro" placeholder="Keresés SKU, illat vagy méret szerint…" class="mb-3" oninput="renderReceptFelulirasok()">
-                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                    <table class="data">
-                        <thead><tr><th>SKU</th><th>Illat</th><th>Típus</th><th>Méret</th><th>Recept</th><th></th></tr></thead>
-                        <tbody id="receptFelulirasTest"></tbody>
-                    </table>
-                    <div id="receptFelulirasUres" class="hidden text-center text-sm text-gray-400 py-8">Nincs még termék variáns az appban.</div>
-                </div>
             </div>
         </div>
 
@@ -240,10 +227,22 @@
         <h3 id="receptModalCim" class="text-lg font-semibold text-gray-900 mb-1">Recept</h3>
         <p id="receptModalAlcim" class="text-xs text-gray-400 mb-4"></p>
 
+        <div class="mb-4 p-3 bg-amber-50 rounded-xl space-y-2">
+            <label class="block text-xs font-medium text-amber-700">Kanóc (alapértelmezett ehhez a mérethez)</label>
+            <select id="receptKanocAlapanyag" onchange="receptKanocAlapanyagValt()">
+                <option value="">— nincs beállítva —</option>
+            </select>
+            <div class="flex gap-2 items-center">
+                <input type="number" id="receptKanocMennyiseg" placeholder="Mennyiség (db, jellemzően 1)" min="0" step="any" class="flex-1">
+                <select id="receptKanocMertekegyseg" class="w-28 flex-none"></select>
+            </div>
+            <p class="text-xs text-amber-600">Ha egy konkrét terméknél (pl. egy adott illatnál) más kanóc kell, azt a Termékek listája oldalon, a variáns sorában állíthatod be — nem itt.</p>
+        </div>
+
         <div id="receptTetelLista" class="space-y-2 mb-4"></div>
 
         <div class="p-3 bg-gray-50 rounded-xl space-y-2">
-            <div class="text-xs font-medium text-gray-500">Új tétel hozzáadása</div>
+            <div class="text-xs font-medium text-gray-500">Egyéb tétel hozzáadása (üveg, kupak, viasz…)</div>
             <select id="receptUjTetelAlapanyag" onchange="receptUjTetelAlapanyagValt()"></select>
             <div class="flex gap-2 items-center">
                 <input type="number" id="receptUjTetelMennyiseg" placeholder="Mennyiség" min="0" step="any" class="flex-1">
@@ -256,35 +255,6 @@
         <div class="flex gap-2 mt-5">
             <button class="btn-secondary flex-1" onclick="hideModal('receptModal')">Bezár</button>
             <button class="btn-primary flex-1" onclick="receptMentes()">Recept mentése</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL: Recept felülírás (SKU szinten, általános alapanyagok — pl. kanóc, mindenkinek látható) -->
-<div id="receptFelulirasModal" class="modal-overlay hidden">
-    <div class="modal max-w-lg">
-        <h3 id="receptFelulirasModalCim" class="text-lg font-semibold text-gray-900 mb-1">Egyedi recept</h3>
-        <p id="receptFelulirasModalAlcim" class="text-xs text-gray-400 mb-4"></p>
-
-        <div id="receptFelulirasTetelLista" class="space-y-2 mb-4"></div>
-
-        <div class="p-3 bg-gray-50 rounded-xl space-y-2">
-            <div class="text-xs font-medium text-gray-500">Új tétel hozzáadása</div>
-            <select id="receptFelulirasUjTetelAlapanyag" onchange="receptFelulirasUjTetelAlapanyagValt()"></select>
-            <div class="flex gap-2 items-center">
-                <input type="number" id="receptFelulirasUjTetelMennyiseg" placeholder="Mennyiség" min="0" step="any" class="flex-1">
-                <select id="receptFelulirasUjTetelMertekegyseg" class="w-28 flex-none"></select>
-            </div>
-            <button class="btn-secondary btn-sm w-full" onclick="receptFelulirasTetelHozzaad()">+ Hozzáad</button>
-        </div>
-
-        <button id="receptFelulirasVisszaallitasGomb" class="hidden text-xs text-red-500 hover:text-red-700 mt-3" onclick="receptFelulirasVisszaallitasAlapertelmezettre()">
-            ↺ Vissza az alapértelmezett receptre (egyedi beállítás törlése)
-        </button>
-
-        <div class="flex gap-2 mt-5">
-            <button class="btn-secondary flex-1" onclick="hideModal('receptFelulirasModal')">Bezár</button>
-            <button class="btn-primary flex-1" onclick="receptFelulirasMentes()">Mentés</button>
         </div>
     </div>
 </div>
@@ -379,12 +349,6 @@ function startListeners(db, doc, onSnapshot) {
         window._termekIllatolajok = snap.exists() ? (snap.data().data || []) : [];
         renderAll();
     });
-    // Nem titkos: SKU-szintű felülírás az általános (nem illatfüggő) receptre — pl. eltérő kanóc.
-    // Ha egy SKU-hoz van felülírás, az teljesen helyettesíti a típus+méret alapértelmezett receptet.
-    onSnapshot(doc(db, 'appData', 'termekReceptFelulbiralasok'), snap => {
-        window._termekReceptFelulbiralasok = snap.exists() ? (snap.data().data || []) : [];
-        renderAll();
-    });
 }
 </script>
 
@@ -395,7 +359,6 @@ window._receptek = [];
 window._illatok = [];
 window._termekVariansok = [];
 window._termekIllatolajok = [];
-window._termekReceptFelulbiralasok = [];
 window._isAdmin = false;
 let aktivTab = 'keszlet';
 let idCounter = 0;
@@ -441,9 +404,6 @@ async function mentReceptek() {
 async function mentTermekIllatolajok() {
     await window._setDoc(window._doc(window._db, 'appData', 'termekIllatolajok'), { data: window._termekIllatolajok });
 }
-async function mentReceptFelulbiralasok() {
-    await window._setDoc(window._doc(window._db, 'appData', 'termekReceptFelulbiralasok'), { data: window._termekReceptFelulbiralasok });
-}
 
 // ===== TAB =====
 function valtTab(tab) {
@@ -463,7 +423,6 @@ function renderAll() {
     renderAltalanos();
     renderIllatolajok();
     renderReceptek();
-    renderReceptFelulirasok();
     if (window._isAdmin) renderTermekek();
 }
 
@@ -507,9 +466,12 @@ function altalanosYield(alapanyag) {
     receptKombok().forEach(k => {
         const recept = window._receptek.find(r => r.termekTipus === k.termekTipus && r.meret === k.meret);
         if (!recept) return;
+        let mennyiseg = null;
         const tetel = (recept.tetelek || []).find(t => t.alapanyagId === alapanyag.id);
-        if (!tetel || !tetel.mennyiseg) return;
-        const db = Math.floor((alapanyag.keszlet || 0) / tetel.mennyiseg);
+        if (tetel && tetel.mennyiseg) mennyiseg = tetel.mennyiseg;
+        else if (recept.kanocAlapanyagId === alapanyag.id && recept.kanocMennyiseg) mennyiseg = recept.kanocMennyiseg;
+        if (!mennyiseg) return;
+        const db = Math.floor((alapanyag.keszlet || 0) / mennyiseg);
         eredmenyek.push({ label: `${k.termekTipusNev} ${k.meret}`, db });
     });
     return eredmenyek;
@@ -620,10 +582,12 @@ function alapanyagMinFrissit(id, ertek) {
     renderAll();
 }
 function alapanyagTorol(id) {
-    const hasznaltReceptben = window._receptek.some(r => (r.tetelek || []).some(t => t.alapanyagId === id));
+    const hasznaltReceptben = window._receptek.some(r => (r.tetelek || []).some(t => t.alapanyagId === id) || r.kanocAlapanyagId === id);
     const hasznaltTermekben = window._termekIllatolajok.some(h => (h.tetelek || []).some(t => t.alapanyagId === id));
-    if (hasznaltReceptben) { alert('Nem törölhető — recept hivatkozik rá. Előbb vedd ki a receptekből.'); return; }
+    const hasznaltVariansEgyediKanocban = window._termekVariansok.some(v => v.kanocAlapanyagId === id);
+    if (hasznaltReceptben) { alert('Nem törölhető — recept hivatkozik rá (általános tétel vagy alapértelmezett kanóc). Előbb vedd ki onnan.'); return; }
     if (hasznaltTermekben) { alert('Nem törölhető — egy termékhez hozzá van rendelve. Előbb vedd ki onnan (🔒 fül).'); return; }
+    if (hasznaltVariansEgyediKanocban) { alert('Nem törölhető — legalább egy termék egyedi kanócként ezt használja (Termékek listája oldalon). Előbb állítsd át azokat.'); return; }
     if (!confirm('Biztosan törlöd?')) return;
     window._alapanyagok = window._alapanyagok.filter(a => a.id !== id);
     mentAlapanyagok();
@@ -760,11 +724,17 @@ function ujAlapanyagMentes() {
 
 // ===== RECEPTEK (általános alapanyagok, típus+méret szinten) =====
 function receptLeiras(recept) {
-    if (!recept || !recept.tetelek || recept.tetelek.length === 0) return null;
-    return recept.tetelek.map(t => {
+    if (!recept) return null;
+    const reszek = [];
+    if (recept.kanocAlapanyagId && recept.kanocMennyiseg) {
+        const kanoc = window._alapanyagok.find(x => x.id === recept.kanocAlapanyagId);
+        reszek.push(`${formatSzam(recept.kanocMennyiseg)}${kanoc ? ' ' + kanoc.mertekegyseg : ''} ${kanoc ? kanoc.nev : '(törölt alapanyag)'} (kanóc)`);
+    }
+    (recept.tetelek || []).forEach(t => {
         const a = window._alapanyagok.find(x => x.id === t.alapanyagId);
-        return `${formatSzam(t.mennyiseg)}${a ? ' ' + a.mertekegyseg : ''} ${a ? a.nev : '(törölt alapanyag)'}`;
-    }).join(' + ');
+        reszek.push(`${formatSzam(t.mennyiseg)}${a ? ' ' + a.mertekegyseg : ''} ${a ? a.nev : '(törölt alapanyag)'}`);
+    });
+    return reszek.length ? reszek.join(' + ') : null;
 }
 
 function renderReceptek() {
@@ -793,19 +763,40 @@ function receptModalMegnyit(termekTipus, meret, termekTipusNev) {
     const letezo = window._receptek.find(r => r.termekTipus === termekTipus && r.meret === meret);
     receptSzerkesztesAlatt = {
         termekTipus, meret,
-        tetelek: letezo ? JSON.parse(JSON.stringify(letezo.tetelek || [])) : []
+        tetelek: letezo ? JSON.parse(JSON.stringify(letezo.tetelek || [])) : [],
+        kanocAlapanyagId: letezo ? (letezo.kanocAlapanyagId || null) : null,
+        kanocMennyiseg: letezo ? (letezo.kanocMennyiseg || null) : null
     };
     document.getElementById('receptModalCim').textContent = `Recept — ${termekTipusNev}`;
-    document.getElementById('receptModalAlcim').textContent = `Méret: ${meret} (mennyiségek 1 db termékre értendők, csak általános alapanyagok)`;
+    document.getElementById('receptModalAlcim').textContent = `Méret: ${meret} (mennyiségek 1 db termékre értendők)`;
+
+    const altalanosok = window._alapanyagok.filter(a => kategoriaja(a) === 'altalanos').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+
+    // Kanóc select feltöltése
+    const kanocSelect = document.getElementById('receptKanocAlapanyag');
+    kanocSelect.innerHTML = '<option value="">— nincs beállítva —</option>' +
+        altalanosok.map(a => `<option value="${a.id}" ${receptSzerkesztesAlatt.kanocAlapanyagId === a.id ? 'selected' : ''}>${a.nev}</option>`).join('');
+    document.getElementById('receptKanocMennyiseg').value = receptSzerkesztesAlatt.kanocMennyiseg ?? '';
+    receptKanocAlapanyagValt();
 
     const select = document.getElementById('receptUjTetelAlapanyag');
-    const altalanosok = window._alapanyagok.filter(a => kategoriaja(a) === 'altalanos').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
     select.innerHTML = altalanosok.length
         ? altalanosok.map(a => `<option value="${a.id}">${a.nev}</option>`).join('')
         : '<option value="">Nincs általános alapanyag felvéve</option>';
     receptUjTetelAlapanyagValt();
     renderReceptTetelLista();
     showModal('receptModal');
+}
+
+function receptKanocAlapanyagValt() {
+    const alapanyagId = parseInt(document.getElementById('receptKanocAlapanyag').value);
+    const alapanyag = window._alapanyagok.find(a => a.id === alapanyagId);
+    const mertekegysegSelect = document.getElementById('receptKanocMertekegyseg');
+    if (!alapanyag) { mertekegysegSelect.innerHTML = ''; return; }
+    const egysegek = csoportEgysegei(alapanyag.mertekegyseg);
+    mertekegysegSelect.innerHTML = egysegek.map(me =>
+        `<option value="${me}" ${me === alapanyag.mertekegyseg ? 'selected' : ''}>${MERTEKEGYSEG_LABEL[me]}</option>`
+    ).join('');
 }
 
 function receptUjTetelAlapanyagValt() {
@@ -859,166 +850,30 @@ function receptTetelTorol(idx) {
 }
 
 function receptMentes() {
+    const kanocAlapanyagIdStr = document.getElementById('receptKanocAlapanyag').value;
+    const kanocAlapanyagId = kanocAlapanyagIdStr ? parseInt(kanocAlapanyagIdStr) : null;
+    const kanocMennyisegBeirt = parseFloat(document.getElementById('receptKanocMennyiseg').value);
+    const kanocEgyseg = document.getElementById('receptKanocMertekegyseg').value;
+
+    let kanocMennyiseg = null;
+    if (kanocAlapanyagId && kanocMennyisegBeirt > 0) {
+        const kanocAlapanyag = window._alapanyagok.find(a => a.id === kanocAlapanyagId);
+        kanocMennyiseg = kanocAlapanyag ? egysegAtvalt(kanocMennyisegBeirt, kanocEgyseg, kanocAlapanyag.mertekegyseg) : null;
+    }
+
     const meglevoIdx = window._receptek.findIndex(r => r.termekTipus === receptSzerkesztesAlatt.termekTipus && r.meret === receptSzerkesztesAlatt.meret);
     const rekord = {
         id: meglevoIdx >= 0 ? window._receptek[meglevoIdx].id : generateId(),
         termekTipus: receptSzerkesztesAlatt.termekTipus,
         meret: receptSzerkesztesAlatt.meret,
-        tetelek: receptSzerkesztesAlatt.tetelek
+        tetelek: receptSzerkesztesAlatt.tetelek,
+        kanocAlapanyagId: kanocAlapanyagId,
+        kanocMennyiseg: kanocMennyiseg
     };
     if (meglevoIdx >= 0) window._receptek[meglevoIdx] = rekord;
     else window._receptek.push(rekord);
     mentReceptek();
     hideModal('receptModal');
-    renderAll();
-}
-
-// ===== SKU-SZINTŰ RECEPT FELÜLÍRÁS (nem titkos — bárki szerkesztheti, aki eléri az oldalt) =====
-function receptFelulirasLeiras(termekVariansId) {
-    const felulir = window._termekReceptFelulbiralasok.find(f => f.termekVariansId === termekVariansId);
-    if (!felulir) return null; // nincs egyedi beállítás — az alapértelmezett típus+méret receptet használja
-    if (!felulir.tetelek.length) return 'Egyedi: üres recept (nincs általános alapanyag)';
-    return 'Egyedi: ' + felulir.tetelek.map(t => {
-        const a = window._alapanyagok.find(x => x.id === t.alapanyagId);
-        return `${formatSzam(t.mennyiseg)}${a ? ' ' + a.mertekegyseg : ''} ${a ? a.nev : '(törölt alapanyag)'}`;
-    }).join(' + ');
-}
-
-function renderReceptFelulirasok() {
-    const szuroSzoveg = (document.getElementById('receptFelulirasSzuro').value || '').toLowerCase().trim();
-    let lista = [...window._termekVariansok].sort((a, b) =>
-        a.illatNev.localeCompare(b.illatNev, 'hu') || a.termekTipusNev.localeCompare(b.termekTipusNev, 'hu') || a.meret.localeCompare(b.meret, 'hu')
-    );
-    if (szuroSzoveg) {
-        lista = lista.filter(v =>
-            (v.illatNev || '').toLowerCase().includes(szuroSzoveg) ||
-            (v.sku || '').toLowerCase().includes(szuroSzoveg) ||
-            (v.meret || '').toLowerCase().includes(szuroSzoveg) ||
-            (v.termekTipusNev || '').toLowerCase().includes(szuroSzoveg)
-        );
-    }
-
-    const tbody = document.getElementById('receptFelulirasTest');
-    document.getElementById('receptFelulirasUres').classList.toggle('hidden', lista.length > 0);
-    tbody.innerHTML = lista.map(v => {
-        const leiras = receptFelulirasLeiras(v.id);
-        return `
-            <tr>
-                <td class="font-mono text-xs text-gray-500">${v.sku || '—'}</td>
-                <td>${v.illatNev}</td>
-                <td>${v.termekTipusNev}</td>
-                <td>${v.meret}</td>
-                <td class="${leiras ? 'text-amber-600' : 'text-gray-400 italic'}">${leiras || 'Alapértelmezett recept'}</td>
-                <td class="text-right">
-                    <button class="btn-secondary btn-sm" onclick="receptFelulirasModalMegnyit(${v.id})">Szerkesztés</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-let receptFelulirasSzerkesztesAlatt = null; // { termekVariansId, tetelek: [...] }
-
-function receptFelulirasModalMegnyit(termekVariansId) {
-    const varians = window._termekVariansok.find(v => v.id === termekVariansId);
-    if (!varians) return;
-
-    const letezoFelulir = window._termekReceptFelulbiralasok.find(f => f.termekVariansId === termekVariansId);
-    let kiindulo;
-    if (letezoFelulir) {
-        kiindulo = JSON.parse(JSON.stringify(letezoFelulir.tetelek || []));
-    } else {
-        const alapertelmezett = window._receptek.find(r => r.termekTipus === varians.termekTipus && r.meret === varians.meret);
-        kiindulo = alapertelmezett ? JSON.parse(JSON.stringify(alapertelmezett.tetelek || [])) : [];
-    }
-    receptFelulirasSzerkesztesAlatt = { termekVariansId, tetelek: kiindulo };
-
-    document.getElementById('receptFelulirasModalCim').textContent = 'Egyedi recept';
-    document.getElementById('receptFelulirasModalAlcim').textContent = varians.displayNev +
-        (letezoFelulir ? ' — egyedi recept szerkesztése' : ' — az alapértelmezett recept másolatával indulsz, szerkeszd tetszés szerint');
-
-    const select = document.getElementById('receptFelulirasUjTetelAlapanyag');
-    const altalanosok = window._alapanyagok.filter(a => kategoriaja(a) === 'altalanos').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
-    select.innerHTML = altalanosok.length
-        ? altalanosok.map(a => `<option value="${a.id}">${a.nev}</option>`).join('')
-        : '<option value="">Nincs általános alapanyag felvéve</option>';
-    receptFelulirasUjTetelAlapanyagValt();
-    renderReceptFelulirasTetelLista();
-    document.getElementById('receptFelulirasVisszaallitasGomb').classList.toggle('hidden', !letezoFelulir);
-    showModal('receptFelulirasModal');
-}
-
-function receptFelulirasUjTetelAlapanyagValt() {
-    const alapanyagId = parseInt(document.getElementById('receptFelulirasUjTetelAlapanyag').value);
-    const alapanyag = window._alapanyagok.find(a => a.id === alapanyagId);
-    const mertekegysegSelect = document.getElementById('receptFelulirasUjTetelMertekegyseg');
-    if (!alapanyag) { mertekegysegSelect.innerHTML = ''; return; }
-    const egysegek = csoportEgysegei(alapanyag.mertekegyseg);
-    mertekegysegSelect.innerHTML = egysegek.map(me =>
-        `<option value="${me}" ${me === alapanyag.mertekegyseg ? 'selected' : ''}>${MERTEKEGYSEG_LABEL[me]}</option>`
-    ).join('');
-}
-
-function renderReceptFelulirasTetelLista() {
-    const container = document.getElementById('receptFelulirasTetelLista');
-    if (!receptFelulirasSzerkesztesAlatt.tetelek.length) {
-        container.innerHTML = '<p class="text-sm text-gray-400 italic">Nincs tétel — ez a termék semmilyen általános alapanyagot nem fog levonni.</p>';
-        return;
-    }
-    container.innerHTML = receptFelulirasSzerkesztesAlatt.tetelek.map((t, idx) => {
-        const a = window._alapanyagok.find(x => x.id === t.alapanyagId);
-        return `
-            <div class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg">
-                <div class="text-sm text-gray-700"><span class="font-medium">${formatSzam(t.mennyiseg)} ${a ? a.mertekegyseg : ''}</span> · ${a ? a.nev : '(törölt alapanyag)'}</div>
-                <button class="text-gray-300 hover:text-red-600 text-sm" onclick="receptFelulirasTetelTorol(${idx})">🗑️</button>
-            </div>
-        `;
-    }).join('');
-}
-
-function receptFelulirasTetelHozzaad() {
-    const beirtMennyiseg = parseFloat(document.getElementById('receptFelulirasUjTetelMennyiseg').value);
-    const beirtEgyseg = document.getElementById('receptFelulirasUjTetelMertekegyseg').value;
-    const alapanyagId = parseInt(document.getElementById('receptFelulirasUjTetelAlapanyag').value);
-    const alapanyag = window._alapanyagok.find(a => a.id === alapanyagId);
-    if (!beirtMennyiseg || beirtMennyiseg <= 0) { alert('Adj meg egy mennyiséget!'); return; }
-    if (!alapanyagId || !alapanyag) { alert('Válassz alapanyagot!'); return; }
-
-    const mar_letezik = receptFelulirasSzerkesztesAlatt.tetelek.some(t => t.alapanyagId === alapanyagId);
-    if (mar_letezik) { alert('Ez az alapanyag már szerepel a listában. Töröld ki, ha módosítani akarod a mennyiséget.'); return; }
-
-    const mennyiseg = egysegAtvalt(beirtMennyiseg, beirtEgyseg, alapanyag.mertekegyseg);
-    if (mennyiseg == null) { alert('Ez a mértékegység nem váltható át erre az alapanyagra!'); return; }
-    receptFelulirasSzerkesztesAlatt.tetelek.push({ alapanyagId, mennyiseg });
-    document.getElementById('receptFelulirasUjTetelMennyiseg').value = '';
-    renderReceptFelulirasTetelLista();
-}
-
-function receptFelulirasTetelTorol(idx) {
-    receptFelulirasSzerkesztesAlatt.tetelek.splice(idx, 1);
-    renderReceptFelulirasTetelLista();
-}
-
-function receptFelulirasMentes() {
-    const idx = window._termekReceptFelulbiralasok.findIndex(f => f.termekVariansId === receptFelulirasSzerkesztesAlatt.termekVariansId);
-    const rekord = {
-        id: idx >= 0 ? window._termekReceptFelulbiralasok[idx].id : generateId(),
-        termekVariansId: receptFelulirasSzerkesztesAlatt.termekVariansId,
-        tetelek: receptFelulirasSzerkesztesAlatt.tetelek
-    };
-    if (idx >= 0) window._termekReceptFelulbiralasok[idx] = rekord;
-    else window._termekReceptFelulbiralasok.push(rekord);
-    mentReceptFelulbiralasok();
-    hideModal('receptFelulirasModal');
-    renderAll();
-}
-
-function receptFelulirasVisszaallitasAlapertelmezettre() {
-    window._termekReceptFelulbiralasok = window._termekReceptFelulbiralasok.filter(
-        f => f.termekVariansId !== receptFelulirasSzerkesztesAlatt.termekVariansId
-    );
-    mentReceptFelulbiralasok();
-    hideModal('receptFelulirasModal');
     renderAll();
 }
 
@@ -1209,17 +1064,11 @@ window.ujAlapanyagTermekSzurve = ujAlapanyagTermekSzurve;
 window.ujAlapanyagTermekHozzaad = ujAlapanyagTermekHozzaad;
 window.ujAlapanyagTermekTetelTorol = ujAlapanyagTermekTetelTorol;
 window.receptModalMegnyit = receptModalMegnyit;
+window.receptKanocAlapanyagValt = receptKanocAlapanyagValt;
 window.receptUjTetelAlapanyagValt = receptUjTetelAlapanyagValt;
 window.receptTetelHozzaad = receptTetelHozzaad;
 window.receptTetelTorol = receptTetelTorol;
 window.receptMentes = receptMentes;
-window.renderReceptFelulirasok = renderReceptFelulirasok;
-window.receptFelulirasModalMegnyit = receptFelulirasModalMegnyit;
-window.receptFelulirasUjTetelAlapanyagValt = receptFelulirasUjTetelAlapanyagValt;
-window.receptFelulirasTetelHozzaad = receptFelulirasTetelHozzaad;
-window.receptFelulirasTetelTorol = receptFelulirasTetelTorol;
-window.receptFelulirasMentes = receptFelulirasMentes;
-window.receptFelulirasVisszaallitasAlapertelmezettre = receptFelulirasVisszaallitasAlapertelmezettre;
 window.renderTermekek = renderTermekek;
 window.termekOlajModalMegnyit = termekOlajModalMegnyit;
 window.termekOlajUjTetelAlapanyagValt = termekOlajUjTetelAlapanyagValt;
