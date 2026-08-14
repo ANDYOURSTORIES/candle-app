@@ -174,25 +174,13 @@
 
         <!-- RECEPTEK TAB -->
         <div id="tabReceptek" class="hidden">
-            <p class="text-sm text-gray-500 mb-4">Egy recept egy termék típus + méret kombinációhoz tartozik (pl. Gyertya — Kis (120g)), és az általános (nem illatfüggő) alapanyagokat tartalmazza — üveg, kupak, viasz — plusz az alapértelmezett kanócot. A kanóc és illatolaj termékenkénti (SKU-nkénti) egyedi beállítása a 🔒 Termékek &amp; illatolaj fülön van.</p>
-            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-8">
+            <p class="text-sm text-gray-500 mb-4">Egy recept egy termék típus + méret kombinációhoz tartozik (pl. Gyertya — Kis (120g)), és az általános (nem illatfüggő) alapanyagokat tartalmazza — üveg, kupak, viasz — plusz az alapértelmezett kanócot és dobozt (a doboz csak kiszállításkor fogy, ha "dobozolva" van jelölve). A kanóc és illatolaj termékenkénti (SKU-nkénti) egyedi beállítása a 🔒 Termékek &amp; illatolaj fülön van.</p>
+            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 <table class="data">
                     <thead><tr><th>Termék típus</th><th>Méret</th><th>Recept</th><th></th></tr></thead>
                     <tbody id="receptekTest"></tbody>
                 </table>
                 <div id="receptekUres" class="hidden text-center text-sm text-gray-400 py-8">Nincs még termék variáns az appban.</div>
-            </div>
-
-            <div>
-                <h2 class="text-base font-semibold text-gray-900 mb-1">Doboz típusonként</h2>
-                <p class="text-sm text-gray-500 mb-3">Melyik terméktípushoz melyik doboz tartozik — ez csak típus szinten van megkülönböztetve (méret/illat mindegy). Kiszállításkor, ha "dobozolva" van jelölve, ez alapján vonódik le a doboz-készlet.</p>
-                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                    <table class="data">
-                        <thead><tr><th>Termék típus</th><th>Doboz</th></tr></thead>
-                        <tbody id="dobozTipusokTest"></tbody>
-                    </table>
-                    <div id="dobozTipusokUres" class="hidden text-center text-sm text-gray-400 py-8">Nincs még termék variáns az appban.</div>
-                </div>
             </div>
         </div>
 
@@ -293,6 +281,14 @@
             <p class="text-xs text-amber-600">Ha egy konkrét terméknél (pl. egy adott illatnál) más kanóc kell, azt a Termékek listája oldalon, a variáns sorában állíthatod be — nem itt.</p>
         </div>
 
+        <div class="mb-4 p-3 bg-blue-50 rounded-xl space-y-2">
+            <label class="block text-xs font-medium text-blue-700">Doboz (ehhez a mérethez)</label>
+            <select id="receptDobozAlapanyag">
+                <option value="">— nincs beállítva —</option>
+            </select>
+            <p class="text-xs text-blue-600">A doboz nem gyártáskor (kiöntéskor), hanem kiszállításkor fogy — ha a szállítmány "dobozolva" van jelölve, mindig 1 db doboz kiszállított termékenként.</p>
+        </div>
+
         <div id="receptTetelLista" class="space-y-2 mb-4"></div>
 
         <div class="p-3 bg-gray-50 rounded-xl space-y-2">
@@ -383,11 +379,6 @@ function startListeners(db, doc, onSnapshot) {
         window._termekKanocok = snap.exists() ? (snap.data().data || []) : [];
         renderAll();
     });
-    // Nem titkos: terméktípus → doboz hozzárendelés (kiszállításkor fogy, nem kiöntéskor).
-    onSnapshot(doc(db, 'appData', 'dobozTipusok'), snap => {
-        window._dobozTipusok = snap.exists() ? (snap.data().data || []) : [];
-        renderAll();
-    });
 }
 </script>
 
@@ -399,7 +390,6 @@ window._illatok = [];
 window._termekVariansok = [];
 window._termekIllatolajok = [];
 window._termekKanocok = [];
-window._dobozTipusok = [];
 window._isAdmin = false;
 let aktivTab = 'keszlet';
 let idCounter = 0;
@@ -448,9 +438,6 @@ async function mentTermekIllatolajok() {
 async function mentTermekKanocok() {
     await window._setDoc(window._doc(window._db, 'appData', 'termekKanocok'), { data: window._termekKanocok });
 }
-async function mentDobozTipusok() {
-    await window._setDoc(window._doc(window._db, 'appData', 'dobozTipusok'), { data: window._dobozTipusok });
-}
 
 // ===== TAB =====
 function valtTab(tab) {
@@ -472,7 +459,6 @@ function renderAll() {
     renderKanocok();
     renderDobozok();
     renderReceptek();
-    renderDobozTipusok();
     if (window._isAdmin) renderTermekek();
 }
 
@@ -703,14 +689,12 @@ function alapanyagMinFrissit(id, ertek) {
     renderAll();
 }
 function alapanyagTorol(id) {
-    const hasznaltReceptben = window._receptek.some(r => (r.tetelek || []).some(t => t.alapanyagId === id) || r.kanocAlapanyagId === id);
+    const hasznaltReceptben = window._receptek.some(r => (r.tetelek || []).some(t => t.alapanyagId === id) || r.kanocAlapanyagId === id || r.dobozAlapanyagId === id);
     const hasznaltTermekben = window._termekIllatolajok.some(h => (h.tetelek || []).some(t => t.alapanyagId === id));
     const hasznaltKanocHozzarendelesben = window._termekKanocok.some(k => k.kanocAlapanyagId === id);
-    const hasznaltDobozTipusban = window._dobozTipusok.some(d => d.dobozAlapanyagId === id);
-    if (hasznaltReceptben) { alert('Nem törölhető — recept hivatkozik rá (általános tétel vagy alapértelmezett kanóc). Előbb vedd ki onnan.'); return; }
+    if (hasznaltReceptben) { alert('Nem törölhető — recept hivatkozik rá (általános tétel, alapértelmezett kanóc vagy doboz). Előbb vedd ki onnan.'); return; }
     if (hasznaltTermekben) { alert('Nem törölhető — egy termékhez hozzá van rendelve. Előbb vedd ki onnan (🔒 fül).'); return; }
     if (hasznaltKanocHozzarendelesben) { alert('Nem törölhető — legalább egy termék egyedi kanócként ezt használja (Receptek fül, "Kanóc termékenként"). Előbb állítsd át azokat.'); return; }
-    if (hasznaltDobozTipusban) { alert('Nem törölhető — legalább egy terméktípus ezt a dobozt használja (Receptek fül, "Doboz típusonként"). Előbb állítsd át azokat.'); return; }
     if (!confirm('Biztosan törlöd?')) return;
     window._alapanyagok = window._alapanyagok.filter(a => a.id !== id);
     mentAlapanyagok();
@@ -858,6 +842,10 @@ function receptLeiras(recept) {
         const a = window._alapanyagok.find(x => x.id === t.alapanyagId);
         reszek.push(`${formatSzam(t.mennyiseg)}${a ? ' ' + a.mertekegyseg : ''} ${a ? a.nev : '(törölt alapanyag)'}`);
     });
+    if (recept.dobozAlapanyagId) {
+        const doboz = window._alapanyagok.find(x => x.id === recept.dobozAlapanyagId);
+        reszek.push(`${doboz ? doboz.nev : '(törölt alapanyag)'} (doboz, kiszállításkor)`);
+    }
     return reszek.length ? reszek.join(' + ') : null;
 }
 
@@ -889,13 +877,15 @@ function receptModalMegnyit(termekTipus, meret, termekTipusNev) {
         termekTipus, meret,
         tetelek: letezo ? JSON.parse(JSON.stringify(letezo.tetelek || [])) : [],
         kanocAlapanyagId: letezo ? (letezo.kanocAlapanyagId || null) : null,
-        kanocMennyiseg: letezo ? (letezo.kanocMennyiseg || null) : null
+        kanocMennyiseg: letezo ? (letezo.kanocMennyiseg || null) : null,
+        dobozAlapanyagId: letezo ? (letezo.dobozAlapanyagId || null) : null
     };
     document.getElementById('receptModalCim').textContent = `Recept — ${termekTipusNev}`;
     document.getElementById('receptModalAlcim').textContent = `Méret: ${meret} (mennyiségek 1 db termékre értendők)`;
 
     const altalanosok = window._alapanyagok.filter(a => kategoriaja(a) === 'altalanos').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
     const kanocok = window._alapanyagok.filter(a => kategoriaja(a) === 'kanoc').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+    const dobozok = window._alapanyagok.filter(a => kategoriaja(a) === 'doboz').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
 
     // Kanóc select feltöltése
     const kanocSelect = document.getElementById('receptKanocAlapanyag');
@@ -903,6 +893,11 @@ function receptModalMegnyit(termekTipus, meret, termekTipusNev) {
         kanocok.map(a => `<option value="${a.id}" ${receptSzerkesztesAlatt.kanocAlapanyagId === a.id ? 'selected' : ''}>${a.nev}</option>`).join('');
     document.getElementById('receptKanocMennyiseg').value = receptSzerkesztesAlatt.kanocMennyiseg ?? '';
     receptKanocAlapanyagValt();
+
+    // Doboz select feltöltése
+    const dobozSelect = document.getElementById('receptDobozAlapanyag');
+    dobozSelect.innerHTML = '<option value="">— nincs beállítva —</option>' +
+        dobozok.map(a => `<option value="${a.id}" ${receptSzerkesztesAlatt.dobozAlapanyagId === a.id ? 'selected' : ''}>${a.nev}</option>`).join('');
 
     const select = document.getElementById('receptUjTetelAlapanyag');
     select.innerHTML = altalanosok.length
@@ -986,6 +981,9 @@ function receptMentes() {
         kanocMennyiseg = kanocAlapanyag ? egysegAtvalt(kanocMennyisegBeirt, kanocEgyseg, kanocAlapanyag.mertekegyseg) : null;
     }
 
+    const dobozAlapanyagIdStr = document.getElementById('receptDobozAlapanyag').value;
+    const dobozAlapanyagId = dobozAlapanyagIdStr ? parseInt(dobozAlapanyagIdStr) : null;
+
     const meglevoIdx = window._receptek.findIndex(r => r.termekTipus === receptSzerkesztesAlatt.termekTipus && r.meret === receptSzerkesztesAlatt.meret);
     const rekord = {
         id: meglevoIdx >= 0 ? window._receptek[meglevoIdx].id : generateId(),
@@ -993,49 +991,13 @@ function receptMentes() {
         meret: receptSzerkesztesAlatt.meret,
         tetelek: receptSzerkesztesAlatt.tetelek,
         kanocAlapanyagId: kanocAlapanyagId,
-        kanocMennyiseg: kanocMennyiseg
+        kanocMennyiseg: kanocMennyiseg,
+        dobozAlapanyagId: dobozAlapanyagId
     };
     if (meglevoIdx >= 0) window._receptek[meglevoIdx] = rekord;
     else window._receptek.push(rekord);
     mentReceptek();
     hideModal('receptModal');
-    renderAll();
-}
-
-// ===== DOBOZ TÍPUSONKÉNT (nem titkos, csak típus szerint — méret/illat mindegy) =====
-function renderDobozTipusok() {
-    const map = new Map(); // termekTipusNev -> csak az első előfordulás
-    window._termekVariansok.forEach(v => {
-        if (!map.has(v.termekTipusNev)) map.set(v.termekTipusNev, v.termekTipusNev);
-    });
-    const tipusok = [...map.keys()].sort((a, b) => a.localeCompare(b, 'hu'));
-
-    const dobozok = window._alapanyagok.filter(a => kategoriaja(a) === 'doboz').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
-    const tbody = document.getElementById('dobozTipusokTest');
-    document.getElementById('dobozTipusokUres').classList.toggle('hidden', tipusok.length > 0);
-
-    tbody.innerHTML = tipusok.map(tipusNev => {
-        const jelenlegi = window._dobozTipusok.find(d => d.termekTipusNev === tipusNev);
-        return `
-            <tr>
-                <td class="font-medium text-gray-800">${tipusNev}</td>
-                <td>
-                    <select onchange="dobozTipusFrissit('${tipusNev.replace(/'/g, "\\'")}', this.value)">
-                        <option value="">— nincs beállítva —</option>
-                        ${dobozok.map(a => `<option value="${a.id}" ${jelenlegi && jelenlegi.dobozAlapanyagId === a.id ? 'selected' : ''}>${a.nev}</option>`).join('')}
-                    </select>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-function dobozTipusFrissit(termekTipusNev, dobozAlapanyagIdStr) {
-    window._dobozTipusok = window._dobozTipusok.filter(d => d.termekTipusNev !== termekTipusNev);
-    if (dobozAlapanyagIdStr) {
-        window._dobozTipusok.push({ termekTipusNev, dobozAlapanyagId: parseInt(dobozAlapanyagIdStr) });
-    }
-    mentDobozTipusok();
     renderAll();
 }
 
@@ -1299,7 +1261,6 @@ window.receptTetelHozzaad = receptTetelHozzaad;
 window.receptTetelTorol = receptTetelTorol;
 window.receptMentes = receptMentes;
 window.kanocHozzarendelesFrissit = kanocHozzarendelesFrissit;
-window.dobozTipusFrissit = dobozTipusFrissit;
 window.renderTermekek = renderTermekek;
 window.illatOlajSlotNoveles = illatOlajSlotNoveles;
 window.termekekBulkModeValt = termekekBulkModeValt;
