@@ -1329,6 +1329,7 @@
         let receptek = []; // Receptek: termekTipus+meret → általános (nem illatfüggő, nem kanóc) alapanyagok listája + alapértelmezett kanóc
         let termekIllatolajok = []; // Titkos: termékVariánsId → illatolaj tétel(ek) listája (csak /alapanyagok admin fülön szerkeszthető, több illatolaj/termék is lehet)
         let termekKanocok = []; // Nem titkos: termékVariánsId → egyedi kanóc választás (ha nincs, a recept alapértelmezett kanóca érvényes) — kezelése: app.andyourstories.com/alapanyagok, Receptek fül
+        let dobozTipusok = []; // Nem titkos: termékTípus neve → doboz alapanyag (csak típus szerint, méret/illat mindegy). Kiszállításkor fogy, nem kiöntéskor — kezelése: app.andyourstories.com/alapanyagok, Receptek fül
         
         // Sort state tárolás (lista neve → {column, direction})
         let sortStates = {
@@ -1793,7 +1794,7 @@
         let activeListeners = [];
         let initBetoltesKesz = false;
         let betoltottDokumentumok = 0;
-        const BETOLTENDO_DOKUMENTUMOK = 16;
+        const BETOLTENDO_DOKUMENTUMOK = 17;
 
         function onSnapshotFrissit(kulcs, adat) {
             // Adat frissítése a memóriában
@@ -1817,6 +1818,7 @@
                 case 'receptek': receptek = adat || []; break;
                 case 'termekIllatolajok': termekIllatolajok = adat || []; break;
                 case 'termekKanocok': termekKanocok = adat || []; break;
+                case 'dobozTipusok': dobozTipusok = adat || []; break;
                 case 'migrationStatus': migrationDone = (adat && adat.done) || false; break;
             }
 
@@ -1875,7 +1877,7 @@
                 'cimkeKeszlet', 'dobozcimkeKeszlet', 'mentettTervezesek',
                 'keszTermekek', 'kiszallitasok', 'partnerek',
                 'aktivDraft', 'termekVariansok', 'alapanyagok', 'receptek',
-                'termekIllatolajok', 'termekKanocok'
+                'termekIllatolajok', 'termekKanocok', 'dobozTipusok'
             ];
 
             dokumentumok.forEach(kulcs => {
@@ -3979,6 +3981,18 @@
                             const dobozcimkeKulcs = getCimkeKulcs(illatId, termek.termekTipusNev, termek.meret);
                             const jelenlegi = dobozcimkeKeszlet[dobozcimkeKulcs] || 0;
                             dobozcimkeKeszlet[dobozcimkeKulcs] = Math.max(0, jelenlegi - termek.mennyiseg);
+                        }
+
+                        // Fizikai doboz-alapanyag levonás HA dobozolva — típusonként más doboz (kezelése: app.andyourstories.com/alapanyagok, Receptek fül).
+                        // Ez a doboz nem kiöntéskor, hanem kiszállításkor fogy. Kiszállítás törlése (ahogy más készleteket sem) ezt sem írja vissza.
+                        if (aktivDraft.dobozolva) {
+                            const dobozTipus = dobozTipusok.find(d => d.termekTipusNev === termek.termekTipusNev);
+                            if (dobozTipus) {
+                                const dobozAlapanyag = alapanyagok.find(a => a.id === dobozTipus.dobozAlapanyagId);
+                                if (dobozAlapanyag) {
+                                    dobozAlapanyag.keszlet = (dobozAlapanyag.keszlet || 0) - termek.mennyiseg;
+                                }
+                            }
                         }
                     });
                     
