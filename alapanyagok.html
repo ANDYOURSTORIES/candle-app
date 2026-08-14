@@ -150,24 +150,49 @@
                 <h2 class="text-base font-semibold text-gray-900">Kanócok</h2>
                 <button class="btn-secondary btn-sm" onclick="ujAlapanyagModalMegnyit('kanoc')">+ Új kanóc</button>
             </div>
-            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-8">
                 <table class="data">
                     <thead><tr><th>Név</th><th>Készlet</th><th>Riasztási szint</th><th>Ebből még készíthető</th><th></th></tr></thead>
                     <tbody id="kanocTest"></tbody>
                 </table>
                 <div id="kanocUres" class="hidden text-center text-sm text-gray-400 py-8">Még nincs kanóc hozzáadva.</div>
             </div>
+
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-base font-semibold text-gray-900">Dobozok</h2>
+                <button class="btn-secondary btn-sm" onclick="ujAlapanyagModalMegnyit('doboz')">+ Új doboz</button>
+            </div>
+            <p class="text-xs text-gray-400 mb-3">A doboz nem a gyártásnál (kiöntéskor) fogy, hanem kiszállításkor — ha a szállítmány "dobozolva" van jelölve. A típus → doboz párosítás a Receptek fülön állítható be.</p>
+            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <table class="data">
+                    <thead><tr><th>Név</th><th>Készlet</th><th>Riasztási szint</th><th></th></tr></thead>
+                    <tbody id="dobozTest"></tbody>
+                </table>
+                <div id="dobozUres" class="hidden text-center text-sm text-gray-400 py-8">Még nincs doboz hozzáadva.</div>
+            </div>
         </div>
 
         <!-- RECEPTEK TAB -->
         <div id="tabReceptek" class="hidden">
             <p class="text-sm text-gray-500 mb-4">Egy recept egy termék típus + méret kombinációhoz tartozik (pl. Gyertya — Kis (120g)), és az általános (nem illatfüggő) alapanyagokat tartalmazza — üveg, kupak, viasz — plusz az alapértelmezett kanócot. A kanóc és illatolaj termékenkénti (SKU-nkénti) egyedi beállítása a 🔒 Termékek &amp; illatolaj fülön van.</p>
-            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-8">
                 <table class="data">
                     <thead><tr><th>Termék típus</th><th>Méret</th><th>Recept</th><th></th></tr></thead>
                     <tbody id="receptekTest"></tbody>
                 </table>
                 <div id="receptekUres" class="hidden text-center text-sm text-gray-400 py-8">Nincs még termék variáns az appban.</div>
+            </div>
+
+            <div>
+                <h2 class="text-base font-semibold text-gray-900 mb-1">Doboz típusonként</h2>
+                <p class="text-sm text-gray-500 mb-3">Melyik terméktípushoz melyik doboz tartozik — ez csak típus szinten van megkülönböztetve (méret/illat mindegy). Kiszállításkor, ha "dobozolva" van jelölve, ez alapján vonódik le a doboz-készlet.</p>
+                <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                    <table class="data">
+                        <thead><tr><th>Termék típus</th><th>Doboz</th></tr></thead>
+                        <tbody id="dobozTipusokTest"></tbody>
+                    </table>
+                    <div id="dobozTipusokUres" class="hidden text-center text-sm text-gray-400 py-8">Nincs még termék variáns az appban.</div>
+                </div>
             </div>
         </div>
 
@@ -358,6 +383,11 @@ function startListeners(db, doc, onSnapshot) {
         window._termekKanocok = snap.exists() ? (snap.data().data || []) : [];
         renderAll();
     });
+    // Nem titkos: terméktípus → doboz hozzárendelés (kiszállításkor fogy, nem kiöntéskor).
+    onSnapshot(doc(db, 'appData', 'dobozTipusok'), snap => {
+        window._dobozTipusok = snap.exists() ? (snap.data().data || []) : [];
+        renderAll();
+    });
 }
 </script>
 
@@ -369,6 +399,7 @@ window._illatok = [];
 window._termekVariansok = [];
 window._termekIllatolajok = [];
 window._termekKanocok = [];
+window._dobozTipusok = [];
 window._isAdmin = false;
 let aktivTab = 'keszlet';
 let idCounter = 0;
@@ -417,6 +448,9 @@ async function mentTermekIllatolajok() {
 async function mentTermekKanocok() {
     await window._setDoc(window._doc(window._db, 'appData', 'termekKanocok'), { data: window._termekKanocok });
 }
+async function mentDobozTipusok() {
+    await window._setDoc(window._doc(window._db, 'appData', 'dobozTipusok'), { data: window._dobozTipusok });
+}
 
 // ===== TAB =====
 function valtTab(tab) {
@@ -436,7 +470,9 @@ function renderAll() {
     renderAltalanos();
     renderIllatolajok();
     renderKanocok();
+    renderDobozok();
     renderReceptek();
+    renderDobozTipusok();
     if (window._isAdmin) renderTermekek();
 }
 
@@ -447,7 +483,25 @@ function formatSzam(n) {
     n = n || 0;
     return Number.isInteger(n) ? n.toString() : n.toFixed(2).replace(/\.?0+$/, '');
 }
-function kategoriaja(a) { return (a.kategoria === 'illatolaj' || a.kategoria === 'kanoc') ? a.kategoria : 'altalanos'; }
+function kategoriaja(a) { return ['illatolaj', 'kanoc', 'doboz'].includes(a.kategoria) ? a.kategoria : 'altalanos'; }
+function attrEscape(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+function alapanyagNevFrissit(id, ujNev) {
+    const a = window._alapanyagok.find(x => x.id === id);
+    if (!a) return;
+    const nev = (ujNev || '').trim();
+    if (!nev) { renderAll(); return; } // üres névre nem engedünk menteni, visszaállítjuk a régit
+    a.nev = nev;
+    mentAlapanyagok();
+    renderAll();
+}
+function alapanyagForrasFrissit(id, ujForras) {
+    const a = window._alapanyagok.find(x => x.id === id);
+    if (!a) return;
+    a.forras = (ujForras || '').trim() || null;
+    mentAlapanyagok();
+    renderAll();
+}
 
 function renderFogyoban() {
     const fogyok = window._alapanyagok.filter(alacsonyKeszletu);
@@ -503,7 +557,7 @@ function renderAltalanos() {
     document.getElementById('altalanosUres').classList.toggle('hidden', lista.length > 0);
     tbody.innerHTML = lista.map(a => `
         <tr class="${alacsonyKeszletu(a) ? 'low-stock' : ''}">
-            <td class="font-medium text-gray-800">${a.nev}${a.forras ? `<div class="text-xs font-normal text-gray-400">🏭 ${a.forras}</div>` : ''}</td>
+            <td><input type="text" value="${attrEscape(a.nev)}" onchange="alapanyagNevFrissit(${a.id}, this.value)" style="border:none; background:transparent; font-weight:600; color:#1f2937; padding:2px 0; width:100%; font-size:13.5px;"><input type="text" value="${attrEscape(a.forras || '')}" placeholder="🏭 Forrás (gyártó/forgalmazó)" onchange="alapanyagForrasFrissit(${a.id}, this.value)" style="border:none; background:transparent; color:#9ca3af; padding:0; width:100%; font-size:11px;"></td>
             <td>
                 <div class="flex items-center gap-1.5">
                     <input type="number" class="row-input stock-val" value="${a.keszlet ?? 0}" step="any"
@@ -561,7 +615,7 @@ function renderIllatolajok() {
             : '<span class="text-gray-300 text-xs">—</span>';
         return `
         <tr class="${alacsonyKeszletu(a) ? 'low-stock' : ''}">
-            <td class="font-medium text-gray-800">${a.nev}${a.forras ? `<div class="text-xs font-normal text-gray-400">🏭 ${a.forras}</div>` : ''}</td>
+            <td><input type="text" value="${attrEscape(a.nev)}" onchange="alapanyagNevFrissit(${a.id}, this.value)" style="border:none; background:transparent; font-weight:600; color:#1f2937; padding:2px 0; width:100%; font-size:13.5px;"><input type="text" value="${attrEscape(a.forras || '')}" placeholder="🏭 Forrás (gyártó/forgalmazó)" onchange="alapanyagForrasFrissit(${a.id}, this.value)" style="border:none; background:transparent; color:#9ca3af; padding:0; width:100%; font-size:11px;"></td>
             <td>
                 <div class="flex items-center gap-1.5">
                     <input type="number" class="row-input stock-val" value="${a.keszlet ?? 0}" step="any"
@@ -588,7 +642,7 @@ function renderKanocok() {
     document.getElementById('kanocUres').classList.toggle('hidden', lista.length > 0);
     tbody.innerHTML = lista.map(a => `
         <tr class="${alacsonyKeszletu(a) ? 'low-stock' : ''}">
-            <td class="font-medium text-gray-800">${a.nev}${a.forras ? `<div class="text-xs font-normal text-gray-400">🏭 ${a.forras}</div>` : ''}</td>
+            <td><input type="text" value="${attrEscape(a.nev)}" onchange="alapanyagNevFrissit(${a.id}, this.value)" style="border:none; background:transparent; font-weight:600; color:#1f2937; padding:2px 0; width:100%; font-size:13.5px;"><input type="text" value="${attrEscape(a.forras || '')}" placeholder="🏭 Forrás (gyártó/forgalmazó)" onchange="alapanyagForrasFrissit(${a.id}, this.value)" style="border:none; background:transparent; color:#9ca3af; padding:0; width:100%; font-size:11px;"></td>
             <td>
                 <div class="flex items-center gap-1.5">
                     <input type="number" class="row-input stock-val" value="${a.keszlet ?? 0}" step="any"
@@ -601,6 +655,32 @@ function renderKanocok() {
                     onchange="alapanyagMinFrissit(${a.id}, this.value)">
             </td>
             <td>${yieldPillekHtml(altalanosYield(a))}</td>
+            <td class="text-right">
+                <button class="text-gray-300 hover:text-red-600 text-sm" onclick="alapanyagTorol(${a.id})">🗑️</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// ===== DOBOZOK (Készlet tab — nincs "készíthető még" oszlop, mert nem receptből, hanem kiszállításkor fogy) =====
+function renderDobozok() {
+    const lista = window._alapanyagok.filter(a => kategoriaja(a) === 'doboz').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+    const tbody = document.getElementById('dobozTest');
+    document.getElementById('dobozUres').classList.toggle('hidden', lista.length > 0);
+    tbody.innerHTML = lista.map(a => `
+        <tr class="${alacsonyKeszletu(a) ? 'low-stock' : ''}">
+            <td><input type="text" value="${attrEscape(a.nev)}" onchange="alapanyagNevFrissit(${a.id}, this.value)" style="border:none; background:transparent; font-weight:600; color:#1f2937; padding:2px 0; width:100%; font-size:13.5px;"><input type="text" value="${attrEscape(a.forras || '')}" placeholder="🏭 Forrás (gyártó/forgalmazó)" onchange="alapanyagForrasFrissit(${a.id}, this.value)" style="border:none; background:transparent; color:#9ca3af; padding:0; width:100%; font-size:11px;"></td>
+            <td>
+                <div class="flex items-center gap-1.5">
+                    <input type="number" class="row-input stock-val" value="${a.keszlet ?? 0}" step="any"
+                        onchange="alapanyagKeszletFrissit(${a.id}, this.value)">
+                    <span class="text-gray-400 text-xs">${a.mertekegyseg}</span>
+                </div>
+            </td>
+            <td>
+                <input type="number" class="row-input" value="${a.minKeszlet ?? ''}" step="any" placeholder="—"
+                    onchange="alapanyagMinFrissit(${a.id}, this.value)">
+            </td>
             <td class="text-right">
                 <button class="text-gray-300 hover:text-red-600 text-sm" onclick="alapanyagTorol(${a.id})">🗑️</button>
             </td>
@@ -626,9 +706,11 @@ function alapanyagTorol(id) {
     const hasznaltReceptben = window._receptek.some(r => (r.tetelek || []).some(t => t.alapanyagId === id) || r.kanocAlapanyagId === id);
     const hasznaltTermekben = window._termekIllatolajok.some(h => (h.tetelek || []).some(t => t.alapanyagId === id));
     const hasznaltKanocHozzarendelesben = window._termekKanocok.some(k => k.kanocAlapanyagId === id);
+    const hasznaltDobozTipusban = window._dobozTipusok.some(d => d.dobozAlapanyagId === id);
     if (hasznaltReceptben) { alert('Nem törölhető — recept hivatkozik rá (általános tétel vagy alapértelmezett kanóc). Előbb vedd ki onnan.'); return; }
     if (hasznaltTermekben) { alert('Nem törölhető — egy termékhez hozzá van rendelve. Előbb vedd ki onnan (🔒 fül).'); return; }
     if (hasznaltKanocHozzarendelesben) { alert('Nem törölhető — legalább egy termék egyedi kanócként ezt használja (Receptek fül, "Kanóc termékenként"). Előbb állítsd át azokat.'); return; }
+    if (hasznaltDobozTipusban) { alert('Nem törölhető — legalább egy terméktípus ezt a dobozt használja (Receptek fül, "Doboz típusonként"). Előbb állítsd át azokat.'); return; }
     if (!confirm('Biztosan törlöd?')) return;
     window._alapanyagok = window._alapanyagok.filter(a => a.id !== id);
     mentAlapanyagok();
@@ -643,7 +725,7 @@ function ujAlapanyagModalMegnyit(kategoria) {
     ujAlapanyagKategoria = kategoria;
     ujAlapanyagTermekTetelek = [];
     document.getElementById('ujAlapanyagCim').textContent =
-        kategoria === 'illatolaj' ? 'Új illatolaj' : kategoria === 'kanoc' ? 'Új kanóc' : 'Új általános alapanyag';
+        kategoria === 'illatolaj' ? 'Új illatolaj' : kategoria === 'kanoc' ? 'Új kanóc' : kategoria === 'doboz' ? 'Új doboz' : 'Új általános alapanyag';
     document.getElementById('ujAlapanyagNev').value = '';
     document.getElementById('ujAlapanyagForras').value = '';
     document.getElementById('ujAlapanyagMertekegyseg').value = kategoria === 'illatolaj' ? 'ml' : 'db';
@@ -920,6 +1002,43 @@ function receptMentes() {
     renderAll();
 }
 
+// ===== DOBOZ TÍPUSONKÉNT (nem titkos, csak típus szerint — méret/illat mindegy) =====
+function renderDobozTipusok() {
+    const map = new Map(); // termekTipusNev -> csak az első előfordulás
+    window._termekVariansok.forEach(v => {
+        if (!map.has(v.termekTipusNev)) map.set(v.termekTipusNev, v.termekTipusNev);
+    });
+    const tipusok = [...map.keys()].sort((a, b) => a.localeCompare(b, 'hu'));
+
+    const dobozok = window._alapanyagok.filter(a => kategoriaja(a) === 'doboz').sort((a, b) => a.nev.localeCompare(b.nev, 'hu'));
+    const tbody = document.getElementById('dobozTipusokTest');
+    document.getElementById('dobozTipusokUres').classList.toggle('hidden', tipusok.length > 0);
+
+    tbody.innerHTML = tipusok.map(tipusNev => {
+        const jelenlegi = window._dobozTipusok.find(d => d.termekTipusNev === tipusNev);
+        return `
+            <tr>
+                <td class="font-medium text-gray-800">${tipusNev}</td>
+                <td>
+                    <select onchange="dobozTipusFrissit('${tipusNev.replace(/'/g, "\\'")}', this.value)">
+                        <option value="">— nincs beállítva —</option>
+                        ${dobozok.map(a => `<option value="${a.id}" ${jelenlegi && jelenlegi.dobozAlapanyagId === a.id ? 'selected' : ''}>${a.nev}</option>`).join('')}
+                    </select>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function dobozTipusFrissit(termekTipusNev, dobozAlapanyagIdStr) {
+    window._dobozTipusok = window._dobozTipusok.filter(d => d.termekTipusNev !== termekTipusNev);
+    if (dobozAlapanyagIdStr) {
+        window._dobozTipusok.push({ termekTipusNev, dobozAlapanyagId: parseInt(dobozAlapanyagIdStr) });
+    }
+    mentDobozTipusok();
+    renderAll();
+}
+
 // ===== KANÓC HOZZÁRENDELÉS (nem titkos adat, de csak a 🔒 admin fülön szerkeszthető felület) =====
 function kanocHozzarendelesFrissit(termekVariansId, kanocAlapanyagIdStr) {
     window._termekKanocok = window._termekKanocok.filter(k => k.termekVariansId !== termekVariansId);
@@ -1165,6 +1284,8 @@ window.valtTab = valtTab;
 window.alapanyagKeszletFrissit = alapanyagKeszletFrissit;
 window.alapanyagMinFrissit = alapanyagMinFrissit;
 window.alapanyagTorol = alapanyagTorol;
+window.alapanyagNevFrissit = alapanyagNevFrissit;
+window.alapanyagForrasFrissit = alapanyagForrasFrissit;
 window.ujAlapanyagModalMegnyit = ujAlapanyagModalMegnyit;
 window.ujAlapanyagMentes = ujAlapanyagMentes;
 window.ujAlapanyagMertekegysegValt = ujAlapanyagMertekegysegValt;
@@ -1178,6 +1299,7 @@ window.receptTetelHozzaad = receptTetelHozzaad;
 window.receptTetelTorol = receptTetelTorol;
 window.receptMentes = receptMentes;
 window.kanocHozzarendelesFrissit = kanocHozzarendelesFrissit;
+window.dobozTipusFrissit = dobozTipusFrissit;
 window.renderTermekek = renderTermekek;
 window.illatOlajSlotNoveles = illatOlajSlotNoveles;
 window.termekekBulkModeValt = termekekBulkModeValt;
