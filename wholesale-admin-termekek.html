@@ -21,29 +21,59 @@
 
 <!-- Admin felület -->
 <div id="admin-screen" class="hidden max-w-6xl mx-auto px-4 py-6">
-  <div class="flex items-center justify-between mb-6">
+  <div class="flex items-center justify-between mb-4">
     <h1 class="text-lg font-semibold">Wholesale — Termékek</h1>
     <div class="flex gap-2">
+      <button id="bulk-toggle-btn" class="bg-white border border-gray-300 rounded px-3 py-1.5 text-sm">☑️ Tömeges szerkesztés</button>
       <button id="sync-btn" class="bg-white border border-gray-300 rounded px-3 py-1.5 text-sm">🛍️ Szinkronizálás most</button>
       <button id="logout-btn" class="text-sm text-gray-500">Kilépés</button>
     </div>
   </div>
   <p id="sync-status" class="text-xs text-gray-500 mb-4"></p>
 
+  <!-- Tömeges szerkesztés sáv -->
+  <div id="bulk-bar" class="hidden bg-gray-900 text-white rounded-lg px-4 py-3 mb-4 flex flex-wrap items-center gap-3 text-sm">
+    <span id="bulk-count">0 kijelölve</span>
+    <button id="bulk-show-btn" class="bg-white/10 hover:bg-white/20 rounded px-3 py-1">Láthatóvá tétel</button>
+    <button id="bulk-hide-btn" class="bg-white/10 hover:bg-white/20 rounded px-3 py-1">Elrejtés</button>
+    <span class="border-l border-white/20 pl-3 flex items-center gap-2">
+      MOQ:
+      <input id="bulk-moq-input" type="number" min="1" class="w-16 rounded px-2 py-1 text-gray-900 text-sm">
+      <button id="bulk-moq-btn" class="bg-white/10 hover:bg-white/20 rounded px-3 py-1">Alkalmaz</button>
+    </span>
+    <button id="bulk-tiers-btn" class="bg-white/10 hover:bg-white/20 rounded px-3 py-1">Ársáv sablon alkalmazása</button>
+  </div>
+
   <div class="bg-white rounded-lg border border-gray-200 overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-gray-200 text-left text-gray-500">
+          <th id="th-select" class="px-3 py-2 font-medium hidden">
+            <input type="checkbox" id="select-all">
+          </th>
           <th class="px-3 py-2 font-medium">Látható</th>
           <th class="px-3 py-2 font-medium">SKU</th>
           <th class="px-3 py-2 font-medium">Termék</th>
           <th class="px-3 py-2 font-medium">Készlet</th>
           <th class="px-3 py-2 font-medium">MOQ</th>
-          <th class="px-3 py-2 font-medium">Ársávok (mennyiség → ár)</th>
+          <th class="px-3 py-2 font-medium">Ársávok</th>
         </tr>
       </thead>
       <tbody id="product-rows"></tbody>
     </table>
+  </div>
+</div>
+
+<!-- Ársáv szerkesztő modal -->
+<div id="tiers-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-lg p-5 w-full max-w-sm">
+    <h2 id="tiers-modal-title" class="font-semibold mb-3 text-sm">Ársávok szerkesztése</h2>
+    <div id="tiers-rows" class="space-y-2 mb-3"></div>
+    <button id="tiers-add-row" class="text-sm text-blue-600 mb-4">+ Sáv hozzáadása</button>
+    <div class="flex justify-end gap-2">
+      <button id="tiers-cancel" class="text-sm text-gray-500 px-3 py-1.5">Mégse</button>
+      <button id="tiers-save" class="text-sm bg-gray-900 text-white rounded px-3 py-1.5">Mentés</button>
+    </div>
   </div>
 </div>
 
@@ -53,7 +83,7 @@
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import {
-    getFirestore, collection, onSnapshot, doc, updateDoc, orderBy, query
+    getFirestore, collection, onSnapshot, doc, updateDoc, orderBy, query, writeBatch
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   // ⚠️ Illeszd be ugyanazt a firebaseConfig blokkot, amit az app.andyourstories.com
@@ -74,7 +104,7 @@
   // Admin e-mail whitelist — vedd fel Márti címét is
   const ADMIN_EMAILS = ["juraj.german@andyourstories.com"];
 
-  // Cloud Function URL — a deploy után írd ide a tényleges Cloud Run URL-t
+  // Cloud Function URL
   const SYNC_FUNCTION_URL = "https://wholesale-shopify-sync-642343737324.europe-west1.run.app";
 
   const loginScreen = document.getElementById("login-screen");
@@ -101,22 +131,25 @@
       adminScreen.classList.remove("hidden");
       listenToProducts();
     } else {
-      if (user) signOut(auth); // bejelentkezett, de nincs jogosultsága
+      if (user) signOut(auth);
       loginScreen.classList.remove("hidden");
       adminScreen.classList.add("hidden");
     }
   });
+
+  // --- Állapot ---
+  let currentProducts = []; // [{sku, data}]
+  let bulkMode = false;
+  const selectedSkus = new Set();
 
   function listenToProducts() {
     const q = query(collection(db, "wholesaleProducts"), orderBy("title"));
     onSnapshot(
       q,
       (snapshot) => {
-        const tbody = document.getElementById("product-rows");
-        tbody.innerHTML = "";
-        snapshot.forEach((docSnap) => {
-          tbody.appendChild(renderRow(docSnap.id, docSnap.data()));
-        });
+        currentProducts = [];
+        snapshot.forEach((docSnap) => currentProducts.push({ sku: docSnap.id, data: docSnap.data() }));
+        renderTable();
       },
       (err) => {
         console.error("Firestore olvasási hiba:", err);
@@ -125,14 +158,27 @@
     );
   }
 
+  function renderTable() {
+    const tbody = document.getElementById("product-rows");
+    tbody.innerHTML = "";
+    currentProducts.forEach(({ sku, data }) => tbody.appendChild(renderRow(sku, data)));
+    document.getElementById("th-select").classList.toggle("hidden", !bulkMode);
+    updateBulkBar();
+  }
+
   function renderRow(sku, data) {
     const tr = document.createElement("tr");
     tr.className = "border-b border-gray-100";
 
     const priceTiers = data.priceTiers || [];
-    const tiersText = priceTiers.map(t => `${t.minQty}+ → ${t.price}`).join(", ");
+    const tiersSummary = priceTiers.length
+      ? priceTiers.map(t => `${t.minQty}+ db → ${t.price}`).join(" · ")
+      : "Nincs beállítva";
 
     tr.innerHTML = `
+      <td class="px-3 py-2 ${bulkMode ? "" : "hidden"}">
+        <input type="checkbox" class="row-select w-4 h-4" ${selectedSkus.has(sku) ? "checked" : ""}>
+      </td>
       <td class="px-3 py-2">
         <input type="checkbox" class="visible-toggle w-4 h-4" ${data.visible ? "checked" : ""}>
       </td>
@@ -143,12 +189,16 @@
         <input type="number" class="moq-input w-16 border rounded px-2 py-1 text-sm" value="${data.moq ?? 1}" min="1">
       </td>
       <td class="px-3 py-2">
-        <input type="text" class="tiers-input w-64 border rounded px-2 py-1 text-sm"
-               value="${tiersText}" placeholder="pl. 12+ → 2500, 24+ → 2200">
+        <button class="tiers-edit-btn text-blue-600 hover:underline text-left text-xs">${tiersSummary}</button>
       </td>
     `;
 
     const docRef = doc(db, "wholesaleProducts", sku);
+
+    tr.querySelector(".row-select").addEventListener("change", (e) => {
+      if (e.target.checked) selectedSkus.add(sku); else selectedSkus.delete(sku);
+      updateBulkBar();
+    });
 
     tr.querySelector(".visible-toggle").addEventListener("change", (e) => {
       updateDoc(docRef, { visible: e.target.checked });
@@ -158,24 +208,103 @@
       updateDoc(docRef, { moq: parseInt(e.target.value, 10) || 1 });
     });
 
-    tr.querySelector(".tiers-input").addEventListener("change", (e) => {
-      const parsed = parseTiersInput(e.target.value);
-      updateDoc(docRef, { priceTiers: parsed });
+    tr.querySelector(".tiers-edit-btn").addEventListener("click", () => {
+      openTiersModal([sku], priceTiers);
     });
 
     return tr;
   }
 
-  // "12+ → 2500, 24+ → 2200" formátum feldolgozása [{minQty, price}] tömbbé
-  function parseTiersInput(text) {
-    if (!text.trim()) return [];
-    return text.split(",").map(part => {
-      const match = part.trim().match(/(\d+)\+?\s*(?:→|->|:)\s*(\d+(?:\.\d+)?)/);
-      if (!match) return null;
-      return { minQty: parseInt(match[1], 10), price: parseFloat(match[2]) };
-    }).filter(Boolean).sort((a, b) => a.minQty - b.minQty);
+  // --- Tömeges szerkesztés ---
+  const bulkToggleBtn = document.getElementById("bulk-toggle-btn");
+  const bulkBar = document.getElementById("bulk-bar");
+  const selectAllCheckbox = document.getElementById("select-all");
+
+  bulkToggleBtn.addEventListener("click", () => {
+    bulkMode = !bulkMode;
+    bulkToggleBtn.classList.toggle("bg-gray-900", bulkMode);
+    bulkToggleBtn.classList.toggle("text-white", bulkMode);
+    if (!bulkMode) selectedSkus.clear();
+    renderTable();
+  });
+
+  selectAllCheckbox.addEventListener("change", (e) => {
+    if (e.target.checked) currentProducts.forEach(p => selectedSkus.add(p.sku));
+    else selectedSkus.clear();
+    renderTable();
+  });
+
+  function updateBulkBar() {
+    bulkBar.classList.toggle("hidden", !bulkMode || selectedSkus.size === 0);
+    document.getElementById("bulk-count").textContent = `${selectedSkus.size} kijelölve`;
   }
 
+  document.getElementById("bulk-show-btn").addEventListener("click", () => bulkSetVisible(true));
+  document.getElementById("bulk-hide-btn").addEventListener("click", () => bulkSetVisible(false));
+
+  async function bulkSetVisible(visible) {
+    const batch = writeBatch(db);
+    selectedSkus.forEach(sku => batch.update(doc(db, "wholesaleProducts", sku), { visible }));
+    await batch.commit();
+  }
+
+  document.getElementById("bulk-moq-btn").addEventListener("click", async () => {
+    const moq = parseInt(document.getElementById("bulk-moq-input").value, 10);
+    if (!moq || moq < 1) return;
+    const batch = writeBatch(db);
+    selectedSkus.forEach(sku => batch.update(doc(db, "wholesaleProducts", sku), { moq }));
+    await batch.commit();
+  });
+
+  document.getElementById("bulk-tiers-btn").addEventListener("click", () => {
+    openTiersModal([...selectedSkus], []);
+  });
+
+  // --- Ársáv modal ---
+  const tiersModal = document.getElementById("tiers-modal");
+  const tiersRows = document.getElementById("tiers-rows");
+  let tiersModalTargetSkus = [];
+
+  function openTiersModal(skus, initialTiers) {
+    tiersModalTargetSkus = skus;
+    document.getElementById("tiers-modal-title").textContent =
+      skus.length > 1 ? `Ársáv sablon alkalmazása ${skus.length} termékre` : `Ársávok — ${skus[0]}`;
+    tiersRows.innerHTML = "";
+    (initialTiers.length ? initialTiers : [{ minQty: "", price: "" }]).forEach(addTierRow);
+    tiersModal.classList.remove("hidden");
+  }
+
+  function addTierRow(tier = { minQty: "", price: "" }) {
+    const row = document.createElement("div");
+    row.className = "flex items-center gap-2";
+    row.innerHTML = `
+      <input type="number" min="1" placeholder="Mennyiségtől" value="${tier.minQty}"
+             class="tier-min w-28 border rounded px-2 py-1 text-sm">
+      <span class="text-gray-400 text-sm">db →</span>
+      <input type="number" min="0" step="0.01" placeholder="Ár" value="${tier.price}"
+             class="tier-price w-24 border rounded px-2 py-1 text-sm">
+      <button class="tier-remove text-red-500 text-sm px-1">✕</button>
+    `;
+    row.querySelector(".tier-remove").addEventListener("click", () => row.remove());
+    tiersRows.appendChild(row);
+  }
+
+  document.getElementById("tiers-add-row").addEventListener("click", () => addTierRow());
+  document.getElementById("tiers-cancel").addEventListener("click", () => tiersModal.classList.add("hidden"));
+
+  document.getElementById("tiers-save").addEventListener("click", async () => {
+    const tiers = [...tiersRows.querySelectorAll(":scope > div")].map(row => ({
+      minQty: parseInt(row.querySelector(".tier-min").value, 10),
+      price: parseFloat(row.querySelector(".tier-price").value),
+    })).filter(t => t.minQty > 0 && !isNaN(t.price)).sort((a, b) => a.minQty - b.minQty);
+
+    const batch = writeBatch(db);
+    tiersModalTargetSkus.forEach(sku => batch.update(doc(db, "wholesaleProducts", sku), { priceTiers: tiers }));
+    await batch.commit();
+    tiersModal.classList.add("hidden");
+  });
+
+  // --- Sync gomb ---
   document.getElementById("sync-btn").addEventListener("click", async () => {
     const status = document.getElementById("sync-status");
     status.textContent = "Szinkronizálás folyamatban...";
