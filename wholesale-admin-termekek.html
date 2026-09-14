@@ -75,7 +75,7 @@
   const ADMIN_EMAILS = ["juraj.german@andyourstories.com"];
 
   // Cloud Function URL — a deploy után írd ide a tényleges Cloud Run URL-t
-  const SYNC_FUNCTION_URL = "https://europe-west1-ays-production-5ab41.cloudfunctions.net/wholesaleShopifySync";
+  const SYNC_FUNCTION_URL = "https://wholesale-shopify-sync-642343737324.europe-west1.run.app";
 
   const loginScreen = document.getElementById("login-screen");
   const adminScreen = document.getElementById("admin-screen");
@@ -109,13 +109,20 @@
 
   function listenToProducts() {
     const q = query(collection(db, "wholesaleProducts"), orderBy("title"));
-    onSnapshot(q, (snapshot) => {
-      const tbody = document.getElementById("product-rows");
-      tbody.innerHTML = "";
-      snapshot.forEach((docSnap) => {
-        tbody.appendChild(renderRow(docSnap.id, docSnap.data()));
-      });
-    });
+    onSnapshot(
+      q,
+      (snapshot) => {
+        const tbody = document.getElementById("product-rows");
+        tbody.innerHTML = "";
+        snapshot.forEach((docSnap) => {
+          tbody.appendChild(renderRow(docSnap.id, docSnap.data()));
+        });
+      },
+      (err) => {
+        console.error("Firestore olvasási hiba:", err);
+        document.getElementById("sync-status").textContent = `Firestore hiba: ${err.code || err.message}`;
+      }
+    );
   }
 
   function renderRow(sku, data) {
